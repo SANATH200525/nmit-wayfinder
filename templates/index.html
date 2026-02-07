@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NMIT Wayfinder</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #1e293b;
+            --border-color: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        h2 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-top: 0;
+        }
+
+        /* --- Form Styles --- */
+        form {
+            margin-bottom: 30px;
+            background: #f1f5f9;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn:hover {
+            background-color: #1d4ed8;
+        }
+
+        /* --- Map Visualization Styles --- */
+        .map-wrapper {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .map-container {
+            position: relative;
+            width: 100%;
+            max-width: 100%; /* Responsive width */
+            margin: 20px 0;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .map-image {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .map-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Allows clicks to pass through to the image */
+        }
+
+        .floor-title {
+            background: #e2e8f0;
+            padding: 5px;
+            margin: 0;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #475569;
+        }
+
+        /* --- Instruction Step Styles --- */
+        .instructions {
+            margin-top: 30px;
+        }
+
+        .step-card {
+            background: #eff6ff;
+            border-left: 5px solid var(--primary-color);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>📍 NMIT Wayfinder</h2>
+
+    <form method="POST">
+        <label for="start_node">Current Location:</label>
+        <select name="start_node" id="start_node">
+            {% for code, name in nodes %}
+            <option value="{{ code }}">{{ name }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="end_node">Destination:</label>
+        <select name="end_node" id="end_node">
+            {% for code, name in nodes %}
+            <option value="{{ code }}">{{ name }}</option>
+            {% endfor %}
+        </select>
+
+        <input type="submit" value="Start Navigation" class="btn">
+    </form>
+
+    {% if path_data != "[]" %}
+    <div class="map-wrapper">
+        <h3>🗺️ Live Path View</h3>
+
+        <div id="f1-container" style="display:none;">
+            <h4 class="floor-title">Floor 1</h4>
+            <div class="map-container">
+                <img src="{{ url_for('static', filename='floor1.png') }}" class="map-image" alt="Floor 1 Map">
+                <svg id="svg-f1" class="map-overlay"></svg>
+            </div>
+        </div>
+
+        <div id="f2-container" style="display:none;">
+            <h4 class="floor-title">Floor 2</h4>
+            <div class="map-container">
+                <img src="{{ url_for('static', filename='floor2.png') }}" class="map-image" alt="Floor 2 Map">
+                <svg id="svg-f2" class="map-overlay"></svg>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if result %}
+    <div class="instructions">
+        <h3>📝 Steps</h3>
+        {% for step in result %}
+        <div class="step-card">{{ step|safe }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    // Receive JSON data from Flask
+    var pathData = {{ path_data|safe }};
+
+    if (pathData && pathData.length > 0) {
+        drawPath(pathData);
+    }
+
+    function drawPath(path) {
+        var pointsF1 = "";
+        var pointsF2 = "";
+        var hasF1 = false;
+        var hasF2 = false;
+
+        var startNode = path[0];
+        var endNode = path[path.length - 1];
+
+        // Loop through coordinates to build SVG point strings
+        for (var i = 0; i < path.length; i++) {
+            var node = path[i];
+            // Coordinate mapping: X% , Y%
+            var coords = node.x + "%," + node.y + "%";
+
+            if (node.floor === 1) {
+                pointsF1 += coords + " ";
+                hasF1 = true;
+            } else if (node.floor === 2) {
+                pointsF2 += coords + " ";
+                hasF2 = true;
+            }
+        }
+
+        // Render Floor 1 if needed
+        if (hasF1) {
+            document.getElementById('f1-container').style.display = 'block';
+            renderSVG('svg-f1', pointsF1, startNode.floor === 1 ? startNode : null, endNode.floor === 1 ? endNode : null);
+        }
+
+        // Render Floor 2 if needed
+        if (hasF2) {
+            document.getElementById('f2-container').style.display = 'block';
+            renderSVG('svg-f2', pointsF2, startNode.floor === 2 ? startNode : null, endNode.floor === 2 ? endNode : null);
+        }
+    }
+
+    function renderSVG(svgId, pointsStr, startObj, endObj) {
+        var svg = document.getElementById(svgId);
+
+        // 1. Draw the Path Line
+        var polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+        polyline.setAttribute("points", pointsStr);
+        polyline.setAttribute("style", "fill:none;stroke:#2563eb;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:10,5;opacity:0.8");
+        svg.appendChild(polyline);
+
+        // 2. Draw Start Circle (Green) if start is on this floor
+        if (startObj) {
+            var circleStart = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circleStart.setAttribute("cx", startObj.x + "%");
+            circleStart.setAttribute("cy", startObj.y + "%");
+            circleStart.setAttribute("r", "8"); // Radius size
+            circleStart.setAttribute("fill", "#10b981"); // Green
+            circleStart.setAttribute("stroke", "#ffffff");
+            circleStart.setAttribute("stroke-width", "2");
+            svg.appendChild(circleStart);
+        }
+
+        // 3. Draw End Circle (Red) if end is on this floor
+        if (endObj) {
+            var circleEnd = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circleEnd.setAttribute("cx", endObj.x + "%");
+            circleEnd.setAttribute("cy", endObj.y + "%");
+            circleEnd.setAttribute("r", "8");
+            circleEnd.setAttribute("fill", "#ef4444"); // Red
+            circleEnd.setAttribute("stroke", "#ffffff");
+            circleEnd.setAttribute("stroke-width", "2");
+            svg.appendChild(circleEnd);
+        }
+    }
+</script>
+
+</body>
+</html>

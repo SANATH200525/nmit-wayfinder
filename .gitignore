@@ -1,0 +1,19 @@
+# Python virtual environment (Critical to ignore)
+venv/
+.venv/
+env/
+
+# Python compiled bytecode (Junk files)
+__pycache__/
+*.pyc
+
+# IDE settings (Optional, but good to ignore)
+.vscode/
+.idea/
+
+# Mac/Windows system files
+.DS_Store
+Thumbs.db
+
+# Environment variables (If you add secrets later)
+.env
