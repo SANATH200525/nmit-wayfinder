@@ -3,268 +3,135 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NMIT Wayfinder</title>
-    <style>
-        :root {
-            --primary-color: #2563eb;
-            --bg-color: #f8fafc;
-            --card-bg: #ffffff;
-            --text-color: #1e293b;
-            --border-color: #e2e8f0;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: var(--card-bg);
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
-
-        h2 {
-            text-align: center;
-            color: var(--primary-color);
-            margin-top: 0;
-        }
-
-        /* --- Form Styles --- */
-        form {
-            margin-bottom: 30px;
-            background: #f1f5f9;
-            padding: 20px;
-            border-radius: 8px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-        }
-
-        select {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            font-size: 16px;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 12px;
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .btn:hover {
-            background-color: #1d4ed8;
-        }
-
-        /* --- Map Visualization Styles --- */
-        .map-wrapper {
-            margin-top: 30px;
-            text-align: center;
-        }
-
-        .map-container {
-            position: relative;
-            width: 100%;
-            max-width: 100%; /* Responsive width */
-            margin: 20px 0;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        .map-image {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
-
-        .map-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none; /* Allows clicks to pass through to the image */
-        }
-
-        .floor-title {
-            background: #e2e8f0;
-            padding: 5px;
-            margin: 0;
-            font-size: 0.9rem;
-            font-weight: bold;
-            color: #475569;
-        }
-
-        /* --- Instruction Step Styles --- */
-        .instructions {
-            margin-top: 30px;
-        }
-
-        .step-card {
-            background: #eff6ff;
-            border-left: 5px solid var(--primary-color);
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 4px;
-            line-height: 1.5;
-        }
-    </style>
+    <title>NMIT Wayfinder - Navigator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Orbitron:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="static/style.css">
 </head>
 <body>
 
-<div class="container">
-    <h2>📍 NMIT Wayfinder</h2>
-
-    <form method="POST">
-        <label for="start_node">Current Location:</label>
-        <select name="start_node" id="start_node">
-            {% for code, name in nodes %}
-            <option value="{{ code }}">{{ name }}</option>
-            {% endfor %}
-        </select>
-
-        <label for="end_node">Destination:</label>
-        <select name="end_node" id="end_node">
-            {% for code, name in nodes %}
-            <option value="{{ code }}">{{ name }}</option>
-            {% endfor %}
-        </select>
-
-        <input type="submit" value="Start Navigation" class="btn">
-    </form>
-
-    {% if path_data != "[]" %}
-    <div class="map-wrapper">
-        <h3>🗺️ Live Path View</h3>
-
-        <div id="f1-container" style="display:none;">
-            <h4 class="floor-title">Floor 1</h4>
-            <div class="map-container">
-                <img src="{{ url_for('static', filename='floor1.png') }}" class="map-image" alt="Floor 1 Map">
-                <svg id="svg-f1" class="map-overlay"></svg>
+    <main class="app-container">
+        
+        <section class="navigator-panel">
+            <div class="header-section">
+                <div class="status-badge"><span class="status-dot"></span> SYSTEM READY</div>
+                
+                <div class="title-wrapper">
+                    <svg class="main-logo" width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="logo-gradient" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#22d3ee" /> 
+                                <stop offset="1" stop-color="#3b82f6" /> 
+                            </linearGradient>
+                        </defs>
+                        <path d="M12 2L19 21L12 17L5 21L12 2Z" fill="url(#logo-gradient)" stroke="none"/>
+                    </svg>
+                    <h1>WAYFINDER</h1>
+                </div>
+                <p class="subtitle">NMIT Campus Navigation System</p>
             </div>
-        </div>
 
-        <div id="f2-container" style="display:none;">
-            <h4 class="floor-title">Floor 2</h4>
-            <div class="map-container">
-                <img src="{{ url_for('static', filename='floor2.png') }}" class="map-image" alt="Floor 2 Map">
-                <svg id="svg-f2" class="map-overlay"></svg>
+            <form method="POST">
+                
+                <div class="form-group">
+                    <label class="field-label">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line><path d="M12 6L15 13L12 11.5L9 13L12 6Z" fill="currentColor" stroke="none"></path></svg>
+                        CURRENT LOCATION
+                    </label>
+                    
+                    <div class="custom-select-wrapper">
+                        <div class="custom-select-trigger">
+                            <span>-- Select Start Point --</span>
+                            <div class="arrow">▼</div>
+                        </div>
+                        <div class="custom-options">
+                            {% for code, name in nodes %}
+                                <span class="custom-option" data-value="{{ code }}">{{ name }}</span>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" name="start_node" id="start_node" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="field-label">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><map name=""></map><path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"></path><path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z"></path></svg>
+                        DESTINATION
+                    </label>
+                    
+                    <div class="custom-select-wrapper">
+                        <div class="custom-select-trigger">
+                            <span>-- Select Destination --</span>
+                            <div class="arrow">▼</div>
+                        </div>
+                        <div class="custom-options">
+                            {% for code, name in nodes %}
+                                <span class="custom-option" data-value="{{ code }}">{{ name }}</span>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" name="end_node" id="end_node" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="start-btn" id="start-navigation-btn">
+                    <span class="btn-text">INITIATE SEQUENCE</span>
+                    <span class="btn-glare"></span>
+                </button>
+            </form>
+            
+            {% if result %}
+            <div class="steps-container">
+                 {% for step in result %}
+                    <div class="step-card">{{ step|safe }}</div>
+                 {% endfor %}
             </div>
-        </div>
-    </div>
-    {% endif %}
+            {% endif %}
 
-    {% if result %}
-    <div class="instructions">
-        <h3>📝 Steps</h3>
-        {% for step in result %}
-        <div class="step-card">{{ step|safe }}</div>
-        {% endfor %}
-    </div>
-    {% endif %}
-</div>
+        </section>
 
-<script>
-    // Receive JSON data from Flask
-    var pathData = {{ path_data|safe }};
+        <section class="map-section">
+            <div class="map-header">
+                <div class="map-status">
+                    <div class="live-indicator"></div>
+                    MAP VIEW
+                </div>
+            </div>
+            
+            <div class="map-display">
+                <div class="grid-lines"></div>
 
-    if (pathData && pathData.length > 0) {
-        drawPath(pathData);
-    }
+                {% if path_data == "[]" or not path_data %}
+                    <div class="map-placeholder-text">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.5; margin-bottom:10px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                        <div>AWAITING INPUT</div>
+                    </div>
+                {% endif %}
 
-    function drawPath(path) {
-        var pointsF1 = "";
-        var pointsF2 = "";
-        var hasF1 = false;
-        var hasF2 = false;
+                <div id="f1-container" class="map-container-wrapper" style="display:none;">
+                    <div class="floor-label">FLOOR 1</div>
+                    <div class="map-container">
+                        <img src="static/floor1.png" class="map-image" alt="Floor 1 Map">
+                        <svg id="svg-f1" class="map-overlay"></svg>
+                    </div>
+                </div>
 
-        var startNode = path[0];
-        var endNode = path[path.length - 1];
+                <div id="f2-container" class="map-container-wrapper" style="display:none;">
+                    <div class="floor-label">FLOOR 2</div>
+                    <div class="map-container">
+                        <img src="static/floor2.png" class="map-image" alt="Floor 2 Map">
+                        <svg id="svg-f2" class="map-overlay"></svg>
+                    </div>
+                </div>
 
-        // Loop through coordinates to build SVG point strings
-        for (var i = 0; i < path.length; i++) {
-            var node = path[i];
-            // Coordinate mapping: X% , Y%
-            var coords = node.x + "%," + node.y + "%";
+            </div>
+        </section>
 
-            if (node.floor === 1) {
-                pointsF1 += coords + " ";
-                hasF1 = true;
-            } else if (node.floor === 2) {
-                pointsF2 += coords + " ";
-                hasF2 = true;
-            }
-        }
+    </main>
 
-        // Render Floor 1 if needed
-        if (hasF1) {
-            document.getElementById('f1-container').style.display = 'block';
-            renderSVG('svg-f1', pointsF1, startNode.floor === 1 ? startNode : null, endNode.floor === 1 ? endNode : null);
-        }
-
-        // Render Floor 2 if needed
-        if (hasF2) {
-            document.getElementById('f2-container').style.display = 'block';
-            renderSVG('svg-f2', pointsF2, startNode.floor === 2 ? startNode : null, endNode.floor === 2 ? endNode : null);
-        }
-    }
-
-    function renderSVG(svgId, pointsStr, startObj, endObj) {
-        var svg = document.getElementById(svgId);
-
-        // 1. Draw the Path Line
-        var polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-        polyline.setAttribute("points", pointsStr);
-        polyline.setAttribute("style", "fill:none;stroke:#2563eb;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:10,5;opacity:0.8");
-        svg.appendChild(polyline);
-
-        // 2. Draw Start Circle (Green) if start is on this floor
-        if (startObj) {
-            var circleStart = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-            circleStart.setAttribute("cx", startObj.x + "%");
-            circleStart.setAttribute("cy", startObj.y + "%");
-            circleStart.setAttribute("r", "8"); // Radius size
-            circleStart.setAttribute("fill", "#10b981"); // Green
-            circleStart.setAttribute("stroke", "#ffffff");
-            circleStart.setAttribute("stroke-width", "2");
-            svg.appendChild(circleStart);
-        }
-
-        // 3. Draw End Circle (Red) if end is on this floor
-        if (endObj) {
-            var circleEnd = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-            circleEnd.setAttribute("cx", endObj.x + "%");
-            circleEnd.setAttribute("cy", endObj.y + "%");
-            circleEnd.setAttribute("r", "8");
-            circleEnd.setAttribute("fill", "#ef4444"); // Red
-            circleEnd.setAttribute("stroke", "#ffffff");
-            circleEnd.setAttribute("stroke-width", "2");
-            svg.appendChild(circleEnd);
-        }
-    }
-</script>
-
+    <script>
+        window.pathData = JSON.parse('{{ path_data|safe }}' || '[]');
+    </script>
+    <script src="static/script.js"></script>
 </body>
 </html>
