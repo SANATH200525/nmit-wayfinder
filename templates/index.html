@@ -3,135 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NMIT Wayfinder - Navigator</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <title>NMIT Wayfinder - Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Orbitron:wght@600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
     <link rel="stylesheet" href="static/style.css">
 </head>
 <body>
 
     <main class="app-container">
-        
         <section class="navigator-panel">
             <div class="header-section">
-                <div class="status-badge"><span class="status-dot"></span> SYSTEM READY</div>
-                
+                <div class="status-badge"><span class="status-dot"></span> 4-FLOOR SYSTEM READY</div>
                 <div class="title-wrapper">
-                    <svg class="main-logo" width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                            <linearGradient id="logo-gradient" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
-                                <stop stop-color="#22d3ee" /> 
-                                <stop offset="1" stop-color="#3b82f6" /> 
-                            </linearGradient>
-                        </defs>
-                        <path d="M12 2L19 21L12 17L5 21L12 2Z" fill="url(#logo-gradient)" stroke="none"/>
-                    </svg>
                     <h1>WAYFINDER</h1>
                 </div>
-                <p class="subtitle">NMIT Campus Navigation System</p>
             </div>
 
-            <form method="POST">
+            <form method="POST" id="nav-form">
+                <div class="form-group">
+                    <label class="field-label">CURRENT LOCATION</label>
+                    <select id="start_node" name="start_node" required>
+                        <option value="">Search start...</option>
+                        {% for code, name in nodes %} <option value="{{ code }}">{{ name }}</option> {% endfor %}
+                    </select>
+                </div>
+
+                <div id="stops-container"></div>
                 
-                <div class="form-group">
-                    <label class="field-label">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line><path d="M12 6L15 13L12 11.5L9 13L12 6Z" fill="currentColor" stroke="none"></path></svg>
-                        CURRENT LOCATION
-                    </label>
-                    
-                    <div class="custom-select-wrapper">
-                        <div class="custom-select-trigger">
-                            <span>-- Select Start Point --</span>
-                            <div class="arrow">▼</div>
-                        </div>
-                        <div class="custom-options">
-                            {% for code, name in nodes %}
-                                <span class="custom-option" data-value="{{ code }}">{{ name }}</span>
-                            {% endfor %}
-                        </div>
-                        <input type="hidden" name="start_node" id="start_node" required>
-                    </div>
+                <button type="button" class="add-stop-btn" onclick="addStopField()">+ ADD STOP</button>
+
+                <div class="form-group" style="margin-top: 15px;">
+                    <label class="field-label">FINAL DESTINATION</label>
+                    <select id="end_node" name="end_node" required>
+                        <option value="">Search destination...</option>
+                        {% for code, name in nodes %} <option value="{{ code }}">{{ name }}</option> {% endfor %}
+                    </select>
                 </div>
 
-                <div class="form-group">
-                    <label class="field-label">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><map name=""></map><path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"></path><path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z"></path></svg>
-                        DESTINATION
-                    </label>
-                    
-                    <div class="custom-select-wrapper">
-                        <div class="custom-select-trigger">
-                            <span>-- Select Destination --</span>
-                            <div class="arrow">▼</div>
-                        </div>
-                        <div class="custom-options">
-                            {% for code, name in nodes %}
-                                <span class="custom-option" data-value="{{ code }}">{{ name }}</span>
-                            {% endfor %}
-                        </div>
-                        <input type="hidden" name="end_node" id="end_node" required>
-                    </div>
+                <div class="form-group checkbox-group">
+                    <label><input type="checkbox" name="accessible" value="true"> ♿ Avoid Stairs</label>
                 </div>
 
-                <button type="submit" class="start-btn" id="start-navigation-btn">
-                    <span class="btn-text">INITIATE SEQUENCE</span>
-                    <span class="btn-glare"></span>
-                </button>
+                <div class="action-buttons">
+                    <button type="submit" class="start-btn">INITIATE ROUTE</button>
+                </div>
             </form>
             
-            {% if result %}
-            <div class="steps-container">
-                 {% for step in result %}
-                    <div class="step-card">{{ step|safe }}</div>
-                 {% endfor %}
-            </div>
-            {% endif %}
-
+            <template id="stop-template">
+                <div class="form-group stop-group">
+                    <label class="field-label">VIA (STOP)</label>
+                    <div style="display: flex; gap: 5px;">
+                        <select name="stops[]" class="stop-select" required>
+                            <option value="">Search stop...</option>
+                            {% for code, name in nodes %} <option value="{{ code }}">{{ name }}</option> {% endfor %}
+                        </select>
+                        <button type="button" class="remove-stop" onclick="this.parentElement.parentElement.remove()">✕</button>
+                    </div>
+                </div>
+            </template>
         </section>
 
         <section class="map-section">
             <div class="map-header">
-                <div class="map-status">
-                    <div class="live-indicator"></div>
-                    MAP VIEW
+                <div class="floor-tabs">
+                    <button class="floor-tab active" data-floor="1" onclick="switchFloor(1)">F1</button>
+                    <button class="floor-tab" data-floor="2" onclick="switchFloor(2)">F2</button>
+                    <button class="floor-tab" data-floor="3" onclick="switchFloor(3)">F3</button>
+                    <button class="floor-tab" data-floor="4" onclick="switchFloor(4)">F4</button>
+                </div>
+                
+                <div class="zoom-controls">
+                    <button onclick="zoomMap(0.2)">+</button>
+                    <button onclick="zoomMap(-0.2)">-</button>
+                    <button onclick="resetZoom()">⟲</button>
                 </div>
             </div>
             
-            <div class="map-display">
-                <div class="grid-lines"></div>
-
-                {% if path_data == "[]" or not path_data %}
-                    <div class="map-placeholder-text">
-                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.5; margin-bottom:10px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-                        <div>AWAITING INPUT</div>
-                    </div>
-                {% endif %}
-
-                <div id="f1-container" class="map-container-wrapper" style="display:none;">
-                    <div class="floor-label">FLOOR 1</div>
-                    <div class="map-container">
-                        <img src="static/floor1.png" class="map-image" alt="Floor 1 Map">
-                        <svg id="svg-f1" class="map-overlay"></svg>
-                    </div>
+            <div class="map-display" id="map-viewport">
+                <div id="f1-container" class="map-container" style="display:block;">
+                    <img src="static/floor1.png" class="map-image">
+                    <svg id="svg-f1" class="map-overlay"></svg>
                 </div>
-
-                <div id="f2-container" class="map-container-wrapper" style="display:none;">
-                    <div class="floor-label">FLOOR 2</div>
-                    <div class="map-container">
-                        <img src="static/floor2.png" class="map-image" alt="Floor 2 Map">
-                        <svg id="svg-f2" class="map-overlay"></svg>
-                    </div>
+                <div id="f2-container" class="map-container" style="display:none;">
+                    <img src="static/floor2.png" class="map-image">
+                    <svg id="svg-f2" class="map-overlay"></svg>
                 </div>
-
+                <div id="f3-container" class="map-container" style="display:none;">
+                    <img src="static/floor3.png" class="map-image">
+                    <svg id="svg-f3" class="map-overlay"></svg>
+                </div>
+                <div id="f4-container" class="map-container" style="display:none;">
+                    <img src="static/floor4.png" class="map-image">
+                    <svg id="svg-f4" class="map-overlay"></svg>
+                </div>
             </div>
         </section>
-
     </main>
 
     <script>
         window.pathData = JSON.parse('{{ path_data|safe }}' || '[]');
+        window.allNodes = JSON.parse('{{ all_nodes|safe }}' || '{}');
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
     <script src="static/script.js"></script>
 </body>
 </html>
