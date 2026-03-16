@@ -1,28 +1,34 @@
-# NMIT Wayfinder 
+# NMIT Wayfinder
 
-An intelligent indoor navigation system designed to help users navigate complex multi-storey buildings. This project uses the **A* (A-Star) Pathfinding Algorithm** to calculate the shortest path between rooms and provides both **visual map overlays** and **natural text instructions**.
+An intelligent indoor navigation PWA for NITTE School of Management (NMIT), Bangalore. Uses the A* pathfinding algorithm with adaptive edge weights learned from user feedback (reinforcement learning).
 
-##  Features
-
-* **Optimal Pathfinding:** Uses the A* algorithm with a Euclidean distance heuristic to find the quickest route.
-* **Multi-Storey Navigation:** intelligently handles floor transitions, guiding users to elevators or stairs when moving between levels.
-* **Visual Guidance:** Draws a dynamic SVG path overlay on top of floor plan images.
-* **Natural Language Instructions:** Generates human-friendly directions (e.g., *"Turn left at the corridor,"* *"Take the stairs up to Floor 2"*).
-* **Responsive UI:** Mobile-first design suitable for use on smartphones while walking.
+## Features
+- A* pathfinding across 4 floors (Ground, First, Second, Third)
+- Visual SVG path overlay on real floor plan images
+- Turn-by-turn natural language directions
+- Wheelchair / elevator-only routing mode
+- Stairs-only routing mode
+- Performance metrics (distance, estimated time, floor changes)
+- Post-navigation feedback with 1-5 star rating
+- RL-based edge weight adaptation (routes improve over time with feedback)
+- PWA — installable, works offline for cached floor maps
+- Mobile responsive with touch pan/zoom and pinch-to-zoom
+- PDR (Pedestrian Dead Reckoning) architecture stub for future implementation
 
 ## Project Structure
+- `app.py` — Flask backend, graph data, A* search, feedback/stats endpoints
+- `templates/index.html` — Jinja2 frontend shell with mobility controls, metrics, directions, and PWA hooks
+- `static/script.js` — map rendering, pan/zoom, directions, metrics, feedback client logic, touch + pinch support
+- `static/style.css` — glassmorphic UI styling, markers, responsive layout, modals
+- `static/floor1.png` … `floor4.png` — floor plan images (Ground to Third)
+- `static/manifest.json`, `static/service-worker.js`, `static/icon-192.png`, `static/icon-512.png` — PWA assets
+- `requirements.txt` — Python dependencies
+- `test_app.py` — unit tests for routing, mobility modes, and A*
 
-Ensure your project directory looks exactly like this before running:
+## Getting Started
+1) Create a virtual environment and install deps: `pip install -r requirements.txt`
+2) Run the app: `flask run` (or `python app.py`) and open http://127.0.0.1:5000
+3) For offline install, open in Chrome/Edge and “Install app”.
 
-```text
-/IndoorNavigation
-│
-├── app.py                # Main application logic (Flask & A* Algorithm)
-├── README.md             # Project documentation
-│
-├── /static
-│   ├── floor1.png        # Floor 1 map image
-│   └── floor2.png        # Floor 2 map image
-│
-└── /templates
-    └── index.html        # Frontend user interface
+## Testing
+Run `python -m pytest -q` (or `pytest`) to execute the backend route and A* tests in `test_app.py`.

@@ -1,0 +1,215 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NMIT Wayfinder — Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Orbitron:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%); min-height: 100vh; padding: 30px 20px; color: #1f2937; }
+        .admin-container { max-width: 1200px; margin: 0 auto; }
+        .admin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; flex-wrap: wrap; gap: 12px; }
+        .admin-header h1 { font-family: 'Orbitron', sans-serif; font-size: 22px; }
+        .admin-header a { text-decoration: none; color: #4f46e5; font-size: 13px; font-weight: 600; background: white; padding: 8px 16px; border-radius: 8px; border: 1px solid #e5e7eb; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 30px; }
+        .stat-card { background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); border-radius: 16px; padding: 20px; border: 1px solid rgba(255,255,255,0.6); box-shadow: 0 4px 20px rgba(0,0,0,0.06); text-align: center; }
+        .stat-card .stat-value { font-family: 'Orbitron', sans-serif; font-size: 28px; font-weight: 700; color: #4f46e5; margin-bottom: 4px; }
+        .stat-card .stat-label { font-size: 11px; font-weight: 700; letter-spacing: 1px; color: #6b7280; text-transform: uppercase; }
+        .panel { background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); border-radius: 16px; padding: 24px; margin-bottom: 24px; border: 1px solid rgba(255,255,255,0.6); box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+        .panel h2 { font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 1px; color: #374151; margin-bottom: 16px; text-transform: uppercase; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { text-align: left; padding: 8px 12px; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #9ca3af; border-bottom: 1px solid #f3f4f6; }
+        td { padding: 10px 12px; border-bottom: 1px solid #f9fafb; color: #374151; vertical-align: top; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f9fafb; }
+        .weight-bar-wrap { display: flex; align-items: center; gap: 8px; }
+        .weight-bar { height: 6px; border-radius: 3px; background: #e5e7eb; width: 80px; overflow: hidden; }
+        .weight-bar-fill { height: 100%; border-radius: 3px; }
+        .weight-good { background: #10b981; }
+        .weight-bad { background: #ef4444; }
+        .stars { color: #f59e0b; font-size: 13px; }
+        .rating-num { font-weight: 600; margin-left: 4px; }
+        .reset-btn { background: #ef4444; color: white; border: none; border-radius: 8px; padding: 10px 20px; font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 700; cursor: pointer; letter-spacing: 0.5px; margin-top: 16px; }
+        .reset-btn:hover { background: #dc2626; }
+        .comment-cell { max-width: 200px; color: #6b7280; font-style: italic; font-size: 12px; }
+        .empty-state { text-align: center; color: #9ca3af; font-size: 13px; padding: 20px 0; }
+        #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #111827; color: white; padding: 10px 20px; border-radius: 8px; font-size: 13px; z-index: 9999; display: none; }
+        .faq-keywords { font-family: monospace; font-size: 11px; color: #6b7280; max-width: 260px; word-break: break-word; }
+        .faq-answer { font-size: 12px; color: #374151; max-width: 300px; }
+        .faq-inactive td { opacity: 0.4; }
+        .btn-sm { padding: 4px 10px; border: none; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; }
+        .btn-toggle-on  { background: #fef3c7; color: #92400e; }
+        .btn-toggle-off { background: #d1fae5; color: #065f46; }
+        .btn-delete { background: #fee2e2; color: #991b1b; }
+        .faq-add-form { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+        .faq-add-form input, .faq-add-form textarea { width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 13px; }
+        .faq-add-form textarea { resize: vertical; min-height: 60px; }
+        .btn-add-faq { background: #4f46e5; color: white; border: none; border-radius: 8px; padding: 10px 20px; font-weight: 700; cursor: pointer; font-size: 13px; align-self: flex-start; }
+        .btn-add-faq:hover { background: #4338ca; }
+    </style>
+</head>
+<body>
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>WAYFINDER ADMIN</h1>
+        <a href="/">Back to App</a>
+    </div>
+    <div class="stats-grid">
+        <div class="stat-card"><div class="stat-value">{{ total_feedback }}</div><div class="stat-label">Total Feedback</div></div>
+        <div class="stat-card"><div class="stat-value">{{ global_avg if global_avg else '—' }}</div><div class="stat-label">Global Avg Rating</div></div>
+        <div class="stat-card"><div class="stat-value">{{ total_edges_modified }}</div><div class="stat-label">Edges Adapted</div></div>
+        <div class="stat-card"><div class="stat-value">{{ top_routes|length }}</div><div class="stat-label">Unique Routes</div></div>
+    </div>
+    <div class="panel">
+        <h2>Most Traveled Routes</h2>
+        {% if top_routes %}
+        <table>
+            <thead><tr><th>From</th><th>To</th><th>Trips</th><th>Avg Rating</th></tr></thead>
+            <tbody>
+            {% for start, end, trips, avg_rating in top_routes %}
+            <tr>
+                <td>{{ node_labels.get(start, start) }}</td>
+                <td>{{ node_labels.get(end, end) }}</td>
+                <td><strong>{{ trips }}</strong></td>
+                <td>{% if avg_rating %}<span class="stars">★</span><span class="rating-num">{{ avg_rating|round(2) }}</span>{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}<p class="empty-state">No feedback collected yet.</p>{% endif %}
+    </div>
+    <div class="panel">
+        <h2>Adapted Edge Weights (RL)</h2>
+        <p style="font-size:12px;color:#6b7280;margin-bottom:16px;">Below 1.0 = preferred (good feedback). Above 1.0 = penalised (bad feedback). Default = 1.0.</p>
+        {% if modified_weights %}
+        <table>
+            <thead><tr><th>Edge</th><th>Multiplier</th><th>Visual</th></tr></thead>
+            <tbody>
+            {% for edge, multiplier in modified_weights %}
+            <tr>
+                <td style="font-family:monospace;font-size:12px;">{{ edge }}</td>
+                <td><strong>{{ multiplier|round(4) }}</strong></td>
+                <td>
+                    <div class="weight-bar-wrap">
+                        <div class="weight-bar">
+                            {% if multiplier < 1.0 %}<div class="weight-bar-fill weight-good" style="width:{{ (multiplier*100)|int }}%"></div>
+                            {% else %}<div class="weight-bar-fill weight-bad" style="width:{{ [((multiplier-1.0)*100+50)|int,100]|min }}%"></div>{% endif %}
+                        </div>
+                        {% if multiplier < 0.97 %}Good{% elif multiplier > 1.03 %}Bad{% else %}Neutral{% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}<p class="empty-state">No edges adapted yet.</p>{% endif %}
+        <button class="reset-btn" onclick="confirmReset()">Reset All Weights to Default</button>
+    </div>
+    <div class="panel">
+        <h2>Recent Feedback (Last 20)</h2>
+        {% if recent_feedback %}
+        <table>
+            <thead><tr><th>Time</th><th>From</th><th>To</th><th>Rating</th><th>Comment</th></tr></thead>
+            <tbody>
+            {% for ts, start, end, rating, comment in recent_feedback %}
+            <tr>
+                <td style="font-size:11px;color:#9ca3af;white-space:nowrap;">{{ ts[:16] }}</td>
+                <td>{{ node_labels.get(start, start) }}</td>
+                <td>{{ node_labels.get(end, end) }}</td>
+                <td><span class="stars">{{ '★' * rating }}{{ '☆' * (5 - rating) }}</span></td>
+                <td class="comment-cell">{{ comment if comment else '—' }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}<p class="empty-state">No feedback collected yet.</p>{% endif %}
+    </div>
+
+    <!-- FAQ Management Panel -->
+    <div class="panel">
+        <h2>FAQ Chatbot Training</h2>
+        <p style="font-size:12px;color:#6b7280;margin-bottom:16px;">Each row is a Q&amp;A pair. Keywords are comma-separated — any matching keyword triggers the answer. Toggle to enable/disable without deleting.</p>
+        {% if all_faqs %}
+        <table>
+            <thead><tr><th>#</th><th>Keywords</th><th>Answer</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+            {% for faq_id, keywords, answer, active in all_faqs %}
+            <tr id="faq-row-{{ faq_id }}" {% if not active %}class="faq-inactive"{% endif %}>
+                <td style="color:#9ca3af;font-size:11px;">{{ faq_id }}</td>
+                <td class="faq-keywords">{{ keywords }}</td>
+                <td class="faq-answer">{{ answer }}</td>
+                <td>{% if active %}<span style="color:#10b981;font-weight:700;font-size:11px;">Active</span>{% else %}<span style="color:#9ca3af;font-weight:700;font-size:11px;">Inactive</span>{% endif %}</td>
+                <td style="white-space:nowrap;">
+                    <button class="btn-sm {% if active %}btn-toggle-on{% else %}btn-toggle-off{% endif %}" onclick="toggleFAQ({{ faq_id }})">{% if active %}Disable{% else %}Enable{% endif %}</button>
+                    &nbsp;
+                    <button class="btn-sm btn-delete" onclick="deleteFAQ({{ faq_id }})">Delete</button>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}<p class="empty-state">No FAQ entries yet.</p>{% endif %}
+        <hr style="margin:20px 0;border:none;border-top:1px solid #f3f4f6;">
+        <h3 style="font-size:12px;font-weight:700;letter-spacing:0.5px;color:#374151;margin-bottom:12px;">ADD NEW Q&amp;A PAIR</h3>
+        <div class="faq-add-form">
+            <input type="text" id="faq-new-keywords" placeholder="Keywords (comma-separated, e.g. where is canteen,food,cafeteria)">
+            <textarea id="faq-new-answer" placeholder="Answer the user will see..."></textarea>
+            <button class="btn-add-faq" onclick="addFAQ()">+ Add FAQ Entry</button>
+        </div>
+    </div>
+
+</div>
+<div id="toast"></div>
+<script>
+function confirmReset() {
+    if (!confirm('Reset ALL learned edge weights to 1.0? This cannot be undone.')) return;
+    fetch('/admin/reset-weights', { method: 'POST' })
+        .then(r => r.json())
+        .then(d => { showToast(d.message); setTimeout(() => location.reload(), 1500); })
+        .catch(() => showToast('Reset failed.'));
+}
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 2500);
+}
+function toggleFAQ(id) {
+    fetch(`/admin/faq/toggle/${id}`, { method: 'POST' })
+        .then(r => r.json())
+        .then(() => { showToast('FAQ updated.'); setTimeout(() => location.reload(), 800); })
+        .catch(() => showToast('Update failed.'));
+}
+function deleteFAQ(id) {
+    if (!confirm('Delete this FAQ entry?')) return;
+    fetch(`/admin/faq/delete/${id}`, { method: 'POST' })
+        .then(r => r.json())
+        .then(() => { showToast('FAQ deleted.'); document.getElementById(`faq-row-${id}`)?.remove(); })
+        .catch(() => showToast('Delete failed.'));
+}
+function addFAQ() {
+    const keywords = document.getElementById('faq-new-keywords').value.trim();
+    const answer   = document.getElementById('faq-new-answer').value.trim();
+    if (!keywords || !answer) { showToast('Fill in both fields.'); return; }
+    fetch('/admin/faq/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keywords, answer })
+    })
+    .then(r => r.json())
+    .then(() => { showToast('FAQ added!'); setTimeout(() => location.reload(), 800); })
+    .catch(() => showToast('Add failed.'));
+}
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+

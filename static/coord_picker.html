@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NMIT Coordinate Picker</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@400;600;700&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: #0a0a0f;
+    color: #e2e8f0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    background: #111118;
+    border-bottom: 1px solid #1e1e2e;
+    flex-shrink: 0;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .header-left { display: flex; align-items: center; gap: 12px; }
+
+  h1 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: #7c6af7;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .floor-btns { display: flex; gap: 6px; }
+
+  .floor-btn {
+    padding: 6px 14px;
+    border: 1px solid #2a2a3e;
+    background: transparent;
+    color: #94a3b8;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    transition: all 0.15s;
+  }
+  .floor-btn:hover { border-color: #7c6af7; color: #c4b5fd; }
+  .floor-btn.active { background: #7c6af7; border-color: #7c6af7; color: white; }
+
+  .header-right { display: flex; align-items: center; gap: 10px; }
+
+  .node-input-group { display: flex; align-items: center; gap: 8px; }
+  .node-input-group label { font-size: 11px; color: #64748b; letter-spacing: 1px; text-transform: uppercase; }
+  .node-input-group input {
+    background: #1a1a2e;
+    border: 1px solid #2a2a3e;
+    color: #e2e8f0;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    width: 180px;
+  }
+
+  .add-btn {
+    padding: 6px 14px;
+    background: #7c6af7;
+    border: none;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'Space Grotesk', sans-serif;
+    transition: background 0.15s;
+  }
+  .add-btn:hover { background: #6d5be6; }
+
+  .clear-btn {
+    padding: 6px 14px;
+    background: transparent;
+    border: 1px solid #ef4444;
+    color: #ef4444;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'Space Grotesk', sans-serif;
+    transition: all 0.15s;
+  }
+  .clear-btn:hover { background: #ef4444; color: white; }
+
+  .copy-btn {
+    padding: 6px 14px;
+    background: #10b981;
+    border: none;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'Space Grotesk', sans-serif;
+    transition: background 0.15s;
+  }
+  .copy-btn:hover { background: #059669; }
+
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .map-area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: #0d0d14;
+    cursor: crosshair;
+  }
+
+  #floor-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    display: block;
+  }
+
+  .crosshair-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .h-line {
+    position: absolute;
+    left: 0; right: 0;
+    height: 1px;
+    background: rgba(124, 106, 247, 0.4);
+    pointer-events: none;
+  }
+  .v-line {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 1px;
+    background: rgba(124, 106, 247, 0.4);
+    pointer-events: none;
+  }
+
+  .coord-tooltip {
+    position: absolute;
+    background: #111118;
+    border: 1px solid #7c6af7;
+    color: #c4b5fd;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    pointer-events: none;
+    white-space: nowrap;
+    transform: translate(10px, -100%);
+  }
+
+  .pin {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: #f59e0b;
+    border: 2px solid white;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+  }
+  .pin.start-pin { background: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.6); }
+  .pin.end-pin { background: #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.6); }
+
+  .pin-label {
+    position: absolute;
+    background: #111118;
+    border: 1px solid #2a2a3e;
+    color: #e2e8f0;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    pointer-events: none;
+    white-space: nowrap;
+    transform: translate(8px, -50%);
+  }
+
+  .sidebar {
+    width: 340px;
+    background: #111118;
+    border-left: 1px solid #1e1e2e;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .sidebar-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid #1e1e2e;
+    font-size: 11px;
+    color: #64748b;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .count-badge {
+    background: #7c6af7;
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 10px;
+  }
+
+  .coords-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+  }
+
+  .coord-entry {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    margin-bottom: 4px;
+    background: #1a1a2e;
+    border-radius: 6px;
+    border: 1px solid #2a2a3e;
+    gap: 8px;
+  }
+
+  .coord-entry:hover { border-color: #7c6af7; }
+
+  .coord-node-id {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #c4b5fd;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .coord-values {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #10b981;
+    flex-shrink: 0;
+  }
+
+  .del-btn {
+    background: none;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0 2px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .output-area {
+    border-top: 1px solid #1e1e2e;
+    padding: 12px;
+  }
+
+  .output-label {
+    font-size: 10px;
+    color: #64748b;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  #output-code {
+    width: 100%;
+    height: 160px;
+    background: #0a0a0f;
+    border: 1px solid #2a2a3e;
+    color: #10b981;
+    padding: 10px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    resize: none;
+    line-height: 1.6;
+  }
+
+  .status-bar {
+    padding: 6px 16px;
+    background: #0a0a0f;
+    border-top: 1px solid #1e1e2e;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #64748b;
+    display: flex;
+    gap: 20px;
+    flex-shrink: 0;
+  }
+
+  .status-bar span { color: #94a3b8; }
+
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #10b981;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    z-index: 9999;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .instructions {
+    padding: 10px 16px;
+    background: #0d0d14;
+    border-bottom: 1px solid #1e1e2e;
+    font-size: 11px;
+    color: #475569;
+    line-height: 1.6;
+  }
+  .instructions span { color: #7c6af7; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: #0a0a0f; }
+  ::-webkit-scrollbar-thumb { background: #2a2a3e; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>📍 Coord Picker</h1>
+    <div class="floor-btns">
+      <button class="floor-btn active" onclick="switchFloor(1,'floor1.png')">GF</button>
+      <button class="floor-btn" onclick="switchFloor(2,'floor2.png')">1F</button>
+      <button class="floor-btn" onclick="switchFloor(3,'floor3.png')">2F</button>
+      <button class="floor-btn" onclick="switchFloor(4,'floor4.png')">3F</button>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="node-input-group">
+      <label>Node ID</label>
+      <input type="text" id="node-id-input" placeholder="e.g. GF-COMPLAB" />
+    </div>
+    <button class="add-btn" onclick="addCurrentPoint()">+ Pin</button>
+    <button class="clear-btn" onclick="clearAll()">Clear</button>
+    <button class="copy-btn" onclick="copyOutput()">Copy Python</button>
+  </div>
+</header>
+
+<div class="instructions">
+  <span>How to use:</span> 1) Select a floor tab &nbsp;|&nbsp; 2) Hover over a room center on the map &nbsp;|&nbsp; 3) Type the node ID in the field &nbsp;|&nbsp; 4) Click <span>+ Pin</span> or press <span>Enter</span> to save &nbsp;|&nbsp; 5) Copy Python dict when done
+</div>
+
+<div class="main">
+  <div class="map-area" id="map-area">
+    <img id="floor-img" src="/static/floor1.png" alt="Floor Plan"
+         onerror="this.src=''; this.alt='⚠️ Floor plan not found. Make sure Flask server is running.';" />
+    <div class="crosshair-overlay" id="crosshair-overlay">
+      <div class="h-line" id="h-line" style="display:none;"></div>
+      <div class="v-line" id="v-line" style="display:none;"></div>
+      <div class="coord-tooltip" id="coord-tooltip" style="display:none;"></div>
+    </div>
+    <div id="pins-layer"></div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-header">
+      Pinned Coordinates
+      <span class="count-badge" id="count-badge">0</span>
+    </div>
+    <div class="coords-list" id="coords-list">
+      <div style="color:#475569; font-size:12px; padding:20px; text-align:center; line-height:1.8;">
+        No coordinates yet.<br>Hover the map and pin nodes.
+      </div>
+    </div>
+    <div class="output-area">
+      <div class="output-label">Python output (paste into app.py)</div>
+      <textarea id="output-code" readonly placeholder="# Coordinates will appear here..."></textarea>
+    </div>
+  </div>
+</div>
+
+<div class="status-bar">
+  <div>Floor: <span id="status-floor">Ground Floor (1)</span></div>
+  <div>Cursor: <span id="status-coords">--</span></div>
+  <div>Pinned: <span id="status-count">0</span> nodes</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let currentFloor = 1;
+  let mouseX = 0, mouseY = 0;
+  let pins = [];
+
+  const mapArea = document.getElementById('map-area');
+  const floorImg = document.getElementById('floor-img');
+  const hLine = document.getElementById('h-line');
+  const vLine = document.getElementById('v-line');
+  const tooltip = document.getElementById('coord-tooltip');
+  const pinsLayer = document.getElementById('pins-layer');
+  const nodeInput = document.getElementById('node-id-input');
+
+  const FLOOR_NAMES = { 1: 'Ground Floor', 2: 'First Floor', 3: 'Second Floor', 4: 'Third Floor' };
+
+  function getImgRect() {
+    // Get the actual rendered image bounds inside the map area
+    const area = mapArea.getBoundingClientRect();
+    const img = floorImg;
+    const naturalRatio = img.naturalWidth / img.naturalHeight;
+    const areaRatio = area.width / area.height;
+
+    let imgW, imgH, imgX, imgY;
+    if (naturalRatio > areaRatio) {
+      imgW = area.width;
+      imgH = area.width / naturalRatio;
+      imgX = 0;
+      imgY = (area.height - imgH) / 2;
+    } else {
+      imgH = area.height;
+      imgW = area.height * naturalRatio;
+      imgX = (area.width - imgW) / 2;
+      imgY = 0;
+    }
+    return { x: imgX, y: imgY, w: imgW, h: imgH };
+  }
+
+  function getPercent(clientX, clientY) {
+    const area = mapArea.getBoundingClientRect();
+    const rect = getImgRect();
+    const relX = clientX - area.left - rect.x;
+    const relY = clientY - area.top - rect.y;
+    const px = Math.max(0, Math.min(100, (relX / rect.w) * 100));
+    const py = Math.max(0, Math.min(100, (relY / rect.h) * 100));
+    return { px: Math.round(px), py: Math.round(py) };
+  }
+
+  mapArea.addEventListener('mousemove', (e) => {
+    const area = mapArea.getBoundingClientRect();
+    const relX = e.clientX - area.left;
+    const relY = e.clientY - area.top;
+    mouseX = relX;
+    mouseY = relY;
+
+    hLine.style.top = relY + 'px';
+    hLine.style.display = 'block';
+    vLine.style.left = relX + 'px';
+    vLine.style.display = 'block';
+
+    const { px, py } = getPercent(e.clientX, e.clientY);
+    tooltip.textContent = `x:${px}%, y:${py}%`;
+    tooltip.style.left = relX + 'px';
+    tooltip.style.top = relY + 'px';
+    tooltip.style.display = 'block';
+
+    document.getElementById('status-coords').textContent = `x:${px}%, y:${py}%`;
+  });
+
+  mapArea.addEventListener('mouseleave', () => {
+    hLine.style.display = 'none';
+    vLine.style.display = 'none';
+    tooltip.style.display = 'none';
+  });
+
+  mapArea.addEventListener('click', (e) => {
+    const { px, py } = getPercent(e.clientX, e.clientY);
+    const nodeId = nodeInput.value.trim();
+    if (!nodeId) {
+      showToast('Enter a Node ID first!', '#ef4444');
+      nodeInput.focus();
+      return;
+    }
+    savePin(nodeId, px, py);
+    nodeInput.value = '';
+    nodeInput.focus();
+  });
+
+  nodeInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const { px, py } = getPercent(
+        mapArea.getBoundingClientRect().left + mouseX,
+        mapArea.getBoundingClientRect().top + mouseY
+      );
+      const nodeId = nodeInput.value.trim();
+      if (!nodeId) { showToast('Enter a Node ID!', '#ef4444'); return; }
+      savePin(nodeId, px, py);
+      nodeInput.value = '';
+    }
+  });
+
+  function addCurrentPoint() {
+    const area = mapArea.getBoundingClientRect();
+    const { px, py } = getPercent(area.left + mouseX, area.top + mouseY);
+    const nodeId = nodeInput.value.trim();
+    if (!nodeId) { showToast('Enter a Node ID first!', '#ef4444'); nodeInput.focus(); return; }
+    savePin(nodeId, px, py);
+    nodeInput.value = '';
+    nodeInput.focus();
+  }
+
+  function savePin(nodeId, px, py) {
+    // Remove existing pin with same ID
+    pins = pins.filter(p => !(p.id === nodeId && p.floor === currentFloor));
+    pins.push({ id: nodeId, x: px, y: py, floor: currentFloor });
+    renderPins();
+    renderSidebar();
+    renderOutput();
+    showToast(`📍 ${nodeId}: (${px}, ${py})`, '#10b981');
+    document.getElementById('status-count').textContent = pins.length;
+  }
+
+  function renderPins() {
+    pinsLayer.innerHTML = '';
+    const rect = getImgRect();
+    const area = mapArea.getBoundingClientRect();
+
+    pins.filter(p => p.floor === currentFloor).forEach(p => {
+      const pixelX = rect.x + (p.x / 100) * rect.w;
+      const pixelY = rect.y + (p.y / 100) * rect.h;
+
+      const pin = document.createElement('div');
+      pin.className = 'pin';
+      pin.style.left = pixelX + 'px';
+      pin.style.top = pixelY + 'px';
+      pinsLayer.appendChild(pin);
+
+      const label = document.createElement('div');
+      label.className = 'pin-label';
+      label.textContent = p.id;
+      label.style.left = pixelX + 'px';
+      label.style.top = pixelY + 'px';
+      pinsLayer.appendChild(label);
+    });
+  }
+
+  window.addEventListener('resize', renderPins);
+  floorImg.addEventListener('load', renderPins);
+
+  function renderSidebar() {
+    const list = document.getElementById('coords-list');
+    const floorPins = pins.filter(p => p.floor === currentFloor);
+    document.getElementById('count-badge').textContent = floorPins.length;
+
+    if (floorPins.length === 0) {
+      list.innerHTML = '<div style="color:#475569; font-size:12px; padding:20px; text-align:center; line-height:1.8;">No coordinates yet.<br>Hover the map and pin nodes.</div>';
+      return;
+    }
+
+    list.innerHTML = floorPins.map((p, i) => `
+      <div class="coord-entry">
+        <span class="coord-node-id">${p.id}</span>
+        <span class="coord-values">(${p.x}, ${p.y})</span>
+        <button class="del-btn" onclick="deletePin('${p.id}', ${p.floor})">×</button>
+      </div>
+    `).join('');
+  }
+
+  function deletePin(nodeId, floor) {
+    pins = pins.filter(p => !(p.id === nodeId && p.floor === floor));
+    renderPins();
+    renderSidebar();
+    renderOutput();
+    document.getElementById('status-count').textContent = pins.length;
+  }
+
+  function renderOutput() {
+    const lines = pins.map(p => {
+      const padded = `'${p.id}':`.padEnd(22);
+      return `    ${padded}{'coords': (${String(p.x).padStart(2)}, ${String(p.y).padStart(2)}), 'floor': ${p.floor}, 'label': '${p.id}'},`;
+    });
+    document.getElementById('output-code').value = lines.join('\n');
+  }
+
+  function switchFloor(num, imgFile) {
+    currentFloor = num;
+    floorImg.src = '/static/' + imgFile;
+    document.querySelectorAll('.floor-btn').forEach((b, i) => b.classList.toggle('active', i + 1 === num));
+    document.getElementById('status-floor').textContent = `${FLOOR_NAMES[num]} (${num})`;
+    renderSidebar();
+    // Re-render pins after image loads
+    floorImg.onload = renderPins;
+  }
+
+  function clearAll() {
+    if (!confirm('Clear all pins on ALL floors?')) return;
+    pins = [];
+    pinsLayer.innerHTML = '';
+    renderSidebar();
+    renderOutput();
+    document.getElementById('status-count').textContent = 0;
+    document.getElementById('count-badge').textContent = 0;
+    showToast('Cleared all pins', '#f59e0b');
+  }
+
+  function copyOutput() {
+    const text = document.getElementById('output-code').value;
+    if (!text) { showToast('Nothing to copy yet!', '#f59e0b'); return; }
+    navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard!', '#10b981'));
+  }
+
+  function showToast(msg, color = '#10b981') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.background = color;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+  }
+</script>
+</body>
+</html>
