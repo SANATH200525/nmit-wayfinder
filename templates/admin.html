@@ -2,234 +2,389 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NMIT Wayfinder — Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>NMIT Wayfinder - Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Orbitron:wght@600;700&display=swap" rel="stylesheet">
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%); min-height: 100vh; padding: 30px 20px; color: #1f2937; }
-        .admin-container { max-width: 1200px; margin: 0 auto; }
-        .admin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; flex-wrap: wrap; gap: 12px; }
-        .admin-header h1 { font-family: 'Orbitron', sans-serif; font-size: 22px; }
-        .admin-header a { text-decoration: none; color: #4f46e5; font-size: 13px; font-weight: 600; background: white; padding: 8px 16px; border-radius: 8px; border: 1px solid #e5e7eb; }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 30px; }
-        .stat-card { background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); border-radius: 16px; padding: 20px; border: 1px solid rgba(255,255,255,0.6); box-shadow: 0 4px 20px rgba(0,0,0,0.06); text-align: center; }
-        .stat-card .stat-value { font-family: 'Orbitron', sans-serif; font-size: 28px; font-weight: 700; color: #4f46e5; margin-bottom: 4px; }
-        .stat-card .stat-label { font-size: 11px; font-weight: 700; letter-spacing: 1px; color: #6b7280; text-transform: uppercase; }
-        .panel { background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); border-radius: 16px; padding: 24px; margin-bottom: 24px; border: 1px solid rgba(255,255,255,0.6); box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
-        .panel h2 { font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 1px; color: #374151; margin-bottom: 16px; text-transform: uppercase; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th { text-align: left; padding: 8px 12px; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #9ca3af; border-bottom: 1px solid #f3f4f6; }
-        td { padding: 10px 12px; border-bottom: 1px solid #f9fafb; color: #374151; vertical-align: top; }
-        tr:last-child td { border-bottom: none; }
-        tr:hover td { background: #f9fafb; }
-        .weight-bar-wrap { display: flex; align-items: center; gap: 8px; }
-        .weight-bar { height: 6px; border-radius: 3px; background: #e5e7eb; width: 80px; overflow: hidden; }
-        .weight-bar-fill { height: 100%; border-radius: 3px; }
-        .weight-good { background: #10b981; }
-        .weight-bad { background: #ef4444; }
-        .stars { color: #f59e0b; font-size: 13px; }
-        .rating-num { font-weight: 600; margin-left: 4px; }
-        .reset-btn { background: #ef4444; color: white; border: none; border-radius: 8px; padding: 10px 20px; font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 700; cursor: pointer; letter-spacing: 0.5px; margin-top: 16px; }
-        .reset-btn:hover { background: #dc2626; }
-        .comment-cell { max-width: 200px; color: #6b7280; font-style: italic; font-size: 12px; }
-        .empty-state { text-align: center; color: #9ca3af; font-size: 13px; padding: 20px 0; }
-        #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #111827; color: white; padding: 10px 20px; border-radius: 8px; font-size: 13px; z-index: 9999; display: none; }
-        .faq-keywords { font-family: monospace; font-size: 11px; color: #6b7280; max-width: 260px; word-break: break-word; }
-        .faq-answer { font-size: 12px; color: #374151; max-width: 300px; }
-        .faq-inactive td { opacity: 0.4; }
-        .btn-sm { padding: 4px 10px; border: none; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; }
-        .btn-toggle-on  { background: #fef3c7; color: #92400e; }
-        .btn-toggle-off { background: #d1fae5; color: #065f46; }
-        .btn-delete { background: #fee2e2; color: #991b1b; }
-        .faq-add-form { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
-        .faq-add-form input, .faq-add-form textarea { width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 13px; }
-        .faq-add-form textarea { resize: vertical; min-height: 60px; }
-        .btn-add-faq { background: #4f46e5; color: white; border: none; border-radius: 8px; padding: 10px 20px; font-weight: 700; cursor: pointer; font-size: 13px; align-self: flex-start; }
-        .btn-add-faq:hover { background: #4338ca; }
-    </style>
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}?v=2">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='icon-192.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon-192.png') }}">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
-<div class="admin-container">
-    <div class="admin-header">
-        <h1>WAYFINDER ADMIN</h1>
-        <a href="/">Back to App</a>
-    </div>
-    <div class="stats-grid">
-        <div class="stat-card"><div class="stat-value" id="live-total-feedback">{{ total_feedback }}</div><div class="stat-label">Total Feedback</div></div>
-        <div class="stat-card"><div class="stat-value" id="live-avg-rating">{{ global_avg if global_avg else '—' }}</div><div class="stat-label">Global Avg Rating</div></div>
-        <div class="stat-card"><div class="stat-value">{{ total_edges_modified }}</div><div class="stat-label">Edges Adapted</div></div>
-        <div class="stat-card"><div class="stat-value">{{ top_routes|length }}</div><div class="stat-label">Unique Routes</div></div>
-    </div>
-    <div class="panel">
-        <h2>Most Traveled Routes</h2>
-        {% if top_routes %}
-        <table>
-            <thead><tr><th>From</th><th>To</th><th>Trips</th><th>Avg Rating</th></tr></thead>
-            <tbody>
-            {% for start, end, trips, avg_rating in top_routes %}
-            <tr>
-                <td>{{ node_labels.get(start, start) }}</td>
-                <td>{{ node_labels.get(end, end) }}</td>
-                <td><strong>{{ trips }}</strong></td>
-                <td>{% if avg_rating %}<span class="stars">★</span><span class="rating-num">{{ avg_rating|round(2) }}</span>{% else %}—{% endif %}</td>
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-        {% else %}<p class="empty-state">No feedback collected yet.</p>{% endif %}
-    </div>
-    <div class="panel">
-        <h2>Adapted Edge Weights (RL)</h2>
-        <p style="font-size:12px;color:#6b7280;margin-bottom:16px;">Below 1.0 = preferred (good feedback). Above 1.0 = penalised (bad feedback). Default = 1.0.</p>
-        {% if modified_weights %}
-        <table>
-            <thead><tr><th>Edge</th><th>Multiplier</th><th>Visual</th></tr></thead>
-            <tbody>
-            {% for edge, multiplier in modified_weights %}
-            <tr>
-                <td style="font-family:monospace;font-size:12px;">{{ edge }}</td>
-                <td><strong>{{ multiplier|round(4) }}</strong></td>
-                <td>
-                    <div class="weight-bar-wrap">
-                        <div class="weight-bar">
-                            {% if multiplier < 1.0 %}<div class="weight-bar-fill weight-good" style="width:{{ (multiplier*100)|int }}%"></div>
-                            {% else %}<div class="weight-bar-fill weight-bad" style="width:{{ [((multiplier-1.0)*100+50)|int,100]|min }}%"></div>{% endif %}
-                        </div>
-                        {% if multiplier < 0.97 %}Good{% elif multiplier > 1.03 %}Bad{% else %}Neutral{% endif %}
-                    </div>
-                </td>
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-        {% else %}<p class="empty-state">No edges adapted yet.</p>{% endif %}
-        <button class="reset-btn" onclick="confirmReset()">Reset All Weights to Default</button>
-    </div>
-    <div class="panel">
-        <h2>Recent Feedback (Last 20)</h2>
-        {% if recent_feedback %}
-        <table>
-            <thead><tr><th>Time</th><th>From</th><th>To</th><th>Rating</th><th>Comment</th></tr></thead>
-            <tbody>
-            {% for ts, start, end, rating, comment in recent_feedback %}
-            <tr>
-                <td style="font-size:11px;color:#9ca3af;white-space:nowrap;">{{ ts[:16] }}</td>
-                <td>{{ node_labels.get(start, start) }}</td>
-                <td>{{ node_labels.get(end, end) }}</td>
-                <td><span class="stars">{{ '★' * rating }}{{ '☆' * (5 - rating) }}</span></td>
-                <td class="comment-cell">{{ comment if comment else '—' }}</td>
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-        {% else %}<p class="empty-state">No feedback collected yet.</p>{% endif %}
-    </div>
+<body id="app-body">
 
-    <!-- FAQ Management Panel -->
-    <div class="panel">
-        <h2>FAQ Chatbot Training</h2>
-        <p style="font-size:12px;color:#6b7280;margin-bottom:16px;">Each row is a Q&amp;A pair. Keywords are comma-separated — any matching keyword triggers the answer. Toggle to enable/disable without deleting.</p>
-        {% if all_faqs %}
-        <table>
-            <thead><tr><th>#</th><th>Keywords</th><th>Answer</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody>
-            {% for faq_id, keywords, answer, active in all_faqs %}
-            <tr id="faq-row-{{ faq_id }}" {% if not active %}class="faq-inactive"{% endif %}>
-                <td style="color:#9ca3af;font-size:11px;">{{ faq_id }}</td>
-                <td class="faq-keywords">{{ keywords }}</td>
-                <td class="faq-answer">{{ answer }}</td>
-                <td>{% if active %}<span style="color:#10b981;font-weight:700;font-size:11px;">Active</span>{% else %}<span style="color:#9ca3af;font-weight:700;font-size:11px;">Inactive</span>{% endif %}</td>
-                <td style="white-space:nowrap;">
-                    <button class="btn-sm {% if active %}btn-toggle-on{% else %}btn-toggle-off{% endif %}" onclick="toggleFAQ({{ faq_id }})">{% if active %}Disable{% else %}Enable{% endif %}</button>
-                    &nbsp;
-                    <button class="btn-sm btn-delete" onclick="deleteFAQ({{ faq_id }})">Delete</button>
-                </td>
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-        {% else %}<p class="empty-state">No FAQ entries yet.</p>{% endif %}
-        <hr style="margin:20px 0;border:none;border-top:1px solid #f3f4f6;">
-        <h3 style="font-size:12px;font-weight:700;letter-spacing:0.5px;color:#374151;margin-bottom:12px;">ADD NEW Q&amp;A PAIR</h3>
-        <div class="faq-add-form">
-            <input type="text" id="faq-new-keywords" placeholder="Keywords (comma-separated, e.g. where is canteen,food,cafeteria)">
-            <textarea id="faq-new-answer" placeholder="Answer the user will see..."></textarea>
-            <button class="btn-add-faq" onclick="addFAQ()">+ Add FAQ Entry</button>
+    <main class="app-container">
+        <!-- Mobile-only top bar: shown when a route is active -->
+        <div id="mobile-top-bar" class="mobile-top-bar" style="display:none;">
+            <button class="mobile-new-route-btn" onclick="openRouteForm()" aria-label="New route">
+                <span class="mobile-back-arrow">&#8592;</span> New Route
+            </button>
+            <div id="mobile-route-label" class="mobile-route-label"></div>
+        </div>
+
+        <div id="route-form-sheet" class="route-form-sheet">
+        <section class="navigator-panel">
+            <div class="header-section">
+                <div class="header-top-row">
+                    <div class="status-badge"><span class="status-dot"></span> 4-FLOOR SYSTEM READY</div>
+                    <button id="dark-mode-btn" class="dark-mode-btn" onclick="toggleDarkMode()" aria-label="Toggle dark mode" title="Toggle dark mode">
+                        <svg id="dark-icon" width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                        <svg id="light-icon" width="16" height="16" viewBox="0 0 20 20" fill="none" style="display:none"><circle cx="10" cy="10" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                    </button>
+                </div>
+                <div class="title-wrapper">
+                    <h1>WAYFINDER</h1>
+                </div>
+            </div>
+
+            <form method="POST" id="nav-form">
+                <div class="form-group">
+                    <label class="field-label">GROUP BY</label>
+                    <div class="radio-group" style="flex-direction:row; gap:16px;">
+                        <label><input type="radio" name="group_by" value="floor" checked onchange="regroupDropdowns(this.value)"> Floor</label>
+                        <label><input type="radio" name="group_by" value="type" onchange="regroupDropdowns(this.value)"> Type</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="field-label">CURRENT LOCATION</label>
+                    <select id="start_node" name="start_node" required>
+                        <option value="">Select location...</option>
+                        {% for group, options in by_floor_ordered %}
+                        <optgroup label="{{ group }}">
+                            {% for opt in options %}<option value="{{ opt.id }}">{{ opt.label }}</option>{% endfor %}
+                        </optgroup>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div id="stops-container"></div>
+
+                <button type="button" class="add-stop-btn" onclick="addStopField()">+ ADD STOP</button>
+
+                <div class="form-group" style="margin-top: 15px;">
+                    <label class="field-label">FINAL DESTINATION</label>
+                    <select id="end_node" name="end_node" required>
+                        <option value="">Select location...</option>
+                        {% for group, options in by_floor_ordered %}
+                        <optgroup label="{{ group }}">
+                            {% for opt in options %}<option value="{{ opt.id }}">{{ opt.label }}</option>{% endfor %}
+                        </optgroup>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="field-label">MOBILITY MODE</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="mobility" value="none" checked> No Preference</label>
+                        <label><input type="radio" name="mobility" value="elevator_only"> Elevator Only</label>
+                        <label><input type="radio" name="mobility" value="stairs_only"> Stairs Only</label>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button type="submit" class="start-btn">INITIATE ROUTE</button>
+                </div>
+            </form>
+            {% if error_message %}
+            <div class="error-message">
+                [ERROR] {{ error_message }}
+            </div>
+            {% endif %}
+
+            <template id="stop-template">
+                <div class="form-group stop-group">
+                    <label class="field-label">VIA (STOP)</label>
+                    <div style="display: flex; gap: 5px;">
+                        <select name="stops[]" class="stop-select" required></select>
+                        <button type="button" class="remove-stop" onclick="this.parentElement.parentElement.remove()">Remove</button>
+                    </div>
+                </div>
+            </template>
+            <div id="route-info-panel" style="display:none;">
+                <button class="new-route-btn" onclick="resetToForm()">&#8592; New Route</button>
+                <div id="metrics-bar" class="metrics-bar" style="display:none;">
+                    <div class="metric-item"><span class="metric-label">Distance</span><strong id="m-distance">--</strong> m</div>
+                    <div class="metric-item"><span class="metric-label">Time</span><strong id="m-time">--</strong></div>
+                    <div class="metric-item"><span class="metric-label">Floor changes</span><strong id="m-floors">--</strong></div>
+                    <div class="metric-item"><span class="metric-label">Route rating</span><strong id="m-rating">--</strong></div>
+                </div>
+                <details id="directions-panel" open style="display:none;">
+                    <summary>Turn-by-Turn Directions</summary>
+                    <ol id="directions-list"></ol>
+                </details>
+            </div>
+        </section>
+        </div><!-- end route-form-sheet -->
+
+        <section class="map-section">
+            <div class="map-header">
+                <div class="floor-tabs">
+                    <button class="floor-tab active" data-floor="1" onclick="switchFloor(1)">GF</button>
+                    <button class="floor-tab" data-floor="2" onclick="switchFloor(2)">1F</button>
+                    <button class="floor-tab" data-floor="3" onclick="switchFloor(3)">2F</button>
+                    <button class="floor-tab" data-floor="4" onclick="switchFloor(4)">3F</button>
+                </div>
+                <div id="route-summary" class="route-summary" style="display:none;">
+                    <span id="route-summary-from" class="route-summary-from"></span>
+                    <span class="route-summary-arrow">&rarr;</span>
+                    <span id="route-summary-to" class="route-summary-to"></span>
+                </div>
+            </div>
+
+            <div class="map-display" id="map-viewport">
+                <div id="f1-container" class="map-container" style="display:block;">
+                    <img src="{{ url_for('static', filename='floor1.png') }}" class="map-image">
+                    <svg id="svg-f1" class="map-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+                </div>
+                <div id="f2-container" class="map-container" style="display:none;">
+                    <img src="{{ url_for('static', filename='floor2.png') }}" class="map-image" loading="lazy">
+                    <svg id="svg-f2" class="map-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+                </div>
+                <div id="f3-container" class="map-container" style="display:none;">
+                    <img src="{{ url_for('static', filename='floor3.png') }}" class="map-image" loading="lazy" onerror="this.style.display='none'">
+                    <svg id="svg-f3" class="map-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+                </div>
+                <div id="f4-container" class="map-container" style="display:none;">
+                    <img src="{{ url_for('static', filename='floor4.png') }}" class="map-image" loading="lazy" onerror="this.style.display='none'">
+                    <svg id="svg-f4" class="map-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+                </div>
+            </div><!-- end map-viewport -->
+
+            <button id="checkpoint-btn" class="checkpoint-btn" style="display:none;" onclick="onCheckpointReached()">
+                Reached Checkpoint
+            </button>
+
+            <!-- Mobile: full active navigation screen (shown when route is active) -->
+            <div id="mobile-directions-strip" class="mobile-nav-screen" style="display:none;">
+
+                <!-- Top bar: back + title + destination pill -->
+                <div class="nav-topbar">
+                    <button class="nav-back-btn" onclick="openRouteForm()" aria-label="Back to route form">&#8592;</button>
+                    <span class="nav-topbar-title">Wayfinder</span>
+                    <div id="nav-dest-pill" class="nav-dest-pill"></div>
+                </div>
+
+                <!-- Map area with floating pill floor switcher -->
+                <div class="nav-map-area">
+                    <div class="nav-map-viewport">
+                        <div id="nav-f1" class="nav-floor-img" style="display:block;">
+                            <img src="{{ url_for('static', filename='floor1.png') }}" class="nav-floor-png">
+                            <svg id="svg-nav-f1" class="nav-floor-svg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+                        </div>
+                        <div id="nav-f2" class="nav-floor-img" style="display:none;">
+                            <img src="{{ url_for('static', filename='floor2.png') }}" class="nav-floor-png" loading="lazy">
+                            <svg id="svg-nav-f2" class="nav-floor-svg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+                        </div>
+                        <div id="nav-f3" class="nav-floor-img" style="display:none;">
+                            <img src="{{ url_for('static', filename='floor3.png') }}" class="nav-floor-png" loading="lazy">
+                            <svg id="svg-nav-f3" class="nav-floor-svg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+                        </div>
+                        <div id="nav-f4" class="nav-floor-img" style="display:none;">
+                            <img src="{{ url_for('static', filename='floor4.png') }}" class="nav-floor-png" loading="lazy">
+                            <svg id="svg-nav-f4" class="nav-floor-svg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+                        </div>
+                    </div>
+                    <!-- Floating pill floor switcher over map -->
+                    <div class="nav-floor-pill">
+                        <button class="nav-tab active" data-floor="1" onclick="switchFloor(1)">GF</button>
+                        <button class="nav-tab" data-floor="2" onclick="switchFloor(2)">1F</button>
+                        <button class="nav-tab" data-floor="3" onclick="switchFloor(3)">2F</button>
+                        <button class="nav-tab" data-floor="4" onclick="switchFloor(4)">3F</button>
+                    </div>
+                </div>
+
+                <!-- Scrollable sheet below map -->
+                <div class="nav-sheet">
+                    <div class="nav-sheet-handle"></div>
+
+                    <!-- Stat blocks: distance + time -->
+                    <div id="mobile-metrics-row" class="nav-stat-row"></div>
+
+                    <!-- Icon metric cards: floor changes + rating -->
+                    <div id="mobile-metrics-cards" class="nav-metric-cards"></div>
+
+                    <!-- Journey label -->
+                    <div class="nav-journey-label">Current Journey</div>
+
+                    <!-- Timeline directions list -->
+                    <ol id="mobile-directions-list" class="nav-directions-list"></ol>
+                </div>
+
+                <!-- Bottom tab bar -->
+                <div class="nav-bottom-bar">
+                    <div class="nav-bottom-item">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                        <span>Explore</span>
+                    </div>
+                    <div class="nav-bottom-item nav-bottom-item--empty"></div>
+                    <button id="mobile-checkpoint-btn" class="nav-fab-btn" style="display:none;" onclick="onCheckpointReached()" aria-label="Reached checkpoint">
+                        <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 18V5M6 10l5-5 5 5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <div class="nav-bottom-item">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 2h10v18l-5-3.5L5 20V2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+                        <span>Saved</span>
+                    </div>
+                    <div class="nav-bottom-item">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 1.5v2M10 16.5v2M1.5 10h2M16.5 10h2M4 4l1.5 1.5M14.5 14.5L16 16M16 4l-1.5 1.5M5.5 14.5L4 16" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                        <span>Settings</span>
+                    </div>
+                </div>
+            </div>
+            <div id="map-legend" class="map-legend" style="display:none;">
+                <span class="legend-item"><span class="legend-dot" style="background:#10b981;"></span> Start</span>
+                <span class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span> Destination</span>
+                <span class="legend-item"><span class="legend-dot" style="background:#f59e0b;"></span> Stop</span>
+                <span class="legend-item"><span class="legend-dot" style="background:#8b5cf6;"></span> Checkpoint</span>
+            </div>
+        </section>
+    </main>
+
+    <div id="feedback-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-box">
+            <h3>How was your route?</h3>
+            <div class="star-rating" id="star-rating">
+                <span data-val="1">&#9733;</span><span data-val="2">&#9733;</span>
+                <span data-val="3">&#9733;</span><span data-val="4">&#9733;</span><span data-val="5">&#9733;</span>
+            </div>
+            <textarea id="feedback-comment" placeholder="Any issues? (optional)" rows="3"></textarea>
+            <button onclick="submitFeedback()">Submit Feedback</button>
+            <button onclick="closeFeedback()">Skip</button>
         </div>
     </div>
 
+    <div id="success-overlay" class="modal-overlay" style="display:none;">
+        <div class="modal-box success-box">
+            <div class="success-icon">DONE</div>
+            <h3>You've Arrived!</h3>
+            <p>Time taken: <strong id="success-elapsed-time">--</strong></p>
+            <p style="font-size:12px; color:#6b7280; margin-top:8px;">Opening feedback form...</p>
+        </div>
+    </div>
+
+    <!-- Floor confirmation modal — shown at floor transitions -->
+    <div id="floor-confirm-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-box floor-confirm-box">
+            <div id="floor-confirm-icon" class="floor-confirm-icon"></div>
+            <h3 id="floor-confirm-title">Are you on the right floor?</h3>
+            <p id="floor-confirm-body" style="font-size:14px;color:#374151;margin-bottom:20px;line-height:1.6;"></p>
+            <button id="floor-confirm-yes" class="floor-confirm-yes-btn" onclick="onFloorConfirmed(true)">
+                Yes, I'm here
+            </button>
+        <button id="floor-confirm-no" class="floor-confirm-no-btn" onclick="onFloorConfirmed(false)">
+            Wrong floor — go back
+        </button>
+    </div>
 </div>
-<div id="toast"></div>
-<script>
-function confirmReset() {
-    if (!confirm('Reset ALL learned edge weights to 1.0? This cannot be undone.')) return;
-    fetch('/admin/reset-weights', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    })
-        .then(r => r.json())
-        .then(d => { showToast(d.message); setTimeout(() => location.reload(), 1500); })
-        .catch(() => showToast('Reset failed.'));
-}
-function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.style.display = 'block';
-    setTimeout(() => t.style.display = 'none', 2500);
-}
-function toggleFAQ(id) {
-    fetch(`/admin/faq/toggle/${id}`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    })
-        .then(r => r.json())
-        .then(() => { showToast('FAQ updated.'); setTimeout(() => location.reload(), 800); })
-        .catch(() => showToast('Update failed.'));
-}
-function deleteFAQ(id) {
-    if (!confirm('Delete this FAQ entry?')) return;
-    fetch(`/admin/faq/delete/${id}`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    })
-        .then(r => r.json())
-        .then(() => { showToast('FAQ deleted.'); document.getElementById(`faq-row-${id}`)?.remove(); })
-        .catch(() => showToast('Delete failed.'));
-}
-function addFAQ() {
-    const keywords = document.getElementById('faq-new-keywords').value.trim();
-    const answer   = document.getElementById('faq-new-answer').value.trim();
-    if (!keywords || !answer) { showToast('Fill in both fields.'); return; }
-    fetch('/admin/faq/add', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify({ keywords, answer })
-    })
-    .then(r => r.json())
-    .then(() => { showToast('FAQ added!'); setTimeout(() => location.reload(), 800); })
-    .catch(() => showToast('Add failed.'));
-}
-// Auto-refresh feedback stats every 15 seconds without full page reload
-function refreshFeedbackStats() {
-    fetch('/stats')
-        .then(r => r.json())
-        .then(data => {
-            const totalEl = document.getElementById('live-total-feedback');
-            const avgEl   = document.getElementById('live-avg-rating');
-            if (totalEl) totalEl.textContent = data.total_feedback ?? '--';
-            if (avgEl)   avgEl.textContent   = data.global_avg ?? '--';
-        })
-        .catch(() => {});
-}
-setInterval(refreshFeedbackStats, 15000);
-</script>
+
+    <div class="mobile-safe-area-bottom"></div>
+
+    <script>
+        window.pathData = {{ path_data|safe }};
+        window.allNodes = {{ all_nodes|safe }};
+        window.allOpts = {{ nodes_opts_json|safe }};
+        window.nodeDegrees = {{ node_degrees_json|safe }};
+        window.stopLabels = {{ stop_labels_json|safe }};
+
+        const FLOOR_ORDER = ['Ground Floor','First Floor','Second Floor','Third Floor'];
+        const TYPE_ORDER  = ['Entrance','Offices','Rooms','Labs & Rooms','Restrooms','Lift & Stairs'];
+
+        function buildOptions(groupBy) {
+          const groups = {};
+          window.allOpts.forEach(opt => {
+            const key = groupBy === 'floor' ? opt.floor_label : opt.category;
+            (groups[key] = groups[key] || []).push(opt);
+          });
+          const order = groupBy === 'floor' ? FLOOR_ORDER : TYPE_ORDER;
+          let html = '<option value="">Select location...</option>';
+          order.forEach(grp => {
+            if (!groups[grp]) return;
+            html += `<optgroup label="${grp}">`;
+            groups[grp].sort((a,b) => a.label.localeCompare(b.label)).forEach(opt => {
+              html += `<option value="${opt.id}">${opt.label}</option>`;
+            });
+            html += '</optgroup>';
+          });
+          return html;
+        }
+
+        let tsStart, tsEnd, tsStopInstances = [];
+
+        function regroupDropdowns(groupBy) {
+          const html = buildOptions(groupBy);
+          ['start_node','end_node'].forEach((id, idx) => {
+            const ts = idx === 0 ? tsStart : tsEnd;
+            const selected = ts ? ts.getValue() : document.getElementById(id).value;
+            if (ts) {
+              ts.destroy();
+            }
+            const select = document.getElementById(id);
+            select.innerHTML = html;
+            if (selected) select.value = selected;
+          });
+          const cfg = { create:false, sortField: false, dropdownParent:'body' };
+          tsStart = new TomSelect('#start_node', cfg);
+          tsEnd   = new TomSelect('#end_node', cfg);
+
+          tsStopInstances.forEach(ts => ts.destroy());
+          tsStopInstances = [];
+          document.querySelectorAll('.stop-select').forEach(sel => {
+            const selected = sel.value;
+            sel.innerHTML = html;
+            if (selected) sel.value = selected;
+            tsStopInstances.push(new TomSelect(sel, cfg));
+          });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+          regroupDropdowns('floor');
+        });
+
+        function addStopField() {
+          const container = document.getElementById('stops-container');
+          const template  = document.getElementById('stop-template');
+          const clone     = template.content.cloneNode(true);
+          container.appendChild(clone);
+          const newSel = container.lastElementChild.querySelector('.stop-select');
+          const groupBy = document.querySelector('input[name="group_by"]:checked').value;
+          newSel.innerHTML = buildOptions(groupBy);
+          const ts = new TomSelect(newSel, {
+            create:false, sortField:{field:'text',direction:'asc'}, dropdownParent:'body'
+          });
+          tsStopInstances.push(ts);
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register("{{ url_for('static', filename='service-worker.js') }}")
+          .then(r => console.log('SW registered:', r.scope))
+          .catch(e => console.warn('SW failed:', e));
+      }
+    </script>
+
+    <div id="faq-bubble" class="faq-bubble" onclick="toggleFAQChat()" title="Ask a question">
+        <span>?</span>
+    </div>
+    <div id="faq-chat" class="faq-chat" style="display:none;">
+        <div class="faq-chat-header">
+            <span>Wayfinder Assistant</span>
+            <button onclick="toggleFAQChat()" style="background:none;border:none;color:white;font-size:16px;cursor:pointer;padding:0 4px;">X</button>
+        </div>
+        <div class="faq-chat-messages" id="faq-messages">
+            <div class="faq-msg faq-msg-bot">Hi! Ask me anything about the building - room locations, how to navigate, or how to use this app.</div>
+        </div>
+        <div class="faq-chat-input-row">
+            <input type="text" id="faq-input" class="faq-input"
+                   placeholder="e.g. Where is the library?"
+                   onkeydown="if(event.key==='Enter') sendFAQ()">
+            <button class="faq-send-btn" onclick="sendFAQ()">Send</button>
+        </div>
+    </div>
 </body>
 </html>

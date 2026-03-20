@@ -17,7 +17,28 @@ let _floorConfirmCallback = null;
 
 const nodeType = (id) => (window.allNodes[id]?.type) || null;
 
+// ---------------------------------------------------------------------------
+// Dark mode
+// ---------------------------------------------------------------------------
+function applyDarkMode(dark) {
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    const moonIcon  = document.getElementById('dark-icon');
+    const sunIcon   = document.getElementById('light-icon');
+    if (moonIcon) moonIcon.style.display = dark ? 'none' : 'block';
+    if (sunIcon)  sunIcon.style.display  = dark ? 'block' : 'none';
+}
+
+function toggleDarkMode() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    applyDarkMode(!isDark);
+    localStorage.setItem('wayfinder-theme', isDark ? 'light' : 'dark');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    // ── Dark mode: restore saved preference ──
+    const saved = localStorage.getItem('wayfinder-theme');
+    if (saved === 'dark') applyDarkMode(true);
+
     // Star rating interaction
     document.querySelectorAll('#star-rating span').forEach(star => {
         star.addEventListener('click', () => {
@@ -36,6 +57,11 @@ document.addEventListener('DOMContentLoaded', () => {
             currentCheckpointIdx = 0;
             navStartTime = null;
             hideCheckpointButton();
+            // Reset desktop panel back to form view before new route loads
+            const form = document.getElementById('nav-form');
+            if (form) form.classList.remove('form-hidden');
+            const rip = document.getElementById('route-info-panel');
+            if (rip) rip.style.display = 'none';
             if (isMobile()) {
                 closeRouteForm();
                 const topBar = document.getElementById('mobile-top-bar');
@@ -44,8 +70,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const summaryClear = document.getElementById('route-summary');
             if (summaryClear) summaryClear.style.display = 'none';
-            const rip = document.getElementById('route-info-panel');
-            if (rip) rip.style.display = 'block';
             if (isMobile()) {
                 const strip = document.getElementById('mobile-directions-strip');
                 if (strip) strip.style.display = 'none';
@@ -175,9 +199,13 @@ function computeCheckpoints(logicalPath) {
     const stopIds  = (window.stopLabels || []).map(s => s.id);
 
     function addCheckpoint(node) {
-        if (!node || addedIds.has(node.id)) return;
+        if (!node) return;
         if (window.allNodes[node.id]?.is_waypoint) return;
-        addedIds.add(node.id);
+        // For vertical nodes (lift/stairs), allow re-adding if in a different segment
+        const isVertical = nodeType(node.id) === 'lift' || nodeType(node.id) === 'stairs';
+        const key = isVertical ? `${node.id}::${node.segment ?? 0}` : node.id;
+        if (addedIds.has(key)) return;
+        addedIds.add(key);
         result.push(node);
     }
 
@@ -192,7 +220,8 @@ function computeCheckpoints(logicalPath) {
 
         // --- Floor transition ---
         if (next && curr.floor !== next.floor) {
-            const isLift = currType === 'lift';
+            const isLift   = currType === 'lift';
+            const isStairs = currType === 'stairs';
 
             if (isLift) {
                 // Scan past all consecutive lift-to-lift hops to find final exit.
@@ -204,11 +233,20 @@ function computeCheckpoints(logicalPath) {
                 ) { j++; }
                 addCheckpoint(curr);            // departure  e.g. LIFT-GF
                 addCheckpoint(logicalPath[j]);  // final exit e.g. LIFT-2F
-                i = j; // skip intermediate lift nodes
-            } else {
-                // Stairs: checkpoint every floor landing.
-                addCheckpoint(curr);  // departure stair node
-                addCheckpoint(next);  // arrival stair node
+                i = j;
+            } else if (isStairs) {
+                // Same logic as lift: scan past ALL consecutive stair hops
+                // to find the final exit floor. This means 1F→3F via stairs
+                // only prompts at departure (1F) and arrival (3F), skipping 2F.
+                let j = i;
+                while (
+                    j + 1 < logicalPath.length &&
+                    nodeType(logicalPath[j + 1].id) === 'stairs' &&
+                    logicalPath[j + 1].floor !== logicalPath[j].floor
+                ) { j++; }
+                addCheckpoint(curr);            // departure stair node
+                addCheckpoint(logicalPath[j]);  // final arrival stair node
+                i = j;
             }
             continue;
         }
@@ -236,6 +274,50 @@ function computeCheckpoints(logicalPath) {
 // ---------------------------------------------------------------------------
 // Checkpoint button
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Route active panel — desktop left panel switches to metrics+directions view
+// ---------------------------------------------------------------------------
+function showRouteActivePanel() {
+    // Hide form elements
+    const form       = document.getElementById('nav-form');
+    const stopsCont  = document.getElementById('stops-container');
+    if (form) form.classList.add('form-hidden');
+
+    // Show route info panel
+    const rip = document.getElementById('route-info-panel');
+    if (rip) rip.style.display = 'block';
+}
+
+function resetToForm() {
+    // Show form again
+    const form = document.getElementById('nav-form');
+    if (form) form.classList.remove('form-hidden');
+
+    // Hide route info panel
+    const rip = document.getElementById('route-info-panel');
+    if (rip) rip.style.display = 'none';
+
+    // Clear SVGs and reset state
+    for (let f = 1; f <= 4; f++) {
+        const svg = document.getElementById(`svg-f${f}`);
+        if (svg) svg.innerHTML = '';
+    }
+    const legend  = document.getElementById('map-legend');
+    const summary = document.getElementById('route-summary');
+    if (legend)  legend.style.display  = 'none';
+    if (summary) summary.style.display = 'none';
+    hideCheckpointButton();
+    pathData    = [];
+    checkpoints = [];
+    currentCheckpointIdx = 0;
+
+    // Mobile cleanup
+    const topBar = document.getElementById('mobile-top-bar');
+    if (topBar) topBar.style.display = 'none';
+    document.body.classList.remove('has-route');
+    document.documentElement.style.overflow = '';
+}
+
 function showCheckpointButton() {
     const btn = document.getElementById('checkpoint-btn');
     if (!btn) return;
@@ -450,6 +532,8 @@ function highlightRemainingPath(checkpointIdx) {
     // Split nodes into (segment, floor) buckets.
     // On a floor change, the last point of the outgoing bucket is prepended
     // to the next bucket so polylines share an endpoint.
+    // Vertical nodes (stairs/lift) are also added to the adjacent floor's
+    // bucket as a bridge point so stairs-only paths render correctly.
     function toBuckets(nodes) {
         const buckets = [];
         let curSeg = null, curFloor = null, curPts = [];
@@ -466,7 +550,24 @@ function highlightRemainingPath(checkpointIdx) {
             }
         });
         if (curPts.length >= 2) buckets.push({ floor: curFloor, pts: curPts });
-        return buckets;
+
+        // Extra pass: for vertical (stair/lift) nodes that sit at floor
+        // boundaries, add a 2-point bridge bucket on the adjacent floor
+        // so the line visually connects to the stair/lift icon on that floor.
+        const extra = [];
+        nodes.forEach((p, idx) => {
+            const isVertical = nodeType(p.id) === 'stairs' || nodeType(p.id) === 'lift';
+            if (!isVertical) return;
+            const prev = nodes[idx - 1];
+            const next = nodes[idx + 1];
+            if (prev && prev.floor !== p.floor) {
+                extra.push({ floor: prev.floor, pts: [prev, p] });
+            }
+            if (next && next.floor !== p.floor) {
+                extra.push({ floor: next.floor, pts: [p, next] });
+            }
+        });
+        return [...buckets, ...extra];
     }
 
     const travBuckets = toBuckets(traversed);
@@ -617,6 +718,9 @@ function drawPath(path, logicalPath = path) {
     generateDirections(logicalPath);
     calculateMetrics(logicalPath);
 
+    // On desktop, switch left panel to route-active view
+    if (!isMobile()) showRouteActivePanel();
+
     if (isMobile()) {
         document.body.classList.add('has-route');
         closeRouteForm();
@@ -691,10 +795,29 @@ function renderSVG(svgId, points, globalStart, globalEnd, stops, nextCheckpoint 
     svg.innerHTML = '';
 
     // One polyline per floor — merge all segments.
+    // Include stair/lift boundary nodes on adjacent floors so the path
+    // connects cleanly across floor transitions (stairs-only mode fix).
     const byFloor = {};
-    points.forEach(p => {
+    points.forEach((p, idx) => {
         if (!byFloor[p.floor]) byFloor[p.floor] = [];
         byFloor[p.floor].push(p);
+
+        // If this is a vertical node transitioning floors, also add it
+        // to the adjacent floor's list as a bridge point so the line
+        // starts/ends at the right edge rather than leaving a gap.
+        const isVertical = nodeType(p.id) === 'stairs' || nodeType(p.id) === 'lift';
+        if (isVertical) {
+            const prev = points[idx - 1];
+            const next = points[idx + 1];
+            if (prev && prev.floor !== p.floor) {
+                if (!byFloor[prev.floor]) byFloor[prev.floor] = [];
+                byFloor[prev.floor].push(p);
+            }
+            if (next && next.floor !== p.floor) {
+                if (!byFloor[next.floor]) byFloor[next.floor] = [];
+                byFloor[next.floor].push(p);
+            }
+        }
     });
 
     Object.entries(byFloor).forEach(([, floorPts]) => {
@@ -989,7 +1112,13 @@ function generateDirections(path) {
 
             directions.push(`[WALK] ${instruction}`);
             prevHeading = corridorHeading;
-            i = j;
+            // If we just told the user "until you reach X", the very next node
+            // is X — skip the [GO] step for it to avoid a duplicate instruction.
+            if (endLabel && nodeAtEnd && !isWaypoint(nodeAtEnd.id) && !isTransition(nodeAtEnd.id)) {
+                i = j + 1; // skip past the destination node
+            } else {
+                i = j;
+            }
             continue;
         }
 
@@ -1411,6 +1540,13 @@ function showFeedbackModal() {
 function closeFeedback() {
     const modal = document.getElementById('feedback-modal');
     if (modal) modal.style.display = 'none';
+    // Reset star rating for next time
+    document.querySelectorAll('#star-rating span').forEach(s => s.classList.remove('selected'));
+    const comment = document.getElementById('feedback-comment');
+    if (comment) comment.value = '';
+    // Return to form so user can start a new route
+    resetToForm();
+    if (isMobile()) openRouteForm();
 }
 
 function submitFeedback() {
@@ -1425,15 +1561,15 @@ function submitFeedback() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         body: JSON.stringify({
-            start:   pathData[0].id,
-            end:     pathData[pathData.length - 1].id,
+            start:   pathData[0]?.id || '',
+            end:     pathData[pathData.length - 1]?.id || '',
             path:    pathData.map(p => p.id),
             rating,
             comment
         })
     })
     .then(() => { closeFeedback(); toast('Thanks for your feedback!'); })
-    .catch(() => toast('Could not send feedback right now.'));
+    .catch(() => { closeFeedback(); toast('Could not send feedback right now.'); });
 }
 
 function toast(msg) {

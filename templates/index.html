@@ -28,7 +28,13 @@
         <div id="route-form-sheet" class="route-form-sheet">
         <section class="navigator-panel">
             <div class="header-section">
-                <div class="status-badge"><span class="status-dot"></span> 4-FLOOR SYSTEM READY</div>
+                <div class="header-top-row">
+                    <div class="status-badge"><span class="status-dot"></span> 4-FLOOR SYSTEM READY</div>
+                    <button id="dark-mode-btn" class="dark-mode-btn" onclick="toggleDarkMode()" aria-label="Toggle dark mode" title="Toggle dark mode">
+                        <svg id="dark-icon" width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                        <svg id="light-icon" width="16" height="16" viewBox="0 0 20 20" fill="none" style="display:none"><circle cx="10" cy="10" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                    </button>
+                </div>
                 <div class="title-wrapper">
                     <h1>WAYFINDER</h1>
                 </div>
@@ -100,11 +106,12 @@
                 </div>
             </template>
             <div id="route-info-panel" style="display:none;">
+                <button class="new-route-btn" onclick="resetToForm()">&#8592; New Route</button>
                 <div id="metrics-bar" class="metrics-bar" style="display:none;">
-                    <span>Distance: <strong id="m-distance">--</strong> m</span>
-                    <span>Time: <strong id="m-time">--</strong></span>
-                    <span>Floor changes: <strong id="m-floors">--</strong></span>
-                    <span>Route rating: <strong id="m-rating">--</strong></span>
+                    <div class="metric-item"><span class="metric-label">Distance</span><strong id="m-distance">--</strong> m</div>
+                    <div class="metric-item"><span class="metric-label">Time</span><strong id="m-time">--</strong></div>
+                    <div class="metric-item"><span class="metric-label">Floor changes</span><strong id="m-floors">--</strong></div>
+                    <div class="metric-item"><span class="metric-label">Route rating</span><strong id="m-rating">--</strong></div>
                 </div>
                 <details id="directions-panel" open style="display:none;">
                     <summary>Turn-by-Turn Directions</summary>
@@ -276,6 +283,7 @@
 
     <div class="mobile-safe-area-bottom"></div>
 
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
     <script>
         window.pathData = {{ path_data|safe }};
         window.allNodes = {{ all_nodes|safe }};
@@ -286,50 +294,74 @@
         const FLOOR_ORDER = ['Ground Floor','First Floor','Second Floor','Third Floor'];
         const TYPE_ORDER  = ['Entrance','Offices','Rooms','Labs & Rooms','Restrooms','Lift & Stairs'];
 
-        function buildOptions(groupBy) {
+        // Build <select> HTML with optgroups in exact order
+        function buildHTML(groupBy) {
+          const order  = groupBy === 'floor' ? FLOOR_ORDER : TYPE_ORDER;
           const groups = {};
           window.allOpts.forEach(opt => {
             const key = groupBy === 'floor' ? opt.floor_label : opt.category;
             (groups[key] = groups[key] || []).push(opt);
           });
-          const order = groupBy === 'floor' ? FLOOR_ORDER : TYPE_ORDER;
           let html = '<option value="">Select location...</option>';
           order.forEach(grp => {
             if (!groups[grp]) return;
             html += `<optgroup label="${grp}">`;
-            groups[grp].sort((a,b) => a.label.localeCompare(b.label)).forEach(opt => {
-              html += `<option value="${opt.id}">${opt.label}</option>`;
-            });
+            groups[grp]
+              .sort((a, b) => a.label.localeCompare(b.label))
+              .forEach(opt => {
+                html += `<option value="${opt.id}">${opt.label}</option>`;
+              });
             html += '</optgroup>';
           });
           return html;
         }
 
+        // After TomSelect renders, re-order its dropdown optgroup divs to match our order
+        function fixOptgroupOrder(ts, groupBy) {
+          const order = groupBy === 'floor' ? FLOOR_ORDER : TYPE_ORDER;
+          const dropdown = ts.dropdown_content;
+          if (!dropdown) return;
+          const ogEls = Array.from(dropdown.querySelectorAll('[data-group]'));
+          if (!ogEls.length) return;
+          ogEls.sort((a, b) => {
+            const ai = order.indexOf(a.getAttribute('data-group'));
+            const bi = order.indexOf(b.getAttribute('data-group'));
+            return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+          });
+          ogEls.forEach(el => dropdown.appendChild(el));
+        }
+
         let tsStart, tsEnd, tsStopInstances = [];
 
-        function regroupDropdowns(groupBy) {
-          const html = buildOptions(groupBy);
-          ['start_node','end_node'].forEach((id, idx) => {
-            const ts = idx === 0 ? tsStart : tsEnd;
-            const selected = ts ? ts.getValue() : document.getElementById(id).value;
-            if (ts) {
-              ts.destroy();
-            }
-            const select = document.getElementById(id);
-            select.innerHTML = html;
-            if (selected) select.value = selected;
+        function makeTomSelect(el, groupBy, preselected) {
+          if (typeof el === 'string') el = document.querySelector(el);
+          if (!el) return null;
+          el.innerHTML = buildHTML(groupBy);
+          if (preselected) el.value = preselected;
+          const ts = new TomSelect(el, {
+            create: false,
+            sortField: false,
+            dropdownParent: 'body',
+            onInitialize() { fixOptgroupOrder(this, groupBy); },
+            onDropdownOpen() { fixOptgroupOrder(this, groupBy); },
           });
-          const cfg = { create:false, sortField:{field:'text',direction:'asc'}, dropdownParent:'body' };
-          tsStart = new TomSelect('#start_node', cfg);
-          tsEnd   = new TomSelect('#end_node', cfg);
+          if (preselected) ts.setValue(preselected, true);
+          return ts;
+        }
 
+        function regroupDropdowns(groupBy) {
+          const selStart = tsStart ? tsStart.getValue() : '';
+          const selEnd   = tsEnd   ? tsEnd.getValue()   : '';
+          if (tsStart) tsStart.destroy();
+          if (tsEnd)   tsEnd.destroy();
+          tsStart = makeTomSelect('#start_node', groupBy, selStart);
+          tsEnd   = makeTomSelect('#end_node',   groupBy, selEnd);
+          const prevStops = tsStopInstances.map(ts => ts.getValue());
           tsStopInstances.forEach(ts => ts.destroy());
           tsStopInstances = [];
-          document.querySelectorAll('.stop-select').forEach(sel => {
-            const selected = sel.value;
-            sel.innerHTML = html;
-            if (selected) sel.value = selected;
-            tsStopInstances.push(new TomSelect(sel, cfg));
+          document.querySelectorAll('.stop-select').forEach((sel, i) => {
+            const ts = makeTomSelect(sel, groupBy, prevStops[i] || '');
+            if (ts) tsStopInstances.push(ts);
           });
         }
 
@@ -344,14 +376,10 @@
           container.appendChild(clone);
           const newSel = container.lastElementChild.querySelector('.stop-select');
           const groupBy = document.querySelector('input[name="group_by"]:checked').value;
-          newSel.innerHTML = buildOptions(groupBy);
-          const ts = new TomSelect(newSel, {
-            create:false, sortField:{field:'text',direction:'asc'}, dropdownParent:'body'
-          });
-          tsStopInstances.push(ts);
+          const ts = makeTomSelect(newSel, groupBy, '');
+          if (ts) tsStopInstances.push(ts);
         }
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script>
       if ('serviceWorker' in navigator) {
