@@ -123,6 +123,8 @@ function switchFloor(floorNum) {
         if (container) container.style.display = (i == floorNum) ? 'block' : 'none';
     }
     fitSVGToImage();
+    // Keep nav screen floor in sync
+    syncNavFloor(floorNum);
 }
 
 // ---------------------------------------------------------------------------
@@ -319,6 +321,9 @@ function onCheckpointReached() {
         const summary = document.getElementById('route-summary');
         if (legend)  legend.style.display  = 'none';
         if (summary) summary.style.display = 'none';
+        // Hide mobile nav screen
+        const navScreen = document.getElementById('mobile-directions-strip');
+        if (navScreen) navScreen.style.display = 'none';
         pathData   = [];
         checkpoints = [];
         const elapsed = navStartTime ? Math.round((Date.now() - navStartTime) / 1000) : 0;
@@ -350,7 +355,10 @@ function onCheckpointReached() {
         showCheckpointButton();
         const btn = document.getElementById('checkpoint-btn');
         if (btn && btn.style.display === 'none') btn.style.display = 'flex';
-        if (isMobile()) updateMobileCurrentStep(currentCheckpointIdx);
+        if (isMobile()) {
+            updateMobileCurrentStep(currentCheckpointIdx);
+            syncNavSVGs();
+        }
     }
 
     if (needsLiftConfirm || needsStairConfirm) {
@@ -591,6 +599,7 @@ function drawPath(path, logicalPath = path) {
         document.body.classList.add('has-route');
         closeRouteForm();
         populateMobileStrip(logicalPath);
+        syncNavSVGs();
         const mobileLabel = document.getElementById('mobile-route-label');
         if (mobileLabel) {
             mobileLabel.textContent =
@@ -943,6 +952,39 @@ function calculateMetrics(path) {
         .then(data => {
             const el = document.getElementById('m-rating');
             if (el) el.textContent = data.avg_rating ? data.avg_rating.toFixed(2) : '--';
+            // Refresh mobile metric cards now that rating is available
+            if (isMobile()) {
+                const floorEl = document.getElementById('m-floors');
+                const cards   = document.getElementById('mobile-metrics-cards');
+                if (cards) {
+                    cards.innerHTML =
+                        `<div class="nav-metric-card">
+                            <div class="nav-metric-icon">
+                                <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <rect x="2" y="1" width="14" height="16" rx="2"/>
+                                    <line x1="2" y1="6.5" x2="16" y2="6.5"/>
+                                    <line x1="2" y1="11.5" x2="16" y2="11.5"/>
+                                    <line x1="7" y1="1" x2="7" y2="17"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="nav-metric-label">Floor Changes</div>
+                                <div class="nav-metric-value">${floorEl?.textContent || '--'}</div>
+                            </div>
+                         </div>
+                         <div class="nav-metric-card">
+                            <div class="nav-metric-icon">
+                                <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.3">
+                                    <polygon points="9,2 11,7 16,7 12,10.5 13.5,16 9,12.5 4.5,16 6,10.5 2,7 7,7"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="nav-metric-label">Route Rating</div>
+                                <div class="nav-metric-value">${data.avg_rating ? data.avg_rating.toFixed(2) : '--'}</div>
+                            </div>
+                         </div>`;
+                }
+            }
         })
         .catch(() => {
             const el = document.getElementById('m-rating');
@@ -951,44 +993,225 @@ function calculateMetrics(path) {
 }
 
 // ---------------------------------------------------------------------------
-// Mobile strip
+// Mobile active navigation screen
 // ---------------------------------------------------------------------------
+
+function stepIcon(text) {
+    if (text.startsWith('[START]'))   return 'start';
+    if (text.startsWith('[ARRIVED]')) return 'arrived';
+    if (text.startsWith('[LIFT]'))    return 'lift';
+    if (text.startsWith('[STAIRS]'))  return 'stairs';
+    if (text.startsWith('[WALK]'))    return 'walk';
+    if (text.startsWith('[GO]'))      return 'go';
+    return 'go';
+}
+
+// SVG icons for each step type (inline, no external dependency)
+function stepIconSVG(type) {
+    const icons = {
+        start:   `<svg viewBox="0 0 18 18" fill="none"><path d="M9 15V5M5 9l4-4 4 4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="3" y1="16" x2="15" y2="16" stroke-width="2" stroke-linecap="round"/></svg>`,
+        arrived: `<svg viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke-width="1.5"/><path d="M5.5 9l2.5 3 4.5-5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        lift:    `<svg viewBox="0 0 18 18" fill="none"><rect x="3" y="2" width="12" height="14" rx="2" stroke-width="1.5"/><path d="M9 6v6M6.5 8.5L9 6l2.5 2.5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        stairs:  `<svg viewBox="0 0 18 18" fill="none"><path d="M3 15h4v-3h4V9h4V3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        walk:    `<svg viewBox="0 0 18 18" fill="none"><path d="M12 9H4M4 9l3-3M4 9l3 3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        go:      `<svg viewBox="0 0 18 18" fill="none"><path d="M6 9h8M14 9l-3-3M14 9l-3 3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    };
+    return icons[type] || icons.go;
+}
+
+// Human-readable step title from tag
+function stepTitle(text) {
+    if (text.startsWith('[START]'))   return 'Start';
+    if (text.startsWith('[ARRIVED]')) return 'Arrived';
+    if (text.startsWith('[LIFT]'))    return 'Take the lift';
+    if (text.startsWith('[STAIRS]'))  return 'Take stairs';
+    if (text.startsWith('[WALK]'))    return 'Walk';
+    if (text.startsWith('[GO]'))      return 'Head toward';
+    return text;
+}
+
 function populateMobileStrip(logicalPath) {
     if (!logicalPath || logicalPath.length === 0) return;
-    const srcList    = document.getElementById('directions-list');
-    const mobileList = document.getElementById('mobile-directions-list');
-    if (srcList && mobileList) mobileList.innerHTML = srcList.innerHTML;
-    updateMobileCurrentStep(0);
+
+    // ── Destination pill ──
+    const globalEnd = logicalPath[logicalPath.length - 1];
+    const destLabel = window.allNodes[globalEnd.id]?.label || globalEnd.id;
+    const pill = document.getElementById('nav-dest-pill');
+    if (pill) pill.textContent = destLabel;
+
+    // ── Stat row: Distance + Time ──
     const distEl  = document.getElementById('m-distance');
     const timeEl  = document.getElementById('m-time');
-    const floorEl = document.getElementById('m-floors');
-    const metRow  = document.getElementById('mobile-metrics-row');
-    if (metRow && distEl) {
-        metRow.innerHTML =
-            `<span>Distance: <strong>${distEl.textContent}m</strong></span>` +
-            `<span>Time: <strong>${timeEl?.textContent || '--'}</strong></span>` +
-            `<span>Floors: <strong>${floorEl?.textContent || '--'}</strong></span>`;
+    const statRow = document.getElementById('mobile-metrics-row');
+    if (statRow) {
+        statRow.innerHTML =
+            `<div class="nav-stat-block">
+                <div class="nav-stat-label">Distance</div>
+                <div class="nav-stat-value">${distEl?.textContent || '--'}m</div>
+             </div>
+             <div class="nav-stat-block">
+                <div class="nav-stat-label">Estimated Time</div>
+                <div class="nav-stat-value">${timeEl?.textContent || '--'}</div>
+             </div>`;
+    }
+
+    // ── Metric cards: Floor changes + Route rating ──
+    const floorEl  = document.getElementById('m-floors');
+    const ratingEl = document.getElementById('m-rating');
+    const cards    = document.getElementById('mobile-metrics-cards');
+    if (cards) {
+        cards.innerHTML =
+            `<div class="nav-metric-card">
+                <div class="nav-metric-icon">
+                    <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="2" y="1" width="14" height="16" rx="2"/>
+                        <line x1="2" y1="6.5" x2="16" y2="6.5"/>
+                        <line x1="2" y1="11.5" x2="16" y2="11.5"/>
+                        <line x1="7" y1="1" x2="7" y2="17"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="nav-metric-label">Floor Changes</div>
+                    <div class="nav-metric-value">${floorEl?.textContent || '--'}</div>
+                </div>
+             </div>
+             <div class="nav-metric-card">
+                <div class="nav-metric-icon">
+                    <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.3">
+                        <polygon points="9,2 11,7 16,7 12,10.5 13.5,16 9,12.5 4.5,16 6,10.5 2,7 7,7"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="nav-metric-label">Route Rating</div>
+                    <div class="nav-metric-value">${ratingEl?.textContent || '--'}</div>
+                </div>
+             </div>`;
+    }
+
+    // ── Timeline directions list ──
+    const srcList    = document.getElementById('directions-list');
+    const mobileList = document.getElementById('mobile-directions-list');
+    if (srcList && mobileList) {
+        mobileList.innerHTML = '';
+        let stepNum = 1;
+        const srcItems = Array.from(srcList.querySelectorAll('li'))
+            .filter(li => !li.style.color.includes('99, 102, 241')); // skip leg headers
+
+        srcItems.forEach((srcLi, idx) => {
+            const rawText = srcLi.childNodes[0]?.textContent?.trim() || srcLi.textContent.trim();
+            const type    = stepIcon(rawText);
+            const isLast  = idx === srcItems.length - 1;
+            const title   = stepTitle(rawText);
+            // Sub-text: everything after the [TAG] prefix
+            const sub     = rawText.replace(/^\[[\w]+\]\s*/, '');
+
+            const li = document.createElement('li');
+            const cp = srcLi.getAttribute('data-checkpoint');
+            if (cp !== null) li.setAttribute('data-checkpoint', cp);
+            if (srcLi.classList.contains('directions-active')) li.classList.add('directions-active');
+
+            // Left column
+            const left = document.createElement('div');
+            left.className = 'nav-step-left';
+
+            const iconWrap = document.createElement('div');
+            iconWrap.className = `nav-step-icon${type === 'start' ? ' start' : ''}`;
+            iconWrap.innerHTML = stepIconSVG(type);
+            left.appendChild(iconWrap);
+
+            if (!isLast) {
+                const line = document.createElement('div');
+                line.className = 'nav-step-line';
+                left.appendChild(line);
+            }
+
+            // Right column
+            const content = document.createElement('div');
+            content.className = 'nav-step-content';
+
+            const titleEl = document.createElement('div');
+            titleEl.className = 'nav-step-title';
+            titleEl.textContent = `${title}`;
+            content.appendChild(titleEl);
+
+            if (sub && sub !== title && sub.length > 1) {
+                const subEl = document.createElement('div');
+                subEl.className = 'nav-step-sub';
+                subEl.textContent = sub;
+                content.appendChild(subEl);
+            }
+
+            // CP badge if present
+            const badge = srcLi.querySelector('span[style]');
+            if (badge) {
+                const b = badge.cloneNode(true);
+                b.style.cssText = 'font-size:10px;font-weight:700;color:#8b5cf6;margin-left:6px;';
+                titleEl.appendChild(b);
+            }
+
+            li.appendChild(left);
+            li.appendChild(content);
+            mobileList.appendChild(li);
+            stepNum++;
+        });
+    }
+
+    syncMobileCheckpointBtn();
+    syncNavSVGs();
+    updateMobileCurrentStep(0);
+}
+
+function syncNavSVGs() {
+    for (let f = 1; f <= 4; f++) {
+        const src  = document.getElementById(`svg-f${f}`);
+        const dest = document.getElementById(`svg-nav-f${f}`);
+        if (src && dest) dest.innerHTML = src.innerHTML;
     }
 }
 
+function syncNavFloor(floorNum) {
+    document.querySelectorAll('.nav-tab').forEach(tab =>
+        tab.classList.toggle('active', tab.dataset.floor == floorNum));
+    for (let i = 1; i <= 4; i++) {
+        const el = document.getElementById(`nav-f${i}`);
+        if (el) el.style.display = (i == floorNum) ? 'block' : 'none';
+    }
+}
+
+function syncMobileCheckpointBtn() {
+    const btn = document.getElementById('mobile-checkpoint-btn');
+    if (!btn) return;
+    const isLast = checkpoints.length === 0 ||
+                   currentCheckpointIdx >= checkpoints.length - 1;
+    // FAB: show up arrow normally, checkmark on finish
+    btn.innerHTML = isLast
+        ? `<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M5 11l5 5 7-8" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+        : `<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 18V5M6 10l5-5 5 5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    btn.className = isLast ? 'nav-fab-btn finish-btn' : 'nav-fab-btn';
+    btn.style.display = 'flex';
+}
+
 function updateMobileCurrentStep(checkpointIdx) {
-    const stepEl = document.getElementById('mobile-step-text');
-    if (!stepEl) return;
     const list = document.getElementById('mobile-directions-list');
     if (!list) return;
     const items = Array.from(list.querySelectorAll('li'));
     if (items.length === 0) return;
+
     const activeItem =
         items.find(li => li.getAttribute('data-checkpoint') == checkpointIdx) ||
-        items.find(li => li.textContent.includes('[WALK]')) ||
-        items[1];
+        items.find(li => {
+            const t = li.textContent;
+            return t.includes('Continue') || t.includes('proceed') || t.includes('Head');
+        }) ||
+        items[Math.min(1, items.length - 1)];
+
     if (activeItem) {
-        stepEl.textContent = activeItem.childNodes[0]?.textContent?.trim() ||
-                             activeItem.textContent.replace(/CP\d+/, '').trim();
         items.forEach(li => li.classList.remove('directions-active'));
         activeItem.classList.add('directions-active');
         activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
+
+    syncMobileCheckpointBtn();
 }
 
 // ---------------------------------------------------------------------------

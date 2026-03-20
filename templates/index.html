@@ -152,15 +152,80 @@
                 Reached Checkpoint
             </button>
 
-            <!-- Mobile: persistent current-step strip, tappable to expand full directions -->
-            <div id="mobile-directions-strip" class="mobile-directions-strip" style="display:none;">
-                <div id="mobile-current-step" class="mobile-current-step" onclick="toggleMobileDirections()">
-                    <span id="mobile-step-text">Calculating route...</span>
-                    <span class="mobile-step-expand-icon">&#9650;</span>
+            <!-- Mobile: full active navigation screen (shown when route is active) -->
+            <div id="mobile-directions-strip" class="mobile-nav-screen" style="display:none;">
+
+                <!-- Top bar: back + title + destination pill -->
+                <div class="nav-topbar">
+                    <button class="nav-back-btn" onclick="openRouteForm()" aria-label="Back to route form">&#8592;</button>
+                    <span class="nav-topbar-title">Wayfinder</span>
+                    <div id="nav-dest-pill" class="nav-dest-pill"></div>
                 </div>
-                <div id="mobile-full-directions" class="mobile-full-directions" style="display:none;">
-                    <div id="mobile-directions-list" class="mobile-directions-list"></div>
-                    <div id="mobile-metrics-row" class="mobile-metrics-row"></div>
+
+                <!-- Map area with floating pill floor switcher -->
+                <div class="nav-map-area">
+                    <div class="nav-map-viewport">
+                        <div id="nav-f1" class="nav-floor-img" style="display:block;">
+                            <img src="{{ url_for('static', filename='floor1.png') }}" class="nav-floor-png">
+                            <svg id="svg-nav-f1" class="nav-floor-svg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+                        </div>
+                        <div id="nav-f2" class="nav-floor-img" style="display:none;">
+                            <img src="{{ url_for('static', filename='floor2.png') }}" class="nav-floor-png" loading="lazy">
+                            <svg id="svg-nav-f2" class="nav-floor-svg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+                        </div>
+                        <div id="nav-f3" class="nav-floor-img" style="display:none;">
+                            <img src="{{ url_for('static', filename='floor3.png') }}" class="nav-floor-png" loading="lazy">
+                            <svg id="svg-nav-f3" class="nav-floor-svg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+                        </div>
+                        <div id="nav-f4" class="nav-floor-img" style="display:none;">
+                            <img src="{{ url_for('static', filename='floor4.png') }}" class="nav-floor-png" loading="lazy">
+                            <svg id="svg-nav-f4" class="nav-floor-svg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+                        </div>
+                    </div>
+                    <!-- Floating pill floor switcher over map -->
+                    <div class="nav-floor-pill">
+                        <button class="nav-tab active" data-floor="1" onclick="switchFloor(1)">GF</button>
+                        <button class="nav-tab" data-floor="2" onclick="switchFloor(2)">1F</button>
+                        <button class="nav-tab" data-floor="3" onclick="switchFloor(3)">2F</button>
+                        <button class="nav-tab" data-floor="4" onclick="switchFloor(4)">3F</button>
+                    </div>
+                </div>
+
+                <!-- Scrollable sheet below map -->
+                <div class="nav-sheet">
+                    <div class="nav-sheet-handle"></div>
+
+                    <!-- Stat blocks: distance + time -->
+                    <div id="mobile-metrics-row" class="nav-stat-row"></div>
+
+                    <!-- Icon metric cards: floor changes + rating -->
+                    <div id="mobile-metrics-cards" class="nav-metric-cards"></div>
+
+                    <!-- Journey label -->
+                    <div class="nav-journey-label">Current Journey</div>
+
+                    <!-- Timeline directions list -->
+                    <ol id="mobile-directions-list" class="nav-directions-list"></ol>
+                </div>
+
+                <!-- Bottom tab bar -->
+                <div class="nav-bottom-bar">
+                    <div class="nav-bottom-item">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                        <span>Explore</span>
+                    </div>
+                    <div class="nav-bottom-item nav-bottom-item--empty"></div>
+                    <button id="mobile-checkpoint-btn" class="nav-fab-btn" style="display:none;" onclick="onCheckpointReached()" aria-label="Reached checkpoint">
+                        <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 18V5M6 10l5-5 5 5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <div class="nav-bottom-item">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 2h10v18l-5-3.5L5 20V2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+                        <span>Saved</span>
+                    </div>
+                    <div class="nav-bottom-item">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 1.5v2M10 16.5v2M1.5 10h2M16.5 10h2M4 4l1.5 1.5M14.5 14.5L16 16M16 4l-1.5 1.5M5.5 14.5L4 16" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                        <span>Settings</span>
+                    </div>
                 </div>
             </div>
             <div id="map-legend" class="map-legend" style="display:none;">
