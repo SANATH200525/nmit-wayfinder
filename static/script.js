@@ -789,42 +789,117 @@ function drawCheckpointDot(svg, x, y) {
 }
 
 // ---------------------------------------------------------------------------
-// Turn-by-turn directions
+// Turn-by-turn directions — rich, landmark-aware
 // ---------------------------------------------------------------------------
 function generateDirections(path) {
     const directions = [];
     if (!path || path.length === 0) return directions;
 
-    const nodeLabel    = (id) => window.allNodes[id]?.label || id;
+    const nodeLabel  = (id) => window.allNodes[id]?.label || id;
     const isTransition = (id) => nodeType(id) === 'stairs' || nodeType(id) === 'lift';
     const isWaypoint   = (id) => window.allNodes[id]?.is_waypoint ||
                                   id.includes('HALLWAY') || id.includes('PASSAGEWAY');
-    const distMetres   = (a, b) => (Math.hypot(b.x - a.x, b.y - a.y) * COORD_TO_METERS).toFixed(0);
 
-    function relativeDir(dx, dy) {
-        const adx = Math.abs(dx), ady = Math.abs(dy);
-        if (adx > ady * 2) return dx > 0 ? 'to your right' : 'to your left';
-        if (ady > adx * 2) return dy > 0 ? 'straight ahead' : 'straight back';
-        if (dx > 0 && dy > 0) return 'ahead and to the right';
-        if (dx > 0 && dy < 0) return 'ahead and to the left';
-        if (dx < 0 && dy > 0) return 'behind and to the right';
-        return 'behind and to the left';
+    // ── Geometry helpers ──────────────────────────────────────────────────────
+
+    // Heading angle in degrees (0=right, 90=down, 180=left, 270=up) from a to b
+    function heading(a, b) {
+        return (Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI + 360) % 360;
     }
 
-    directions.push(`[START] ${nodeLabel(path[0].id)} - ${FLOOR_NAMES[path[0].floor]}`);
+    // Turn direction: given prev heading and new heading, was it left or right?
+    function turnDir(prevH, newH) {
+        let diff = ((newH - prevH) + 360) % 360;
+        if (diff > 180) diff -= 360; // -180..+180
+        if (Math.abs(diff) < 25) return 'straight';
+        return diff > 0 ? 'right' : 'left';
+    }
+
+    // Cardinal label for a heading
+    function cardinal(h) {
+        if (h < 22.5 || h >= 337.5) return 'east';
+        if (h < 67.5)  return 'south-east';
+        if (h < 112.5) return 'south';
+        if (h < 157.5) return 'south-west';
+        if (h < 202.5) return 'west';
+        if (h < 247.5) return 'north-west';
+        if (h < 292.5) return 'north';
+        return 'north-east';
+    }
+
+    // Distance in metres between two nodes
+    function distM(a, b) {
+        return Math.hypot(b.x - a.x, b.y - a.y) * COORD_TO_METERS;
+    }
+
+    // ── Landmark finder ───────────────────────────────────────────────────────
+    // Finds the closest real room (not waypoint, not transition) on the same
+    // floor that is NOT on the current path, within a spatial radius.
+    function nearbyLandmark(node, pathIds, radius = 18) {
+        if (!window.allNodes) return null;
+        let best = null, bestDist = radius;
+        for (const [id, data] of Object.entries(window.allNodes)) {
+            if (data.is_waypoint) continue;
+            if (nodeType(id) === 'stairs' || nodeType(id) === 'lift') continue;
+            if (data.floor !== node.floor) continue;
+            if (pathIds.has(id)) continue;
+            const d = Math.hypot(data.coords[0] - node.x, data.coords[1] - node.y);
+            if (d < bestDist) { bestDist = d; best = { id, label: data.label, d }; }
+        }
+        return best;
+    }
+
+    // Side of corridor a landmark is on relative to direction of travel
+    function landmarkSide(traveller, landmark, travelHeading) {
+        // Vector from traveller to landmark
+        const lx = landmark.coords[0] - traveller.x;
+        const ly = landmark.coords[1] - traveller.y;
+        // Rotate by -travelHeading to get local frame
+        const rad = travelHeading * Math.PI / 180;
+        const local_y = -lx * Math.sin(rad) + ly * Math.cos(rad);
+        return local_y > 0 ? 'right' : 'left';
+    }
+
+    // ── Helpers for human-readable corridor instructions ─────────────────────
+
+    // Collect all real (non-waypoint) rooms visible from a corridor node
+    function roomsAlongCorridor(corridorNodes, pathIds) {
+        const seen = new Set();
+        const rooms = [];
+        for (const cn of corridorNodes) {
+            for (const [id, data] of Object.entries(window.allNodes)) {
+                if (data.is_waypoint) continue;
+                if (nodeType(id) === 'stairs' || nodeType(id) === 'lift') continue;
+                if (data.floor !== cn.floor) continue;
+                if (pathIds.has(id)) continue;
+                if (seen.has(id)) continue;
+                const d = Math.hypot(data.coords[0] - cn.x, data.coords[1] - cn.y);
+                if (d <= 14) { seen.add(id); rooms.push({ id, label: data.label, coords: data.coords }); }
+            }
+        }
+        return rooms;
+    }
+
+    const pathIds = new Set(path.map(p => p.id));
+
+    // ── Build instruction text ────────────────────────────────────────────────
+
+    directions.push(`[START] You are at ${nodeLabel(path[0].id)} on the ${FLOOR_NAMES[path[0].floor]}.`);
 
     let i = 1;
+    let prevHeading = null; // track heading across steps for turn detection
+
     while (i < path.length) {
         const prev = path[i - 1];
         const curr = path[i];
 
-        // Floor transition
+        // ── Floor transition ──────────────────────────────────────────────────
         if (curr.floor !== prev.floor) {
             const isLift   = nodeType(curr.id) === 'lift';
             const isStairs = nodeType(curr.id) === 'stairs';
             const isCurved = isStairs && window.allNodes[curr.id]?.stairs_kind === 'curved';
 
-            if (isLift || isStairs || isCurved) {
+            if (isLift || isStairs) {
                 const originFloor = prev.floor;
                 let j = i;
                 while (
@@ -832,43 +907,117 @@ function generateDirections(path) {
                     path[j].floor !== prev.floor &&
                     (isLift ? nodeType(path[j].id) === 'lift' : nodeType(path[j].id) === 'stairs')
                 ) { j++; }
-                const exitFloor = path[Math.min(j, path.length - 1) - 1]?.floor
-                                  ?? path[j > 0 ? j - 1 : i].floor;
-                const dir    = exitFloor > originFloor ? 'up' : 'down';
-                const tag    = isLift ? '[LIFT]' : '[STAIRS]';
-                const method = isLift ? 'lift' : (isCurved ? 'curved stairs' : 'main stairs');
-                directions.push(`${tag} Take the ${method} ${dir} from ${FLOOR_NAMES[originFloor]} to ${FLOOR_NAMES[exitFloor]}.`);
+                const exitNode  = path[Math.min(j, path.length - 1)];
+                const exitFloor = path[Math.min(j, path.length - 1) - 1]?.floor ?? exitNode.floor;
+                const goingUp   = exitFloor > originFloor;
+                const tag       = isLift ? '[LIFT]' : '[STAIRS]';
+
+                if (isLift) {
+                    directions.push(`${tag} Enter the lift and go ${goingUp ? 'up' : 'down'} to the ${FLOOR_NAMES[exitFloor]}.`);
+                } else if (isCurved) {
+                    directions.push(`${tag} Take the curved staircase ${goingUp ? 'up' : 'down'} to the ${FLOOR_NAMES[exitFloor]}.`);
+                } else {
+                    directions.push(`${tag} Take the main stairs ${goingUp ? 'up' : 'down'} to the ${FLOOR_NAMES[exitFloor]}.`);
+                }
+                prevHeading = null; // reset heading after floor change
                 i = j;
                 continue;
             }
         }
 
-        // Corridor
+        // ── Corridor segment ──────────────────────────────────────────────────
         if (isWaypoint(curr.id)) {
+            // Collect all consecutive waypoints on this floor
             let j = i;
-            let corridorDist = 0;
+            let totalDist = 0;
+            const corridorNodes = [prev];
+
             while (j < path.length && isWaypoint(path[j].id) && path[j].floor === prev.floor) {
-                corridorDist += Math.hypot(
-                    path[j].x - path[j - 1 >= i ? j - 1 : i - 1].x,
-                    path[j].y - path[j - 1 >= i ? j - 1 : i - 1].y
-                ) * COORD_TO_METERS;
+                totalDist += distM(path[j - 1], path[j]);
+                corridorNodes.push(path[j]);
                 j++;
             }
-            const distStr = corridorDist > 1 ? ` (about ${corridorDist.toFixed(0)}m)` : '';
-            directions.push(curr.id.includes('PASSAGEWAY')
-                ? `[WALK] Take the passageway${distStr}.`
-                : `[WALK] Continue along the corridor${distStr}.`);
+
+            const distStr = totalDist > 1 ? `about ${Math.round(totalDist)}m` : 'a short distance';
+            const isPassageway = curr.id.includes('PASSAGEWAY');
+
+            // What heading are we walking?
+            const corridorHeading = heading(prev, path[Math.min(j - 1, path.length - 1)]);
+            const cardDir = cardinal(corridorHeading);
+
+            // Turn detection from previous segment
+            let turnText = '';
+            if (prevHeading !== null) {
+                const turn = turnDir(prevHeading, corridorHeading);
+                if (turn === 'left')     turnText = 'Turn left. ';
+                else if (turn === 'right') turnText = 'Turn right. ';
+            }
+
+            // Find rooms alongside this corridor stretch for landmark context
+            const nearbyRooms = roomsAlongCorridor(corridorNodes, pathIds);
+
+            // What's at the end of this corridor stretch?
+            const nodeAtEnd = j < path.length ? path[j] : null;
+            const endLabel  = nodeAtEnd && !isWaypoint(nodeAtEnd.id) && !isTransition(nodeAtEnd.id)
+                ? nodeLabel(nodeAtEnd.id) : null;
+
+            let instruction = '';
+
+            if (isPassageway) {
+                instruction = `${turnText}Take the passageway (${distStr}).`;
+            } else if (nearbyRooms.length > 0) {
+                // Pick 1 landmark to reference — closest one to midpoint of corridor
+                const midIdx = Math.floor(corridorNodes.length / 2);
+                const mid = corridorNodes[midIdx] || prev;
+                const ref = nearbyRooms.reduce((best, r) => {
+                    const d = Math.hypot(r.coords[0] - mid.x, r.coords[1] - mid.y);
+                    return d < best.d ? { ...r, d } : best;
+                }, { ...nearbyRooms[0], d: 999 });
+
+                const side = landmarkSide(mid, ref, corridorHeading);
+
+                if (endLabel) {
+                    instruction = `${turnText}Walk ${distStr} heading ${cardDir}, passing ${ref.label} on your ${side}, until you reach ${endLabel}.`;
+                } else {
+                    instruction = `${turnText}Walk ${distStr} heading ${cardDir}, with ${ref.label} on your ${side}.`;
+                }
+            } else if (endLabel) {
+                instruction = `${turnText}Walk ${distStr} heading ${cardDir} towards ${endLabel}.`;
+            } else {
+                instruction = `${turnText}Walk ${distStr} heading ${cardDir} along the corridor.`;
+            }
+
+            directions.push(`[WALK] ${instruction}`);
+            prevHeading = corridorHeading;
             i = j;
             continue;
         }
 
-        // Normal room step
+        // ── Direct room-to-room step ──────────────────────────────────────────
         if (!isTransition(curr.id)) {
-            const dx   = curr.x - prev.x;
-            const dy   = curr.y - prev.y;
-            const dist = distMetres(prev, curr);
-            const dir  = relativeDir(dx, dy);
-            directions.push(`[GO] Head ${dir} for about ${dist}m toward ${nodeLabel(curr.id)}.`);
+            const h    = heading(prev, curr);
+            const dist = distM(prev, curr);
+            const turn = prevHeading !== null ? turnDir(prevHeading, h) : null;
+
+            // Find a landmark near curr for "look for X on your left/right"
+            const lm = nearbyLandmark(curr, pathIds);
+            let landmarkHint = '';
+            if (lm) {
+                const side = landmarkSide(curr, { coords: window.allNodes[lm.id].coords }, h);
+                landmarkHint = ` You'll see ${lm.label} on your ${side}.`;
+            }
+
+            let instruction = '';
+            if (turn === 'left') {
+                instruction = `Turn left and walk ${Math.round(dist)}m to ${nodeLabel(curr.id)}.${landmarkHint}`;
+            } else if (turn === 'right') {
+                instruction = `Turn right and walk ${Math.round(dist)}m to ${nodeLabel(curr.id)}.${landmarkHint}`;
+            } else {
+                instruction = `Continue straight for ${Math.round(dist)}m to ${nodeLabel(curr.id)}.${landmarkHint}`;
+            }
+
+            directions.push(`[GO] ${instruction}`);
+            prevHeading = h;
             i++;
             continue;
         }
@@ -876,8 +1025,9 @@ function generateDirections(path) {
         i++;
     }
 
-    directions.push(`[ARRIVED] ${nodeLabel(path[path.length - 1].id)} - You have arrived!`);
+    directions.push(`[ARRIVED] You have arrived at ${nodeLabel(path[path.length - 1].id)}.`);
 
+    // ── Render into DOM ───────────────────────────────────────────────────────
     const list = document.getElementById('directions-list');
     if (list) {
         list.innerHTML = '';
@@ -899,11 +1049,11 @@ function generateDirections(path) {
                     const legStart = window.allNodes[path.find(p => (p.segment ?? 0) === stepSeg)?.id]?.label || '';
                     const legEnd   = window.allNodes[[...path].reverse().find(p => (p.segment ?? 0) === stepSeg)?.id]?.label || '';
                     const header   = document.createElement('li');
-                    header.textContent = `--- LEG ${legNum}: ${legStart} → ${legEnd} ---`;
+                    header.textContent = `— LEG ${legNum}: ${legStart} → ${legEnd} —`;
                     header.style.cssText =
-                        'list-style:none;font-weight:700;font-size:11px;color:#6366f1;' +
+                        'list-style:none;font-weight:700;font-size:11px;color:var(--steel);' +
                         'letter-spacing:0.5px;padding:8px 0 4px;' +
-                        'border-top:1px solid rgba(99,102,241,0.2);margin-top:4px;';
+                        'border-top:1px solid rgba(109,129,150,0.2);margin-top:4px;';
                     list.appendChild(header);
                 }
             }
@@ -921,8 +1071,8 @@ function generateDirections(path) {
                 const label    = window.allNodes[cp.id]?.label || cp.id;
                 const isLift   = nodeType(cp.id) === 'lift'   || cp.id.includes('LIFT');
                 const isStairs = nodeType(cp.id) === 'stairs' || cp.id.includes('STAIRS');
-                const matchLift   = isLift   && li.textContent.startsWith('[LIFT]');
-                const matchStairs = isStairs && li.textContent.startsWith('[STAIRS]');
+                const matchLift   = isLift   && li.textContent.includes('[LIFT]');
+                const matchStairs = isStairs && li.textContent.includes('[STAIRS]');
                 const matchLabel  = !isLift && !isStairs && label && li.textContent.includes(label);
                 if (matchLift || matchStairs || matchLabel) {
                     li.setAttribute('data-checkpoint', cpIdx);
@@ -1041,14 +1191,24 @@ function stepIconSVG(type) {
     return icons[type] || icons.go;
 }
 
-// Human-readable step title from tag
+// Human-readable step title from tag + instruction text
 function stepTitle(text) {
     if (text.startsWith('[START]'))   return 'Start';
     if (text.startsWith('[ARRIVED]')) return 'Arrived';
-    if (text.startsWith('[LIFT]'))    return 'Take the lift';
-    if (text.startsWith('[STAIRS]'))  return 'Take stairs';
-    if (text.startsWith('[WALK]'))    return 'Walk';
-    if (text.startsWith('[GO]'))      return 'Head toward';
+    if (text.startsWith('[LIFT]'))    return text.includes('up') ? 'Take lift up' : 'Take lift down';
+    if (text.startsWith('[STAIRS]'))  return text.includes('up') ? 'Take stairs up' : 'Take stairs down';
+    if (text.startsWith('[WALK]')) {
+        const body = text.replace('[WALK] ', '');
+        if (body.startsWith('Turn left'))  return 'Turn left';
+        if (body.startsWith('Turn right')) return 'Turn right';
+        return 'Walk';
+    }
+    if (text.startsWith('[GO]')) {
+        const body = text.replace('[GO] ', '');
+        if (body.startsWith('Turn left'))  return 'Turn left';
+        if (body.startsWith('Turn right')) return 'Turn right';
+        return 'Continue straight';
+    }
     return text;
 }
 
