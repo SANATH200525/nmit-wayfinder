@@ -42,10 +42,12 @@
 
             <form method="POST" id="nav-form">
                 <div class="form-group">
-                    <label class="field-label">GROUP BY</label>
-                    <div class="radio-group" style="flex-direction:row; gap:16px;">
-                        <label><input type="radio" name="group_by" value="floor" checked onchange="regroupDropdowns(this.value)"> Floor</label>
-                        <label><input type="radio" name="group_by" value="type" onchange="regroupDropdowns(this.value)"> Type</label>
+                    <label class="field-label">WHAT FLOOR ARE YOU ON?</label>
+                    <div class="floor-picker" id="floor-picker">
+                        <button type="button" class="floor-pick-btn active" data-floor-label="Ground Floor" onclick="selectStartFloor(this)">GF</button>
+                        <button type="button" class="floor-pick-btn" data-floor-label="First Floor" onclick="selectStartFloor(this)">1F</button>
+                        <button type="button" class="floor-pick-btn" data-floor-label="Second Floor" onclick="selectStartFloor(this)">2F</button>
+                        <button type="button" class="floor-pick-btn" data-floor-label="Third Floor" onclick="selectStartFloor(this)">3F</button>
                     </div>
                 </div>
 
@@ -294,25 +296,39 @@
         const FLOOR_ORDER = ['Ground Floor','First Floor','Second Floor','Third Floor'];
         const TYPE_ORDER  = ['Entrance','Offices','Rooms','Labs & Rooms','Restrooms','Lift & Stairs'];
 
-        // Build <select> HTML with optgroups in exact order
-        function buildHTML(groupBy) {
+        // Currently selected floor for the start dropdown
+        let currentStartFloor = 'Ground Floor';
+
+        // Build <select> HTML — optionally filtered to a single floor
+        function buildHTML(groupBy, filterFloor) {
           const order  = groupBy === 'floor' ? FLOOR_ORDER : TYPE_ORDER;
           const groups = {};
           window.allOpts.forEach(opt => {
+            // When filtering by floor, only include rooms on that floor
+            if (filterFloor && opt.floor_label !== filterFloor) return;
             const key = groupBy === 'floor' ? opt.floor_label : opt.category;
             (groups[key] = groups[key] || []).push(opt);
           });
           let html = '<option value="">Select location...</option>';
-          order.forEach(grp => {
-            if (!groups[grp]) return;
-            html += `<optgroup label="${grp}">`;
-            groups[grp]
-              .sort((a, b) => a.label.localeCompare(b.label))
-              .forEach(opt => {
-                html += `<option value="${opt.id}">${opt.label}</option>`;
-              });
-            html += '</optgroup>';
-          });
+          // If filtered to single floor, skip optgroup header — flat list
+          if (filterFloor) {
+            const items = groups[filterFloor] || [];
+            items.sort((a, b) => a.label.localeCompare(b.label))
+                 .forEach(opt => {
+                   html += `<option value="${opt.id}">${opt.label}</option>`;
+                 });
+          } else {
+            order.forEach(grp => {
+              if (!groups[grp]) return;
+              html += `<optgroup label="${grp}">`;
+              groups[grp]
+                .sort((a, b) => a.label.localeCompare(b.label))
+                .forEach(opt => {
+                  html += `<option value="${opt.id}">${opt.label}</option>`;
+                });
+              html += '</optgroup>';
+            });
+          }
           return html;
         }
 
@@ -333,20 +349,31 @@
 
         let tsStart, tsEnd, tsStopInstances = [];
 
-        function makeTomSelect(el, groupBy, preselected) {
+        function makeTomSelect(el, groupBy, preselected, filterFloor) {
           if (typeof el === 'string') el = document.querySelector(el);
           if (!el) return null;
-          el.innerHTML = buildHTML(groupBy);
+          el.innerHTML = buildHTML(groupBy, filterFloor || null);
           if (preselected) el.value = preselected;
           const ts = new TomSelect(el, {
             create: false,
             sortField: false,
             dropdownParent: 'body',
-            onInitialize() { fixOptgroupOrder(this, groupBy); },
-            onDropdownOpen() { fixOptgroupOrder(this, groupBy); },
+            onInitialize() { if (!filterFloor) fixOptgroupOrder(this, groupBy); },
+            onDropdownOpen() { if (!filterFloor) fixOptgroupOrder(this, groupBy); },
           });
           if (preselected) ts.setValue(preselected, true);
           return ts;
+        }
+
+        // Called when user taps a floor pill (GF/1F/2F/3F)
+        function selectStartFloor(btn) {
+          document.querySelectorAll('.floor-pick-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentStartFloor = btn.getAttribute('data-floor-label');
+          // Rebuild start dropdown filtered to that floor
+          const prev = tsStart ? tsStart.getValue() : '';
+          if (tsStart) tsStart.destroy();
+          tsStart = makeTomSelect('#start_node', 'floor', '', currentStartFloor);
         }
 
         function regroupDropdowns(groupBy) {
@@ -354,7 +381,9 @@
           const selEnd   = tsEnd   ? tsEnd.getValue()   : '';
           if (tsStart) tsStart.destroy();
           if (tsEnd)   tsEnd.destroy();
-          tsStart = makeTomSelect('#start_node', groupBy, selStart);
+          // Start dropdown: always filtered to current floor
+          tsStart = makeTomSelect('#start_node', groupBy, selStart, currentStartFloor);
+          // End dropdown: always shows all floors
           tsEnd   = makeTomSelect('#end_node',   groupBy, selEnd);
           const prevStops = tsStopInstances.map(ts => ts.getValue());
           tsStopInstances.forEach(ts => ts.destroy());

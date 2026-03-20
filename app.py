@@ -7,13 +7,34 @@ import datetime
 import time
 from functools import wraps
 
-from flask import Flask, Response, render_template, request, jsonify
+from flask import Flask, Response, render_template, request, jsonify, send_from_directory
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 
 app = Flask(__name__)
 csrf = CSRFProtect(app)
 app.config['SECRET_KEY'] = 'nmit-wayfinder-secret-key-2024'
 app.config['WTF_CSRF_CHECK_DEFAULT'] = False  # manual protection on selected routes
+
+# Cache static files aggressively — 1 year for floor plans and icons,
+# browser won't re-request them on repeat visits.
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 31536000  # 1 year in seconds
+
+@app.after_request
+def add_cache_headers(response):
+    """Add aggressive cache headers for static assets."""
+    if request.path.startswith('/static/'):
+        # Floor plans and icons: cache for 1 year
+        if any(request.path.endswith(ext) for ext in ('.png', '.jpg', '.ico', '.svg')):
+            response.cache_control.public = True
+            response.cache_control.max_age = 31536000
+            response.headers['Expires'] = (
+                datetime.datetime.utcnow() + datetime.timedelta(days=365)
+            ).strftime('%a, %d %b %Y %H:%M:%S GMT')
+        # JS and CSS: cache for 1 day (shorter since they change more often)
+        elif any(request.path.endswith(ext) for ext in ('.js', '.css')):
+            response.cache_control.public = True
+            response.cache_control.max_age = 86400
+    return response
 
 # ---------------------------------------------------------------------------
 # Admin credentials — change these to your preferred username/password.
@@ -149,55 +170,6 @@ def init_db():
              'Floor Changes shows how many different floors your route passes through.'),
             ('checkpoint,what is checkpoint,reached checkpoint',
              'Checkpoints mark key turns along your route. Tap Reached Checkpoint to advance navigation.'),
-            # --- Photo FAQs: precise room-level directions ---
-            ('admin,admin room,where is admin',
-             'The Admin room is on the Ground Floor, immediately to the right as you enter the Main Entrance.'),
-            ('principal room,principals office,where is principal',
-             "The Principal's Room is located at the far left end of the Ground Floor corridor."),
-            ('tutorial room,where is tutorial room',
-             'The Tutorial room is on the Ground Floor, located between the Admin room and the Computer Lab.'),
-            ('computer lab ground floor,where is computer lab',
-             'The Computer Lab is centrally located on the Ground Floor, next to the Tutorial room.'),
-            ('conference room ground floor,meeting room ground',
-             'There are two Conference Rooms located side-by-side on the Ground Floor.'),
-            ('office ground,where is ground floor office',
-             'The Office is on the Ground Floor, situated near the lift and curving stairs on the right side.'),
-            ('class room ground,ground floor classroom',
-             'There is a Class Room on the Ground Floor located between the toilets and the first Conference Room.'),
-            ('seminar hall first floor,where is seminar hall',
-             'The Seminar Hall is a large space centrally located on the First Floor.'),
-            ('design thinking lab,design lab first floor',
-             'The Design Thinking Lab is on the First Floor, located between the UPS Room and the Media Unit.'),
-            ('ups room first floor,where is ups',
-             'The UPS Room is centrally located on the First Floor, across from the Seminar Hall.'),
-            ('board room first floor,where is board room',
-             'The Board Room is on the First Floor, situated between a general Room and the Seminar Hall.'),
-            ('media unit first floor,media room',
-             'The Media Unit is on the First Floor, near the lift and curving stairs.'),
-            ('staff room first floor,teachers room,faculty room',
-             'There are two Staff Rooms located on the First Floor, accessible via a small passage off the main corridor.'),
-            ('balcony first floor,where is the balcony',
-             'There is a Balcony located on the First Floor, right next to the curving stairs.'),
-            ('placement cell second floor,career counseling second floor',
-             'The Placement Cell & Career Counseling room is located at the far left end of the Second Floor.'),
-            ('startup incubator,entrepreneurship cell second floor,e-cell second',
-             'The Startup Incubator / Entrepreneurship Cell is on the Second Floor, next to the Placement Cell.'),
-            ('research and publication center,research center second floor',
-             'The Research & Publication Center is centrally located on the Second Floor.'),
-            ('student council room,where is student council',
-             'The Student Council Room is on the Second Floor, located near the Corporate Relations Department.'),
-            ('corporate relations department,corporate relations second floor',
-             'The Corporate Relations Department is at the far right end of the Second Floor, near the curving stairs.'),
-            ('faculty lounge,staff lounge second floor',
-             'The Faculty Lounge is on the Second Floor, situated next to Case Study Lab 1.'),
-            ('case study lab second floor,where is case study',
-             'There are two Case Study Labs (1 and 2) located side-by-side on the Second Floor.'),
-            ('alumni relations office,alumni second floor',
-             'The Alumni Relations Office is on the Second Floor, situated near the lift and curving stairs.'),
-            ('corridor width,how wide is corridor',
-             'The main corridor running through the center of every floor is exactly 3.25 meters wide.'),
-            ('third floor rooms,block e,fire escape third floor',
-             'The Third Floor (Block-E) contains five general Rooms and is part of the designated Fire Escape Route Plan.'),
         ]
         conn.executemany('INSERT INTO faq (keywords, answer) VALUES (?, ?)', seed)
         conn.commit()

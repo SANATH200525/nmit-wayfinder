@@ -1341,3 +1341,41 @@ input[type="radio"] { accent-color: var(--teal); }
 
 /* Hide form when route is active on desktop */
 .form-hidden { display: none !important; }
+
+/* ── Floor picker (current location floor selector) ── */
+.floor-picker {
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+}
+.floor-pick-btn {
+    flex: 1;
+    padding: 8px 0;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+    color: var(--text-secondary);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.15s;
+    touch-action: manipulation;
+}
+.floor-pick-btn:hover {
+    background: var(--surface-3);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+.floor-pick-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #ffffff;
+}
+@media (max-width: 768px) {
+    .floor-pick-btn {
+        min-height: 44px;
+        font-size: 12px;
+    }
+}
