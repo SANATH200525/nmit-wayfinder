@@ -101,9 +101,11 @@
             <template id="stop-template">
                 <div class="form-group stop-group">
                     <label class="field-label">VIA (STOP)</label>
-                    <div style="display: flex; gap: 5px;">
-                        <select name="stops[]" class="stop-select" required></select>
-                        <button type="button" class="remove-stop" onclick="this.parentElement.parentElement.remove()">Remove</button>
+                    <div style="display: flex; gap: 5px; align-items: flex-start;">
+                        <div style="flex: 1; min-width: 0;">
+                            <select name="stops[]" class="stop-select" required></select>
+                        </div>
+                        <button type="button" class="remove-stop" onclick="this.closest('.stop-group').remove()">Remove</button>
                     </div>
                 </div>
             </template>

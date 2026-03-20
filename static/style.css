@@ -296,6 +296,9 @@ h1 {
 }
 .add-stop-btn:hover { background: rgba(176,196,222,0.15); }
 
+/* Ensure TomSelect inside a stop row fills its wrapper */
+.stop-group .ts-wrapper { width: 100%; }
+
 .remove-stop {
     background: #fee2e2;
     color: #b91c1c;
@@ -1398,6 +1401,8 @@ input[type="radio"] { accent-color: var(--teal); }
         position: fixed !important;
         top: 0 !important;
         left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
         width: 100% !important;
         height: 100dvh !important;
         max-height: 100dvh !important;
@@ -1413,13 +1418,18 @@ input[type="radio"] { accent-color: var(--teal); }
     
     .navigator-panel {
         height: auto !important;
-        padding-top: calc(env(safe-area-inset-top) + 24px) !important; 
-        /* Massive padding so the floating dropdown never gets cut off */
+        padding-top: calc(env(safe-area-inset-top, 0px) + 24px) !important; 
+        /* Padding so the floating dropdown never gets cut off */
         padding-bottom: 350px !important; 
     }
     
     /* Ensure dropdown is always layered on top */
     .ts-dropdown {
         z-index: 99999 !important;
+    }
+
+    /* Nav screen must sit above everything when active */
+    .mobile-nav-screen {
+        z-index: 10000 !important;
     }
 }
