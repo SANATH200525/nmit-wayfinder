@@ -191,13 +191,6 @@
                             <svg id="svg-nav-f4" class="nav-floor-svg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
                         </div>
                     </div>
-                    <!-- Floating pill floor switcher over map -->
-                    <div class="nav-floor-pill">
-                        <button class="nav-tab active" data-floor="1" onclick="switchFloor(1)">GF</button>
-                        <button class="nav-tab" data-floor="2" onclick="switchFloor(2)">1F</button>
-                        <button class="nav-tab" data-floor="3" onclick="switchFloor(3)">2F</button>
-                        <button class="nav-tab" data-floor="4" onclick="switchFloor(4)">3F</button>
-                    </div>
                 </div>
 
                 <!-- Scrollable sheet below map -->
@@ -219,22 +212,9 @@
 
                 <!-- Bottom tab bar -->
                 <div class="nav-bottom-bar">
-                    <div class="nav-bottom-item">
-                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-                        <span>Explore</span>
-                    </div>
-                    <div class="nav-bottom-item nav-bottom-item--empty"></div>
                     <button id="mobile-checkpoint-btn" class="nav-fab-btn" style="display:none;" onclick="onCheckpointReached()" aria-label="Reached checkpoint">
                         <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 18V5M6 10l5-5 5 5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </button>
-                    <div class="nav-bottom-item">
-                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 2h10v18l-5-3.5L5 20V2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
-                        <span>Saved</span>
-                    </div>
-                    <div class="nav-bottom-item">
-                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 1.5v2M10 16.5v2M1.5 10h2M16.5 10h2M4 4l1.5 1.5M14.5 14.5L16 16M16 4l-1.5 1.5M5.5 14.5L4 16" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-                        <span>Settings</span>
-                    </div>
                 </div>
             </div>
             <div id="map-legend" class="map-legend" style="display:none;">

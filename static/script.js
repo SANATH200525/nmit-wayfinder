@@ -1496,9 +1496,12 @@ function syncNavFloor(floorNum) {
 function syncMobileCheckpointBtn() {
     const btn = document.getElementById('mobile-checkpoint-btn');
     if (!btn) return;
-    const isLast = checkpoints.length === 0 ||
-                   currentCheckpointIdx >= checkpoints.length - 1;
-    // FAB: show up arrow normally, checkmark on finish
+    // Don't show the button until checkpoints are actually populated
+    if (!checkpoints || checkpoints.length === 0) {
+        btn.style.display = 'none';
+        return;
+    }
+    const isLast = currentCheckpointIdx >= checkpoints.length - 1;
     btn.innerHTML = isLast
         ? `<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M5 11l5 5 7-8" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
         : `<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 18V5M6 10l5-5 5 5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
