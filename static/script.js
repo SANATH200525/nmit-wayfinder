@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    window.addEventListener('resize', fitSVGToImage);
+    window.addEventListener('resize', () => { fitSVGToImage(); fitNavSVGToImage(); });
     loadFAQs();
     fitSVGToImage();
 
@@ -64,17 +64,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    if (isMobile()) {
-        if (!document.getElementById('open-form-fab')) {
-            const fab = document.createElement('button');
-            fab.id = 'open-form-fab';
-            fab.className = 'open-form-fab';
-            fab.setAttribute('aria-label', 'Open route form');
-            fab.innerHTML = '&#9776; Route';
-            fab.addEventListener('click', openRouteForm);
-            document.body.appendChild(fab);
+    document.querySelectorAll('.nav-floor-png').forEach(img => {
+        if (!img.complete) {
+            img.addEventListener('load', () => fitNavSVGToImage(), { once: true });
         }
-    }
+    });
 
     if (Array.isArray(pathData) && pathData.length > 0) {
         const ortho = makeOrthogonalPath(pathData);
@@ -98,6 +92,34 @@ function fitSVGToImage() {
         const ch = container.clientHeight;
         const iw = img.naturalWidth  || cw;
         const ih = img.naturalHeight || ch;
+
+        const scale   = Math.min(cw / iw, ch / ih);
+        const rw      = iw * scale;
+        const rh      = ih * scale;
+        const offsetX = (cw - rw) / 2;
+        const offsetY = (ch - rh) / 2;
+
+        svg.style.left   = offsetX + 'px';
+        svg.style.top    = offsetY + 'px';
+        svg.style.width  = rw + 'px';
+        svg.style.height = rh + 'px';
+    }
+}
+
+// Same letterbox calculation for the nav-screen map viewport
+function fitNavSVGToImage() {
+    for (let f = 1; f <= 4; f++) {
+        const container = document.getElementById(`nav-f${f}`);
+        if (!container) continue;
+        const img = container.querySelector('.nav-floor-png');
+        const svg = container.querySelector('.nav-floor-svg');
+        if (!img || !svg) continue;
+
+        const cw = container.clientWidth;
+        const ch = container.clientHeight;
+        const iw = img.naturalWidth  || cw;
+        const ih = img.naturalHeight || ch;
+        if (!cw || !ch) continue;
 
         const scale   = Math.min(cw / iw, ch / ih);
         const rw      = iw * scale;
@@ -1167,6 +1189,9 @@ function syncNavSVGs() {
         const dest = document.getElementById(`svg-nav-f${f}`);
         if (src && dest) dest.innerHTML = src.innerHTML;
     }
+    // Fit nav SVGs to their letterboxed images after content is copied
+    // Use rAF to ensure the nav screen is visible and has layout dimensions
+    requestAnimationFrame(() => fitNavSVGToImage());
 }
 
 function syncNavFloor(floorNum) {
@@ -1176,6 +1201,7 @@ function syncNavFloor(floorNum) {
         const el = document.getElementById(`nav-f${i}`);
         if (el) el.style.display = (i == floorNum) ? 'block' : 'none';
     }
+    requestAnimationFrame(() => fitNavSVGToImage());
 }
 
 function syncMobileCheckpointBtn() {

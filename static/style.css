@@ -1182,22 +1182,6 @@ input[type="radio"] { accent-color: var(--teal); }
 .route-form-sheet { display: contents; }
 @media (max-width: 768px) { .route-form-sheet { display: block; } }
 
-/* ── Open Form FAB ── */
-.open-form-fab { display: none; }
-@media (max-width: 768px) {
-    .open-form-fab {
-        display: flex; position: fixed; bottom: 80px; left: 16px; z-index: 1500;
-        background: var(--surface); border: 2px solid var(--text-primary);
-        border-radius: var(--radius-xl); padding: 12px 18px; font-size: 13px;
-        font-weight: 700; color: var(--text-primary); box-shadow: var(--shadow-sm);
-        cursor: pointer; align-items: center; gap: 8px;
-        touch-action: manipulation; min-height: 48px;
-        transition: background 0.18s, color 0.18s;
-    }
-    .open-form-fab:hover { background: var(--text-primary); color: #fff; }
-    body.has-route .open-form-fab { bottom: 148px; }
-}
-
 /* ── iOS ── */
 @supports (-webkit-touch-callout: none) {
     body { background-attachment: fixed; min-height: -webkit-fill-available; }
