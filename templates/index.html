@@ -384,8 +384,7 @@
           const clone     = template.content.cloneNode(true);
           container.appendChild(clone);
           const newSel = container.lastElementChild.querySelector('.stop-select');
-          const groupBy = document.querySelector('input[name="group_by"]:checked').value;
-          const ts = makeTomSelect(newSel, groupBy, '');
+          const ts = makeTomSelect(newSel, 'floor', '');
           if (ts) tsStopInstances.push(ts);
         }
     </script>
