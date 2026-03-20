@@ -2,19 +2,30 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>NMIT Wayfinder - Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Orbitron:wght@600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
-    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}?v=2">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='icon-192.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon-192.png') }}">
     <meta name="theme-color" content="#4f46e5">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
+<body id="app-body">
 
     <main class="app-container">
+        <!-- Mobile-only top bar: shown when a route is active -->
+        <div id="mobile-top-bar" class="mobile-top-bar" style="display:none;">
+            <button class="mobile-new-route-btn" onclick="openRouteForm()" aria-label="New route">
+                <span class="mobile-back-arrow">&#8592;</span> New Route
+            </button>
+            <div id="mobile-route-label" class="mobile-route-label"></div>
+        </div>
+
+        <div id="route-form-sheet" class="route-form-sheet">
         <section class="navigator-panel">
             <div class="header-section">
                 <div class="status-badge"><span class="status-dot"></span> 4-FLOOR SYSTEM READY</div>
@@ -25,28 +36,36 @@
 
             <form method="POST" id="nav-form">
                 <div class="form-group">
+                    <label class="field-label">GROUP BY</label>
+                    <div class="radio-group" style="flex-direction:row; gap:16px;">
+                        <label><input type="radio" name="group_by" value="floor" checked onchange="regroupDropdowns(this.value)"> Floor</label>
+                        <label><input type="radio" name="group_by" value="type" onchange="regroupDropdowns(this.value)"> Type</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
                     <label class="field-label">CURRENT LOCATION</label>
                     <select id="start_node" name="start_node" required>
-                        <option value="">Search start...</option>
-                        {% for category, options in nodes %}
-                        <optgroup label="{{ category }}">
-                            {% for code, name in options %}<option value="{{ code }}">{{ name }}</option>{% endfor %}
+                        <option value="">Select location...</option>
+                        {% for group, options in by_floor_ordered %}
+                        <optgroup label="{{ group }}">
+                            {% for opt in options %}<option value="{{ opt.id }}">{{ opt.label }}</option>{% endfor %}
                         </optgroup>
                         {% endfor %}
                     </select>
                 </div>
 
                 <div id="stops-container"></div>
-                
+
                 <button type="button" class="add-stop-btn" onclick="addStopField()">+ ADD STOP</button>
 
                 <div class="form-group" style="margin-top: 15px;">
                     <label class="field-label">FINAL DESTINATION</label>
                     <select id="end_node" name="end_node" required>
-                        <option value="">Search destination...</option>
-                        {% for category, options in nodes %}
-                        <optgroup label="{{ category }}">
-                            {% for code, name in options %}<option value="{{ code }}">{{ name }}</option>{% endfor %}
+                        <option value="">Select location...</option>
+                        {% for group, options in by_floor_ordered %}
+                        <optgroup label="{{ group }}">
+                            {% for opt in options %}<option value="{{ opt.id }}">{{ opt.label }}</option>{% endfor %}
                         </optgroup>
                         {% endfor %}
                     </select>
@@ -55,9 +74,9 @@
                 <div class="form-group">
                     <label class="field-label">MOBILITY MODE</label>
                     <div class="radio-group">
-                        <label><input type="radio" name="mobility" value="none" checked> 🚶 No Preference</label>
-                        <label><input type="radio" name="mobility" value="elevator_only"> ♿ Elevator Only</label>
-                        <label><input type="radio" name="mobility" value="stairs_only"> 🪜 Stairs Only</label>
+                        <label><input type="radio" name="mobility" value="none" checked> No Preference</label>
+                        <label><input type="radio" name="mobility" value="elevator_only"> Elevator Only</label>
+                        <label><input type="radio" name="mobility" value="stairs_only"> Stairs Only</label>
                     </div>
                 </div>
 
@@ -67,39 +86,33 @@
             </form>
             {% if error_message %}
             <div class="error-message">
-                ⚠️ {{ error_message }}
+                [ERROR] {{ error_message }}
             </div>
             {% endif %}
-            
+
             <template id="stop-template">
                 <div class="form-group stop-group">
                     <label class="field-label">VIA (STOP)</label>
                     <div style="display: flex; gap: 5px;">
-                        <select name="stops[]" class="stop-select" required>
-                            <option value="">Search stop...</option>
-                            {% for category, options in nodes %}
-                            <optgroup label="{{ category }}">
-                                {% for code, name in options %}<option value="{{ code }}">{{ name }}</option>{% endfor %}
-                            </optgroup>
-                            {% endfor %}
-                        </select>
-                        <button type="button" class="remove-stop" onclick="this.parentElement.parentElement.remove()">✕</button>
+                        <select name="stops[]" class="stop-select" required></select>
+                        <button type="button" class="remove-stop" onclick="this.parentElement.parentElement.remove()">Remove</button>
                     </div>
                 </div>
             </template>
             <div id="route-info-panel" style="display:none;">
                 <div id="metrics-bar" class="metrics-bar" style="display:none;">
-                    <span>📍 <strong id="m-distance">--</strong> m</span>
-                    <span>⏱ <strong id="m-time">--</strong></span>
-                    <span>🏢 Floor changes: <strong id="m-floors">--</strong></span>
-                    <span>⭐ Route rating: <strong id="m-rating">--</strong></span>
+                    <span>Distance: <strong id="m-distance">--</strong> m</span>
+                    <span>Time: <strong id="m-time">--</strong></span>
+                    <span>Floor changes: <strong id="m-floors">--</strong></span>
+                    <span>Route rating: <strong id="m-rating">--</strong></span>
                 </div>
                 <details id="directions-panel" open style="display:none;">
-                    <summary>📋 Turn-by-Turn Directions</summary>
+                    <summary>Turn-by-Turn Directions</summary>
                     <ol id="directions-list"></ol>
                 </details>
             </div>
         </section>
+        </div><!-- end route-form-sheet -->
 
         <section class="map-section">
             <div class="map-header">
@@ -111,7 +124,7 @@
                 </div>
                 <div id="route-summary" class="route-summary" style="display:none;">
                     <span id="route-summary-from" class="route-summary-from"></span>
-                    <span class="route-summary-arrow">→</span>
+                    <span class="route-summary-arrow">&rarr;</span>
                     <span id="route-summary-to" class="route-summary-to"></span>
                 </div>
             </div>
@@ -122,20 +135,33 @@
                     <svg id="svg-f1" class="map-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
                 </div>
                 <div id="f2-container" class="map-container" style="display:none;">
-                    <img src="{{ url_for('static', filename='floor2.png') }}" class="map-image">
+                    <img src="{{ url_for('static', filename='floor2.png') }}" class="map-image" loading="lazy">
                     <svg id="svg-f2" class="map-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
                 </div>
                 <div id="f3-container" class="map-container" style="display:none;">
-                    <img src="{{ url_for('static', filename='floor3.png') }}" class="map-image" onerror="this.style.display='none'">
+                    <img src="{{ url_for('static', filename='floor3.png') }}" class="map-image" loading="lazy" onerror="this.style.display='none'">
                     <svg id="svg-f3" class="map-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
                 </div>
                 <div id="f4-container" class="map-container" style="display:none;">
-                    <img src="{{ url_for('static', filename='floor4.png') }}" class="map-image" onerror="this.style.display='none'">
+                    <img src="{{ url_for('static', filename='floor4.png') }}" class="map-image" loading="lazy" onerror="this.style.display='none'">
                     <svg id="svg-f4" class="map-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
                 </div>
-                <button id="checkpoint-btn" class="checkpoint-btn" style="display:none;" onclick="onCheckpointReached()">
-                    ✅ Reached Checkpoint
-                </button>
+            </div><!-- end map-viewport -->
+
+            <button id="checkpoint-btn" class="checkpoint-btn" style="display:none;" onclick="onCheckpointReached()">
+                Reached Checkpoint
+            </button>
+
+            <!-- Mobile: persistent current-step strip, tappable to expand full directions -->
+            <div id="mobile-directions-strip" class="mobile-directions-strip" style="display:none;">
+                <div id="mobile-current-step" class="mobile-current-step" onclick="toggleMobileDirections()">
+                    <span id="mobile-step-text">Calculating route...</span>
+                    <span class="mobile-step-expand-icon">&#9650;</span>
+                </div>
+                <div id="mobile-full-directions" class="mobile-full-directions" style="display:none;">
+                    <div id="mobile-directions-list" class="mobile-directions-list"></div>
+                    <div id="mobile-metrics-row" class="mobile-metrics-row"></div>
+                </div>
             </div>
             <div id="map-legend" class="map-legend" style="display:none;">
                 <span class="legend-item"><span class="legend-dot" style="background:#10b981;"></span> Start</span>
@@ -150,8 +176,8 @@
         <div class="modal-box">
             <h3>How was your route?</h3>
             <div class="star-rating" id="star-rating">
-                <span data-val="1">★</span><span data-val="2">★</span>
-                <span data-val="3">★</span><span data-val="4">★</span><span data-val="5">★</span>
+                <span data-val="1">&#9733;</span><span data-val="2">&#9733;</span>
+                <span data-val="3">&#9733;</span><span data-val="4">&#9733;</span><span data-val="5">&#9733;</span>
             </div>
             <textarea id="feedback-comment" placeholder="Any issues? (optional)" rows="3"></textarea>
             <button onclick="submitFeedback()">Submit Feedback</button>
@@ -161,16 +187,104 @@
 
     <div id="success-overlay" class="modal-overlay" style="display:none;">
         <div class="modal-box success-box">
-            <div class="success-icon">🏁</div>
+            <div class="success-icon">DONE</div>
             <h3>You've Arrived!</h3>
             <p>Time taken: <strong id="success-elapsed-time">--</strong></p>
             <p style="font-size:12px; color:#6b7280; margin-top:8px;">Opening feedback form...</p>
         </div>
     </div>
 
+    <!-- Floor confirmation modal — shown at floor transitions -->
+    <div id="floor-confirm-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-box floor-confirm-box">
+            <div id="floor-confirm-icon" class="floor-confirm-icon"></div>
+            <h3 id="floor-confirm-title">Are you on the right floor?</h3>
+            <p id="floor-confirm-body" style="font-size:14px;color:#374151;margin-bottom:20px;line-height:1.6;"></p>
+            <button id="floor-confirm-yes" class="floor-confirm-yes-btn" onclick="onFloorConfirmed(true)">
+                Yes, I'm here
+            </button>
+        <button id="floor-confirm-no" class="floor-confirm-no-btn" onclick="onFloorConfirmed(false)">
+            Wrong floor — go back
+        </button>
+    </div>
+</div>
+
+    <div class="mobile-safe-area-bottom"></div>
+
     <script>
         window.pathData = {{ path_data|safe }};
         window.allNodes = {{ all_nodes|safe }};
+        window.allOpts = {{ nodes_opts_json|safe }};
+        window.nodeDegrees = {{ node_degrees_json|safe }};
+        window.stopLabels = {{ stop_labels_json|safe }};
+
+        const FLOOR_ORDER = ['Ground Floor','First Floor','Second Floor','Third Floor'];
+        const TYPE_ORDER  = ['Entrance','Offices','Rooms','Labs & Rooms','Restrooms','Lift & Stairs'];
+
+        function buildOptions(groupBy) {
+          const groups = {};
+          window.allOpts.forEach(opt => {
+            const key = groupBy === 'floor' ? opt.floor_label : opt.category;
+            (groups[key] = groups[key] || []).push(opt);
+          });
+          const order = groupBy === 'floor' ? FLOOR_ORDER : TYPE_ORDER;
+          let html = '<option value="">Select location...</option>';
+          order.forEach(grp => {
+            if (!groups[grp]) return;
+            html += `<optgroup label="${grp}">`;
+            groups[grp].sort((a,b) => a.label.localeCompare(b.label)).forEach(opt => {
+              html += `<option value="${opt.id}">${opt.label}</option>`;
+            });
+            html += '</optgroup>';
+          });
+          return html;
+        }
+
+        let tsStart, tsEnd, tsStopInstances = [];
+
+        function regroupDropdowns(groupBy) {
+          const html = buildOptions(groupBy);
+          ['start_node','end_node'].forEach((id, idx) => {
+            const ts = idx === 0 ? tsStart : tsEnd;
+            const selected = ts ? ts.getValue() : document.getElementById(id).value;
+            if (ts) {
+              ts.destroy();
+            }
+            const select = document.getElementById(id);
+            select.innerHTML = html;
+            if (selected) select.value = selected;
+          });
+          const cfg = { create:false, sortField:{field:'text',direction:'asc'}, dropdownParent:'body' };
+          tsStart = new TomSelect('#start_node', cfg);
+          tsEnd   = new TomSelect('#end_node', cfg);
+
+          tsStopInstances.forEach(ts => ts.destroy());
+          tsStopInstances = [];
+          document.querySelectorAll('.stop-select').forEach(sel => {
+            const selected = sel.value;
+            sel.innerHTML = html;
+            if (selected) sel.value = selected;
+            tsStopInstances.push(new TomSelect(sel, cfg));
+          });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+          regroupDropdowns('floor');
+        });
+
+        function addStopField() {
+          const container = document.getElementById('stops-container');
+          const template  = document.getElementById('stop-template');
+          const clone     = template.content.cloneNode(true);
+          container.appendChild(clone);
+          const newSel = container.lastElementChild.querySelector('.stop-select');
+          const groupBy = document.querySelector('input[name="group_by"]:checked').value;
+          newSel.innerHTML = buildOptions(groupBy);
+          const ts = new TomSelect(newSel, {
+            create:false, sortField:{field:'text',direction:'asc'}, dropdownParent:'body'
+          });
+          tsStopInstances.push(ts);
+        }
     </script>
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
@@ -182,7 +296,6 @@
       }
     </script>
 
-    <!-- FAQ Chatbot Bubble -->
     <div id="faq-bubble" class="faq-bubble" onclick="toggleFAQChat()" title="Ask a question">
         <span>?</span>
     </div>
@@ -192,7 +305,7 @@
             <button onclick="toggleFAQChat()" style="background:none;border:none;color:white;font-size:16px;cursor:pointer;padding:0 4px;">X</button>
         </div>
         <div class="faq-chat-messages" id="faq-messages">
-            <div class="faq-msg faq-msg-bot">Hi! Ask me anything about the building — room locations, how to navigate, or how to use this app.</div>
+            <div class="faq-msg faq-msg-bot">Hi! Ask me anything about the building - room locations, how to navigate, or how to use this app.</div>
         </div>
         <div class="faq-chat-input-row">
             <input type="text" id="faq-input" class="faq-input"
@@ -203,6 +316,3 @@
     </div>
 </body>
 </html>
-
-
-

@@ -56,8 +56,8 @@
         <a href="/">Back to App</a>
     </div>
     <div class="stats-grid">
-        <div class="stat-card"><div class="stat-value">{{ total_feedback }}</div><div class="stat-label">Total Feedback</div></div>
-        <div class="stat-card"><div class="stat-value">{{ global_avg if global_avg else '—' }}</div><div class="stat-label">Global Avg Rating</div></div>
+        <div class="stat-card"><div class="stat-value" id="live-total-feedback">{{ total_feedback }}</div><div class="stat-label">Total Feedback</div></div>
+        <div class="stat-card"><div class="stat-value" id="live-avg-rating">{{ global_avg if global_avg else '—' }}</div><div class="stat-label">Global Avg Rating</div></div>
         <div class="stat-card"><div class="stat-value">{{ total_edges_modified }}</div><div class="stat-label">Edges Adapted</div></div>
         <div class="stat-card"><div class="stat-value">{{ top_routes|length }}</div><div class="stat-label">Unique Routes</div></div>
     </div>
@@ -164,7 +164,11 @@
 <script>
 function confirmReset() {
     if (!confirm('Reset ALL learned edge weights to 1.0? This cannot be undone.')) return;
-    fetch('/admin/reset-weights', { method: 'POST' })
+    fetch('/admin/reset-weights', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
         .then(r => r.json())
         .then(d => { showToast(d.message); setTimeout(() => location.reload(), 1500); })
         .catch(() => showToast('Reset failed.'));
@@ -176,14 +180,22 @@ function showToast(msg) {
     setTimeout(() => t.style.display = 'none', 2500);
 }
 function toggleFAQ(id) {
-    fetch(`/admin/faq/toggle/${id}`, { method: 'POST' })
+    fetch(`/admin/faq/toggle/${id}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
         .then(r => r.json())
         .then(() => { showToast('FAQ updated.'); setTimeout(() => location.reload(), 800); })
         .catch(() => showToast('Update failed.'));
 }
 function deleteFAQ(id) {
     if (!confirm('Delete this FAQ entry?')) return;
-    fetch(`/admin/faq/delete/${id}`, { method: 'POST' })
+    fetch(`/admin/faq/delete/${id}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
         .then(r => r.json())
         .then(() => { showToast('FAQ deleted.'); document.getElementById(`faq-row-${id}`)?.remove(); })
         .catch(() => showToast('Delete failed.'));
@@ -194,22 +206,30 @@ function addFAQ() {
     if (!keywords || !answer) { showToast('Fill in both fields.'); return; }
     fetch('/admin/faq/add', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
         body: JSON.stringify({ keywords, answer })
     })
     .then(r => r.json())
     .then(() => { showToast('FAQ added!'); setTimeout(() => location.reload(), 800); })
     .catch(() => showToast('Add failed.'));
 }
+// Auto-refresh feedback stats every 15 seconds without full page reload
+function refreshFeedbackStats() {
+    fetch('/stats')
+        .then(r => r.json())
+        .then(data => {
+            const totalEl = document.getElementById('live-total-feedback');
+            const avgEl   = document.getElementById('live-avg-rating');
+            if (totalEl) totalEl.textContent = data.total_feedback ?? '--';
+            if (avgEl)   avgEl.textContent   = data.global_avg ?? '--';
+        })
+        .catch(() => {});
+}
+setInterval(refreshFeedbackStats, 15000);
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-

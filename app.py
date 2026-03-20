@@ -1,16 +1,53 @@
-from flask import Flask, render_template, request, jsonify
+import os
 import heapq
 import math
 import json
 import sqlite3
 import datetime
+import time
+from functools import wraps
+
+from flask import Flask, Response, render_template, request, jsonify
+from flask_wtf.csrf import CSRFProtect, generate_csrf
 
 app = Flask(__name__)
+csrf = CSRFProtect(app)
+app.config['SECRET_KEY'] = 'nmit-wayfinder-secret-key-2026'
+app.config['WTF_CSRF_CHECK_DEFAULT'] = False  # manual protection on selected routes
+
+# ---------------------------------------------------------------------------
+# Admin credentials — change these to your preferred username/password.
+# ---------------------------------------------------------------------------
+ADMIN_USER = 'admin'
+ADMIN_PASS = 'wayfinder2026'
 
 # -------------------------------------------------------------------
 # Database + adaptive edge weights
 # -------------------------------------------------------------------
 DB_PATH = 'feedback.db'
+
+
+def require_auth(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth = request.authorization
+        if not auth or auth.username != ADMIN_USER or auth.password != ADMIN_PASS:
+            return Response(
+                'Unauthorized',
+                401,
+                {'WWW-Authenticate': 'Basic realm="Wayfinder Admin"'}
+            )
+        return f(*args, **kwargs)
+    return decorated
+
+
+def require_json_origin(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if request.headers.get('X-Requested-With') != 'XMLHttpRequest':
+            return jsonify({'status': 'error', 'message': 'Forbidden'}), 403
+        return f(*args, **kwargs)
+    return decorated
 
 
 def init_db():
@@ -34,152 +71,210 @@ def init_db():
     count = conn.execute('SELECT COUNT(*) FROM faq').fetchone()[0]
     if count == 0:
         seed = [
-            ('where is the library,find library,library location', 'The Library is on the Ground Floor, on the left side of the main corridor.'),
-            ('placement cell,placement office,placements', 'The Placement Cell is on the Second Floor (2F). Take the lift or stairs up to 2F and walk left along the corridor.'),
-            ('principal office,where is principal,principals room', "The Principal's Office is on the Ground Floor, at the far left end of the main corridor."),
-            ('admin office,administration,where is admin', 'The Admin Office is on the Ground Floor, near the Main Entrance on the right side.'),
-            ('computer lab,where is computer lab,lab location', 'The Computer Lab is on the Ground Floor, in the middle of the main corridor.'),
-            ('seminar hall,where is seminar hall,seminar room', 'The Seminar Hall is on the First Floor (1F), in the centre of the corridor.'),
-            ('board room,where is board room,boardroom', 'The Board Room is on the First Floor (1F), toward the left end of the corridor.'),
-            ('design lab,design thinking,design thinking lab', 'The Design Thinking Lab is on the First Floor (1F), in the right-centre area of the corridor.'),
-            ('alumni,alumni office,alumni relations', 'The Alumni Relations Office is on the Second Floor (2F), on the right side near the curved stairs.'),
-            ('entrepreneurship,e-cell,entrepreneurship cell', 'The Entrepreneurship Cell is on the Second Floor (2F), along the main corridor.'),
-            ('research,publication,research centre', 'The Research & Publication Centre is on the Second Floor (2F), in the middle of the corridor.'),
-            ('faculty lounge,staff lounge,faculty room', 'The Faculty Lounge is on the Second Floor (2F), accessible from the main corridor.'),
-            ('case study lab,case study,case lab', 'There are two Case Study Labs on the Second Floor (2F) — Lab 1 and Lab 2, both along the main corridor.'),
-            ('corporate relations,corporate office', 'The Corporate Relations Office is on the Second Floor (2F), on the right side of the corridor.'),
-            ('student council,student council room', 'The Student Council Room is on the Second Floor (2F), near the right end of the corridor.'),
-            ('media unit,media room,media', 'The Media Unit is on the First Floor (1F), near the curved stairs on the right side.'),
-            ('ups room,ups,server room', 'The UPS Room is on the First Floor (1F), in the centre of the corridor.'),
-            ('conference room,conference,meeting room', 'There are two Conference Rooms on the Ground Floor — Conference Room 1 and Conference Room 2, along the main corridor.'),
-            ('classroom,class room,where is class', 'Classroom 1 is on the Ground Floor, on the left side of the main corridor.'),
-            ('how to get to top floor,third floor,how to reach 3f,3rd floor', 'To reach the Third Floor, use the lift near the Main Entrance or the straight staircase on the far left.'),
-            ('where is the lift,elevator location,find lift', 'The lift is near the Main Entrance on the Ground Floor. It serves all four floors.'),
-            ('stairs,staircase,where are the stairs', 'There are two staircases — straight stairs on the far left, and curved stairs on the far right near the Main Entrance.'),
-            ('restroom,toilet,washroom,bathroom,where is toilet', 'Restrooms are available on every floor — at the left end of the corridor on each floor.'),
-            ('wheelchair,accessible,disability,mobility', 'Use the lift for wheelchair-accessible navigation. Select \"Elevator Only\" under Mobility Mode in the app for a lift-only route.'),
-            ('balcony,where is balcony', 'The Balcony is on the First Floor (1F), on the right side near the curved stairs.'),
-            ('how to use,how does this work,how to navigate', 'Select your current location, choose your destination, then tap \"Initiate Route\". The map shows your path with turn-by-turn directions.'),
-            ('add stop,multiple stops,via,intermediate stop', 'Tap the \"+ Add Stop\" button to add an intermediate stop on your route.'),
-            ('floor changes,what does floor changes mean', '\"Floor Changes\" shows how many different floors your route passes through.'),
-            ('checkpoint,what is checkpoint,reached checkpoint', 'Checkpoints are waypoints along your route. Tap \"Reached Checkpoint\" at each one to track your progress and grey out the path behind you.'),
+            ('where is the library,find library,library location',
+             'The Library is on the Ground Floor, along the left side of the main corridor.'),
+            ('principal office,where is principal,principals room,principal room',
+             "The Principal's Room is on the Ground Floor, near the far left end of the corridor."),
+            ('admin office,administration,where is admin',
+             'The Admin Office is on the Ground Floor, near the main entrance on the right side.'),
+            ('office ground floor,ground floor office,where is office',
+             'The Office is on the Ground Floor beside the lift and curved stairs cluster.'),
+            ('tutorial room,where is tutorial',
+             'The Tutorial Room is on the Ground Floor, just left of the admin office area.'),
+            ('computer lab,where is computer lab,lab location',
+             'The Computer Lab is on the Ground Floor in the middle section of the main corridor.'),
+            ('conference room 1,conf room 1,conference room one',
+             'Conference Room 1 is on the Ground Floor, to the right of the computer lab.'),
+            ('conference room 2,conf room 2,conference room two',
+             'Conference Room 2 is on the Ground Floor, near the computer lab and classroom cluster.'),
+            ('conference room,conference rooms,meeting room',
+             'Conference Room 1 and Conference Room 2 are both on the Ground Floor near the centre corridor.'),
+            ('classroom,class room,where is classroom',
+             'The Classroom is on the Ground Floor, between the computer lab area and the library side.'),
+            ('seminar hall,where is seminar hall,seminar room',
+             'The Seminar Hall is on the First Floor near the central corridor.'),
+            ('design lab,design thinking,design thinking lab',
+             'The Design Thinking Lab is on the First Floor beside the Seminar Hall.'),
+            ('ups room,ups,server room',
+             'The UPS Room is on the First Floor beside the Seminar Hall and Design Thinking Lab.'),
+            ('board room,where is board room,boardroom',
+             'The Board Room is on the First Floor toward the left side of the corridor.'),
+            ('media unit,media room,media',
+             'The Media Unit is on the First Floor near the lift and curved stairs.'),
+            ('staff room 1,staffroom1',
+             'Staff Room 1 is on the First Floor along the main corridor.'),
+            ('staff room 2,staffroom2',
+             'Staff Room 2 is on the First Floor up the passageway branch from the main corridor.'),
+            ('room 3 first floor,room3 first floor,room 3 on first floor',
+             'Room 3 is on the First Floor up the passageway branch near Staff Room 2.'),
+            ('alumni,alumni office,alumni relations',
+             'The Alumni Relations Office is on the Second Floor near the right-side curved stairs.'),
+            ('corporate relations,corporate office,corporate relations department',
+             'The Corporate Relations Department is on the Second Floor near the Student Council Room.'),
+            ('student council,student council room',
+             'The Student Council Room is on the Second Floor near the right side of the corridor.'),
+            ('research,publication,research centre,research department',
+             'The Research and Publication Centre is on the Second Floor near the middle corridor.'),
+            ('case study lab,case study lab 1,case study lab 2',
+             'Case Study Lab 1 and Case Study Lab 2 are on the Second Floor near the middle corridor.'),
+            ('faculty lounge,staff lounge,faculty room',
+             'The Faculty Lounge is on the Second Floor along the main corridor.'),
+            ('entrepreneurship,e-cell,entrepreneurship cell,startup,startup incubator,incubator',
+             'The Startup Incubator / Entrepreneurship Cell is on the Second Floor toward the left side of the corridor.'),
+            ('placement cell,placement office,placements,career counseling',
+             'The Placement Cell and Career Counseling office is on the Second Floor near the left side of the corridor.'),
+            ('room 1 third floor,room1 third floor,room 1 on third floor',
+             'Room 1 is on the Third Floor along the main corridor.'),
+            ('room 2 third floor,room2 third floor,room 2 on third floor',
+             'Room 2 is on the Third Floor along the main corridor.'),
+            ('room 3 third floor,room3 third floor,room 3 on third floor',
+             'Room 3 is on the Third Floor along the main corridor.'),
+            ('room 4 third floor,room4 third floor,room 4 on third floor',
+             'Room 4 is on the Third Floor near the right-side lift and curved stairs cluster.'),
+            ('where is the lift,elevator location,find lift',
+             'The lift is beside the main entrance on the Ground Floor and serves all four floors.'),
+            ('stairs,staircase,where are the stairs,main stairs,curved stairs',
+             'There are main stairs at the left end of each floor and curved stairs near the lift cluster on the right side.'),
+            ('restroom,toilet,washroom,bathroom,where is toilet',
+             'Restrooms are available on every floor near the left end of the corridor.'),
+            ('wheelchair,accessible,disability,mobility',
+             'Use Elevator Only mode for wheelchair-accessible routes so the app avoids both staircases.'),
+            ('balcony,where is balcony',
+             'The Balcony is on the First Floor beside the lift cluster.'),
+            ('how to use,how does this work,how to navigate',
+             'Select your current location, choose your destination, then tap Initiate Route. The map shows turn-by-turn directions.'),
+            ('add stop,multiple stops,via,intermediate stop',
+             'Tap the Add Stop button to add an intermediate stop on your route.'),
+            ('floor changes,what does floor changes mean',
+             'Floor Changes shows how many different floors your route passes through.'),
+            ('checkpoint,what is checkpoint,reached checkpoint',
+             'Checkpoints mark key turns along your route. Tap Reached Checkpoint to advance navigation.'),
         ]
         conn.executemany('INSERT INTO faq (keywords, answer) VALUES (?, ?)', seed)
         conn.commit()
     conn.close()
 
 
-def load_learned_weights():
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        rows = conn.execute('SELECT edge, multiplier FROM edge_weights').fetchall()
-        conn.close()
-        return dict(rows)
-    except Exception:
-        return {}
+def _clamp_weight(val):
+    return max(0.7, min(1.5, val))
+
+_weight_cache = {'weights': {}, 'loaded_at': 0}
+_WEIGHT_CACHE_TTL = 30  # seconds
 
 
-_learned_weights = {}
+def get_learned_weights():
+    now = time.time()
+    if now - _weight_cache['loaded_at'] > _WEIGHT_CACHE_TTL:
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            try:
+                rows = conn.execute('SELECT edge, multiplier FROM edge_weights').fetchall()
+            finally:
+                conn.close()
+            _weight_cache['weights'] = {k: _clamp_weight(v) for k, v in rows}
+        except Exception:
+            pass
+        _weight_cache['loaded_at'] = now
+    return _weight_cache['weights']
 
 # -------------------------------------------------------------------
 # Graph data
 # Coordinates are percentage values (0–100) relative to each floor PNG.
 # -------------------------------------------------------------------
 nodes = {
-    # ==================== GROUND FLOOR (floor: 1) ====================
-    'ENTRANCE-GF':           {'coords': (68, 54), 'floor': 1, 'label': 'Main Entrance', 'category': 'Entrance & Navigation'},
-    'ADMIN-OFFICE-GF':       {'coords': (66, 57), 'floor': 1, 'label': 'Admin Office', 'category': 'Offices'},
-    'TUTORIAL-ROOM-GF':      {'coords': (61, 56), 'floor': 1, 'label': 'Tutorial Room', 'category': 'Labs & Classrooms'},
-    'COMPUTER-LAB-GF':       {'coords': (41, 56), 'floor': 1, 'label': 'Computer Lab', 'category': 'Labs & Classrooms'},
-    'LIBRARY-GF':            {'coords': (26, 56), 'floor': 1, 'label': 'Library', 'category': 'Library & Research'},
-    'PRINCIPAL-OFFICE-GF':   {'coords': (18, 56), 'floor': 1, 'label': "Principal's Office", 'category': 'Offices'},
-    'RESTROOMS-GF':          {'coords': (15, 52), 'floor': 1, 'label': 'Restrooms', 'category': 'Facilities'},
-    'CLASS-ROOM1-GF':        {'coords': (31, 51), 'floor': 1, 'label': 'Classroom 1', 'category': 'Labs & Classrooms'},
-    'CONFERENCE-ROOM1-GF':   {'coords': (43, 51), 'floor': 1, 'label': 'Conference Room 1', 'category': 'Halls & Meeting Rooms'},
-    'CONFERENCE-ROOM2-GF':   {'coords': (50, 52), 'floor': 1, 'label': 'Conference Room 2', 'category': 'Halls & Meeting Rooms'},
-    'OFFICE-GF':             {'coords': (63, 40), 'floor': 1, 'label': 'Office', 'category': 'Offices'},
-    'LIFT-GF':               {'coords': (62, 48), 'floor': 1, 'label': 'Lift (Ground Floor)', 'category': 'Entrance & Navigation'},
-    'STAIRS-END-GF':         {'coords': (10, 51), 'floor': 1, 'label': 'Stairs (Ground Floor)', 'category': 'Entrance & Navigation'},
-    'STAIRS-CURVED-GF':      {'coords': (66, 42), 'floor': 1, 'label': 'Curved Stairs (Ground Floor)', 'category': 'Entrance & Navigation'},
-    'CORRIDOR-GF-1':         {'coords': (61, 53), 'floor': 1, 'label': 'GF Corridor 1', 'is_waypoint': True},
-    'CORRIDOR-GF-2':         {'coords': (48, 53), 'floor': 1, 'label': 'GF Corridor 2', 'is_waypoint': True},
-    'CORRIDOR-GF-3':         {'coords': (43, 54), 'floor': 1, 'label': 'GF Corridor 3', 'is_waypoint': True},
-    'CORRIDOR-GF-4':         {'coords': (27, 53), 'floor': 1, 'label': 'GF Corridor 4', 'is_waypoint': True},
-    'CORRIDOR-GF-5':         {'coords': (12, 53), 'floor': 1, 'label': 'GF Corridor 5', 'is_waypoint': True},
 
-    # ==================== FIRST FLOOR (floor: 2) ====================
-    'MEDIA-UNIT-1F':         {'coords': (62, 40), 'floor': 2, 'label': 'Media Unit', 'category': 'Student Services'},
-    'BALCONY-1F':            {'coords': (65, 53), 'floor': 2, 'label': 'Balcony', 'dead_end': True, 'category': 'Facilities'},
-    'ROOM1-1F':              {'coords': (59, 55), 'floor': 2, 'label': 'Room 1', 'category': 'Rooms'},
-    'SEMINAR-HALL-1F':       {'coords': (49, 56), 'floor': 2, 'label': 'Seminar Hall', 'category': 'Halls & Meeting Rooms'},
-    'BOARD-ROOM-1F':         {'coords': (23, 56), 'floor': 2, 'label': 'Board Room', 'category': 'Halls & Meeting Rooms'},
-    'ROOM2-1F':              {'coords': (17, 56), 'floor': 2, 'label': 'Room 2', 'category': 'Rooms'},
-    'RESTROOMS-1F':          {'coords': (15, 51), 'floor': 2, 'label': 'Restrooms', 'category': 'Facilities'},
-    'STAFFROOM1-1F':         {'coords': (30, 51), 'floor': 2, 'label': 'Staff Room 1', 'category': 'Staff Rooms'},
-    'UPSROOM-1F':            {'coords': (42, 50), 'floor': 2, 'label': 'UPS Room', 'category': 'Student Services'},
-    'DESIGN-LAB-1F':         {'coords': (51, 51), 'floor': 2, 'label': 'Design Thinking Lab', 'category': 'Labs & Classrooms'},
-    'STAFFROOM2-1F':         {'coords': (36, 29), 'floor': 2, 'label': 'Staff Room 2', 'category': 'Staff Rooms'},
-    'ROOM3-1F':              {'coords': (33, 29), 'floor': 2, 'label': 'Room 3', 'category': 'Rooms'},
-    'LIFT-1F':               {'coords': (61, 48), 'floor': 2, 'label': 'Lift (First Floor)', 'category': 'Entrance & Navigation'},
-    'STAIRS-END-1F':         {'coords': (11, 51), 'floor': 2, 'label': 'Stairs (First Floor)', 'category': 'Entrance & Navigation'},
-    'STAIRS-CURVED-1F':      {'coords': (65, 41), 'floor': 2, 'label': 'Curved Stairs (First Floor)', 'category': 'Entrance & Navigation'},
-    'CORRIDOR-1F-1':         {'coords': (61, 52), 'floor': 2, 'label': '1F Corridor 1', 'is_waypoint': True},
-    'CORRIDOR-1F-2':         {'coords': (50, 53), 'floor': 2, 'label': '1F Corridor 2', 'is_waypoint': True},
-    'CORRIDOR-1F-3':         {'coords': (40, 54), 'floor': 2, 'label': '1F Corridor 3', 'is_waypoint': True},
-    'CORRIDOR-1F-4':         {'coords': (28, 53), 'floor': 2, 'label': '1F Corridor 4', 'is_waypoint': True},
-    'CORRIDOR-1F-5':         {'coords': (17, 53), 'floor': 2, 'label': '1F Corridor 5', 'is_waypoint': True},
-    'PASSAGEWAY-1F-1':       {'coords': (35, 52), 'floor': 2, 'label': '1F Passageway 1', 'is_waypoint': True},
-    'PASSAGEWAY-1F-2':       {'coords': (34, 40), 'floor': 2, 'label': '1F Passageway 2', 'is_waypoint': True},
+    # -- GROUND FLOOR (floor: 1) -------------------------------------
+    'MAINENTRANCE-GF':      {'coords': (80, 59), 'floor': 1, 'label': 'Main Entrance',         'category': 'Entrance'},
+    'OFFICE-GF':            {'coords': (74, 43), 'floor': 1, 'label': 'Office',                'category': 'Offices'},
+    'ADMIN-GF':             {'coords': (76, 59), 'floor': 1, 'label': 'Admin Office',          'category': 'Offices'},
+    'TUTORIAL-GF':          {'coords': (71, 57), 'floor': 1, 'label': 'Tutorial Room',         'category': 'Rooms'},
+    'CONFERENCEROOM1-GF':   {'coords': (55, 57), 'floor': 1, 'label': 'Conference Room 1',     'category': 'Rooms'},
+    'CONFERENCEROOM2-GF':   {'coords': (38, 58), 'floor': 1, 'label': 'Conference Room 2',     'category': 'Rooms'},
+    'COMPUTERLAB-GF':       {'coords': (43, 58), 'floor': 1, 'label': 'Computer Lab',          'category': 'Labs & Rooms'},
+    'CLASSROOM-GF':         {'coords': (34, 58), 'floor': 1, 'label': 'Classroom',             'category': 'Rooms'},
+    'LIBRARY-GF':           {'coords': (24, 59), 'floor': 1, 'label': 'Library',               'category': 'Offices'},
+    'PRINCIPALROOM-GF':     {'coords': (19, 59), 'floor': 1, 'label': "Principal's Room",      'category': 'Offices'},
+    'RESTROOMS-GF':         {'coords': (14, 57), 'floor': 1, 'label': 'Restrooms',             'category': 'Restrooms'},
+    'LIFT-GF':              {'coords': (71, 52), 'floor': 1, 'label': 'Lift (Ground Floor)',   'category': 'Lift & Stairs'},
+    'CURVEDSTAIRS-GF':      {'coords': (76, 43), 'floor': 1, 'label': 'Curved Stairs (Ground Floor)', 'category': 'Lift & Stairs'},
+    'STAIRSEND-GF':         {'coords': (11, 58), 'floor': 1, 'label': 'Stairs End (Ground Floor)',   'category': 'Lift & Stairs'},
+    # GF waypoints
+    'HALLWAY-TURNPOINT-1-GF': {'coords': (74, 57), 'floor': 1, 'label': 'GF Turn 1', 'is_waypoint': True},
+    'HALLWAY-TURNPOINT-2-GF': {'coords': (44, 58), 'floor': 1, 'label': 'GF Turn 2', 'is_waypoint': True},
+    'HALLWAY-TURNPOINT-3-GF': {'coords': (13, 57), 'floor': 1, 'label': 'GF Turn 3', 'is_waypoint': True},
 
-    # ==================== SECOND FLOOR (floor: 3) ====================
-    'ALUMNI-RELATIONS-OFFICE-2F':     {'coords': (59, 38), 'floor': 3, 'label': 'Alumni Relations Office', 'category': 'Offices'},
-    'CORPORATE-RELATIONS-2F':         {'coords': (62, 53), 'floor': 3, 'label': 'Corporate Relations Office', 'category': 'Offices'},
-    'STUDENT-COUNCIL-ROOM-2F':        {'coords': (59, 52), 'floor': 3, 'label': 'Student Council Room', 'category': 'Halls & Meeting Rooms'},
-    'RESEARCH-PUBLICATION-CENTRE-2F': {'coords': (41, 53), 'floor': 3, 'label': 'Research & Publication Centre', 'category': 'Library & Research'},
-    'ENTREPRENEURSHIP-CELL-2F':       {'coords': (29, 53), 'floor': 3, 'label': 'Entrepreneurship Cell', 'category': 'Student Services'},
-    'PLACEMENT-CELL-2F':              {'coords': (22, 53), 'floor': 3, 'label': 'Placement Cell', 'category': 'Student Services'},
-    'RESTROOMS-2F':                   {'coords': (21, 50), 'floor': 3, 'label': 'Restrooms', 'category': 'Facilities'},
-    'FACULTY-LOUNGE-2F':              {'coords': (33, 49), 'floor': 3, 'label': 'Faculty Lounge', 'category': 'Staff Rooms'},
-    'CASE-STUDY-LAB1-2F':             {'coords': (43, 49), 'floor': 3, 'label': 'Case Study Lab 1', 'category': 'Labs & Classrooms'},
-    'CASE-STUDY-LAB2-2F':             {'coords': (48, 50), 'floor': 3, 'label': 'Case Study Lab 2', 'category': 'Labs & Classrooms'},
-    'LIFT-2F':               {'coords': (59, 46), 'floor': 3, 'label': 'Lift (Second Floor)', 'category': 'Entrance & Navigation'},
-    'STAIRS-END-2F':         {'coords': (16, 49), 'floor': 3, 'label': 'Stairs (Second Floor)', 'category': 'Entrance & Navigation'},
-    'STAIRS-CURVED-2F':      {'coords': (63, 40), 'floor': 3, 'label': 'Curved Stairs (Second Floor)', 'category': 'Entrance & Navigation'},
-    'CORRIDOR-2F-1':         {'coords': (59, 50), 'floor': 3, 'label': '2F Corridor 1', 'is_waypoint': True},
-    'CORRIDOR-2F-2':         {'coords': (45, 51), 'floor': 3, 'label': '2F Corridor 2', 'is_waypoint': True},
-    'CORRIDOR-2F-3':         {'coords': (35, 51), 'floor': 3, 'label': '2F Corridor 3', 'is_waypoint': True},
-    'CORRIDOR-2F-4':         {'coords': (22, 51), 'floor': 3, 'label': '2F Corridor 4', 'is_waypoint': True},
+    # -- FIRST FLOOR (floor: 2) --------------------------------------
+    'MEDIAUNIT-1F':         {'coords': (71, 43), 'floor': 2, 'label': 'Media Unit',            'category': 'Rooms'},
+    'BALCONY-1F':           {'coords': (78, 61), 'floor': 2, 'label': 'Balcony',               'category': 'Rooms', 'dead_end': True},
+    'ROOM1-1F':             {'coords': (66, 59), 'floor': 2, 'label': 'Room 1',                'category': 'Rooms'},
+    'SEMINARHALL-1F':       {'coords': (55, 60), 'floor': 2, 'label': 'Seminar Hall',          'category': 'Labs & Rooms'},
+    'DESIGNLAB-1F':         {'coords': (51, 60), 'floor': 2, 'label': 'Design Thinking Lab',   'category': 'Labs & Rooms'},
+    'UPSROOM-1F':           {'coords': (48, 60), 'floor': 2, 'label': 'UPS Room',              'category': 'Rooms'},
+    'STAFFROOM1-1F':        {'coords': (33, 59), 'floor': 2, 'label': 'Staff Room 1',          'category': 'Offices'},
+    'STAFFROOM2-1F':        {'coords': (36, 27), 'floor': 2, 'label': 'Staff Room 2',          'category': 'Offices'},
+    'ROOM3-1F':             {'coords': (36, 29), 'floor': 2, 'label': 'Room 3',                'category': 'Rooms'},
+    'BOARDROOM-1F':         {'coords': (22, 60), 'floor': 2, 'label': 'Board Room',            'category': 'Rooms'},
+    'ROOM2-1F':             {'coords': (18, 61), 'floor': 2, 'label': 'Room 2',                'category': 'Rooms'},
+    'RESTROOMS-1F':         {'coords': (13, 60), 'floor': 2, 'label': 'Restrooms',             'category': 'Restrooms'},
+    'LIFT-1F':              {'coords': (69, 53), 'floor': 2, 'label': 'Lift (First Floor)',    'category': 'Lift & Stairs'},
+    'CURVEDSTAIRS-1F':      {'coords': (73, 43), 'floor': 2, 'label': 'Curved Stairs (First Floor)', 'category': 'Lift & Stairs'},
+    'STAIRSEND-1F':         {'coords': (8, 57), 'floor': 2, 'label': 'Stairs End (First Floor)',   'category': 'Lift & Stairs'},
+    # 1F waypoints
+    'HALLWAY-TURNPOINT-1-1F': {'coords': (72, 59), 'floor': 2, 'label': '1F Turn 1', 'is_waypoint': True},
+    'HALLWAY-TURNPOINT-2-1F': {'coords': (36, 59), 'floor': 2, 'label': '1F Turn 2', 'is_waypoint': True},
+    'HALLWAY-TURNPOINT-3-1F': {'coords': (8, 60), 'floor': 2, 'label': '1F Turn 3', 'is_waypoint': True},
+    # 1F passageway branch up to StaffRoom2/Room3
+    'PASSAGEWAY-1F': {'coords': (36, 43), 'floor': 2, 'label': '1F Passageway Mid', 'is_waypoint': True},
 
-    # ==================== THIRD FLOOR (floor: 4) ====================
-    'ROOM4-3F':              {'coords': (62, 39), 'floor': 4, 'label': 'Room 4', 'category': 'Rooms'},
-    'ROOM3-3F':              {'coords': (48, 51), 'floor': 4, 'label': 'Room 3', 'category': 'Rooms'},
-    'ROOM2-3F':              {'coords': (43, 51), 'floor': 4, 'label': 'Room 2', 'category': 'Rooms'},
-    'ROOM1-3F':              {'coords': (30, 51), 'floor': 4, 'label': 'Room 1', 'category': 'Rooms'},
-    'RESTROOMS-3F':          {'coords': (15, 50), 'floor': 4, 'label': 'Restrooms', 'category': 'Facilities'},
-    'LIFT-3F':               {'coords': (61, 48), 'floor': 4, 'label': 'Lift (Third Floor)', 'category': 'Entrance & Navigation'},
-    'STAIRS-END-3F':         {'coords': (11, 51), 'floor': 4, 'label': 'Stairs (Third Floor)', 'category': 'Entrance & Navigation'},
-    'STAIRS-CURVED-3F':      {'coords': (66, 40), 'floor': 4, 'label': 'Curved Stairs (Third Floor)', 'category': 'Entrance & Navigation'},
-    'CORRIDOR-3F-1':         {'coords': (62, 53), 'floor': 4, 'label': '3F Corridor 1', 'is_waypoint': True},
-    'CORRIDOR-3F-2':         {'coords': (45, 52), 'floor': 4, 'label': '3F Corridor 2', 'is_waypoint': True},
-    'CORRIDOR-3F-3':         {'coords': (32, 53), 'floor': 4, 'label': '3F Corridor 3', 'is_waypoint': True},
-    'CORRIDOR-3F-4':         {'coords': (19, 53), 'floor': 4, 'label': '3F Corridor 4', 'is_waypoint': True},
+    # -- SECOND FLOOR (floor: 3) -------------------------------------
+    'ALUMNIRELATIONSOFFICE-2F': {'coords': (67, 42), 'floor': 3, 'label': 'Alumni Relations Office', 'category': 'Offices'},
+    'STUDENTCOUNCILROOM-2F': {'coords': (67, 61), 'floor': 3, 'label': 'Student Council Room', 'category': 'Rooms'},
+    'CORPORATERELATIONSDEPT-2F': {'coords': (70, 61), 'floor': 3, 'label': 'Corporate Relations Department', 'category': 'Offices'},
+    'CASESTUDYLAB1-2F': {'coords': (46, 58), 'floor': 3, 'label': 'Case Study Lab 1', 'category': 'Labs & Rooms'},
+    'CASESTUDYLAB2-2F': {'coords': (50, 58), 'floor': 3, 'label': 'Case Study Lab 2', 'category': 'Labs & Rooms'},
+    'RESEARCHDEPT-2F': {'coords': (39, 59), 'floor': 3, 'label': 'Research & Publication Centre', 'category': 'Offices'},
+    'FACULTYLOUNGE-2F': {'coords': (32, 58), 'floor': 3, 'label': 'Faculty Lounge', 'category': 'Offices'},
+    'ENTREPRENEURSHIPCELL-2F': {'coords': (22, 59), 'floor': 3, 'label': 'Startup Incubator / Entrepreneurship Cell', 'category': 'Offices'},
+    'PLACEMENTCELL-2F': {'coords': (18, 60), 'floor': 3, 'label': 'Placement Cell & Career Counseling', 'category': 'Offices'},
+    'RESTROOMS-2F': {'coords': (13, 59), 'floor': 3, 'label': 'Restrooms', 'category': 'Restrooms'},
+    'LIFT-2F': {'coords': (65, 52), 'floor': 3, 'label': 'Lift (Second Floor)', 'category': 'Lift & Stairs'},
+    'CURVEDSTAIRS-2F': {'coords': (70, 42), 'floor': 3, 'label': 'Curved Stairs (Second Floor)', 'category': 'Lift & Stairs'},
+    'STAIRSEND-2F': {'coords': (10, 56), 'floor': 3, 'label': 'Stairs End (Second Floor)', 'category': 'Lift & Stairs'},
+    # 2F waypoints
+    'HALLWAY-TURNPOINT-1-2F': {'coords': (69, 58), 'floor': 3, 'label': '2F Turn 1', 'is_waypoint': True},
+    'HALLWAY-TURNPOINT-2-2F': {'coords': (10, 59), 'floor': 3, 'label': '2F Turn 2', 'is_waypoint': True},
+    'HALLWAY-TURNPOINT-3-2F': {'coords': (40, 58), 'floor': 3, 'label': '2F Turn 3', 'is_waypoint': True},
+
+    # -- THIRD FLOOR (floor: 4) --------------------------------------
+    'ROOM1-3F': {'coords': (33, 59), 'floor': 4, 'label': 'Room 1', 'category': 'Rooms'},
+    'ROOM2-3F': {'coords': (48, 59), 'floor': 4, 'label': 'Room 2', 'category': 'Rooms'},
+    'ROOM3-3F': {'coords': (52, 59), 'floor': 4, 'label': 'Room 3', 'category': 'Rooms'},
+    'ROOM4-3F': {'coords': (71, 43), 'floor': 4, 'label': 'Room 4', 'category': 'Rooms'},
+    'RESTROOMS-3F': {'coords': (14, 60), 'floor': 4, 'label': 'Restrooms', 'category': 'Restrooms'},
+    'LIFT-3F': {'coords': (69, 54), 'floor': 4, 'label': 'Lift (Third Floor)', 'category': 'Lift & Stairs'},
+    'CURVEDSTAIRS-3F': {'coords': (74, 43), 'floor': 4, 'label': 'Curved Stairs (Third Floor)', 'category': 'Lift & Stairs'},
+    'STAIRSEND-3F': {'coords': (10, 57), 'floor': 4, 'label': 'Stairs End (Third Floor)', 'category': 'Lift & Stairs'},
+    # 3F waypoints
+    'HALLWAY-TURNPOINT-1-3F': {'coords': (72, 58), 'floor': 4, 'label': '3F Turn 1', 'is_waypoint': True},
+    'HALLWAY-TURNPOINT-2-3F': {'coords': (10, 60), 'floor': 4, 'label': '3F Turn 2', 'is_waypoint': True},
+    'HALLWAY-TURNPOINT-3-3F': {'coords': (41, 59), 'floor': 4, 'label': '3F Turn 3', 'is_waypoint': True},
 }
 
 
-def corridors_for_floor(floor_num):
-    """Return all corridor node IDs for a floor, sorted by name."""
-    result = [(nid, data) for nid, data in nodes.items()
-              if data['floor'] == floor_num and 'CORRIDOR' in nid]
-    return sorted(result, key=lambda x: x[0])
+FLOOR_DISPLAY = {1: 'Ground Floor', 2: 'First Floor', 3: 'Second Floor', 4: 'Third Floor'}
+CATEGORY_ORDER = ['Entrance', 'Offices', 'Rooms', 'Labs & Rooms', 'Restrooms', 'Lift & Stairs']
 
-
-def node_by_floor_tag(floor_num, tag):
-    """Return first node ID on floor_num whose ID contains tag."""
-    for nid, data in nodes.items():
-        if data['floor'] == floor_num and tag in nid:
-            return nid
-    return None
-
+# Normalize node typing for safer checks
+for _nid, _data in nodes.items():
+    if _data.get('is_waypoint'):
+        _data['type'] = 'hallway'
+    elif _nid.startswith('LIFT'):
+        _data['type'] = 'lift'
+    elif 'STAIRS' in _nid:
+        _data['type'] = 'stairs'
+        _data['stairs_kind'] = 'curved' if 'CURVED' in _nid else 'straight'
+    else:
+        _data['type'] = 'room'
 
 def add_edge(graph, a, b):
     if b not in graph[a]:
@@ -191,93 +286,125 @@ def add_edge(graph, a, b):
 def build_graph():
     graph = {nid: [] for nid in nodes}
 
-    # 1) Chain corridor waypoints in sequence per floor
+    def is_waypoint(nid): return nodes[nid].get('is_waypoint', False)
+    def is_dead_end(nid):  return nodes[nid].get('dead_end', False)
+    def is_lift(nid):      return nodes[nid].get('type') == 'lift'
+    def is_straight_stairs(nid): return nodes[nid].get('type') == 'stairs' and nodes[nid].get('stairs_kind') == 'straight'
+    def is_curved_stairs(nid):   return nodes[nid].get('type') == 'stairs' and nodes[nid].get('stairs_kind') == 'curved'
+    def is_vertical(nid):  return nodes[nid].get('type') in ('lift', 'stairs')
+
+    # STEP 1 - Chain hallway waypoints on each floor left-to-right by x coord
     for floor in range(1, 5):
-        corridor_list = corridors_for_floor(floor)
-        for i in range(len(corridor_list) - 1):
-            add_edge(graph, corridor_list[i][0], corridor_list[i + 1][0])
+        wps = sorted(
+            [(nid, d) for nid, d in nodes.items()
+             if d['floor'] == floor and is_waypoint(nid) and 'PASSAGEWAY' not in nid],
+            key=lambda x: x[1]['coords'][0]
+        )
+        for i in range(len(wps) - 1):
+            add_edge(graph, wps[i][0], wps[i+1][0])
 
-    # 2) Connect each room to its nearest corridor waypoint by Euclidean distance
+    # STEP 2 - 1F passageway branch:
+    #   HALLWAY-TURNPOINT-2-1F (x=36,y=59) <-> PASSAGEWAY-1F (x=36,y=43)
+    #   PASSAGEWAY-1F <-> STAFFROOM2-1F and ROOM3-1F
+    if 'PASSAGEWAY-1F' in nodes and 'HALLWAY-TURNPOINT-2-1F' in nodes:
+        add_edge(graph, 'HALLWAY-TURNPOINT-2-1F', 'PASSAGEWAY-1F')
+        for upper in ('STAFFROOM2-1F', 'ROOM3-1F'):
+            if upper in nodes:
+                add_edge(graph, 'PASSAGEWAY-1F', upper)
+
+    # STEP 3 - Connect every non-waypoint, non-vertical, non-dead-end room
+    #          to its two nearest hallway waypoints on the same floor.
     for nid, data in nodes.items():
-        if data.get('is_waypoint'):
-            continue
-        if data.get('dead_end'):
-            continue
-        if 'LIFT' in nid or 'STAIRS' in nid:
+        if is_waypoint(nid) or is_vertical(nid) or is_dead_end(nid):
             continue
         floor = data['floor']
-        corridor_list = corridors_for_floor(floor)
-        if not corridor_list:
+        wps = [(wid, wd) for wid, wd in nodes.items()
+               if wd['floor'] == floor and is_waypoint(wid) and 'PASSAGEWAY' not in wid]
+        if not wps:
             continue
         cx, cy = data['coords']
-        nearest = min(corridor_list,
-                      key=lambda c: math.dist((cx, cy), nodes[c[0]]['coords']))
-        add_edge(graph, nid, nearest[0])
+        sorted_wps = sorted(wps, key=lambda w: math.dist((cx, cy), w[1]['coords']))
+        for wp_id, _ in sorted_wps[:2]:
+            add_edge(graph, nid, wp_id)
 
-    # 3) Connect ENTRANCE-GF to nearest corridor
-    if 'ENTRANCE-GF' in nodes:
-        corridor_list = corridors_for_floor(1)
-        if corridor_list:
-            ex, ey = nodes['ENTRANCE-GF']['coords']
-            nearest = min(corridor_list,
-                          key=lambda c: math.dist((ex, ey), nodes[c[0]]['coords']))
-            add_edge(graph, 'ENTRANCE-GF', nearest[0])
-
-    # 3b) Direct edges for nodes physically adjacent to stairs/lift
-    direct_pairs = [
-        ('ADMIN-OFFICE-GF', 'STAIRS-CURVED-GF'),
-        ('OFFICE-GF',       'STAIRS-CURVED-GF'),
-    ]
-    for a, b in direct_pairs:
-        if a in nodes and b in nodes:
-            add_edge(graph, a, b)
-
-    # 4) Connect LIFT and STAIRS nodes to their nearest corridor
+    # STEP 4 - Connect each vertical connector to nearest waypoint on its floor.
     for nid, data in nodes.items():
-        if 'LIFT' not in nid and 'STAIRS' not in nid:
+        if not is_vertical(nid):
             continue
         floor = data['floor']
-        corridor_list = corridors_for_floor(floor)
-        if not corridor_list:
+        wps = [(wid, wd) for wid, wd in nodes.items()
+               if wd['floor'] == floor and is_waypoint(wid)]
+        if not wps:
             continue
         cx, cy = data['coords']
-        nearest = min(corridor_list,
-                      key=lambda c: math.dist((cx, cy), nodes[c[0]]['coords']))
+        nearest = min(wps, key=lambda w: math.dist((cx, cy), w[1]['coords']))
         add_edge(graph, nid, nearest[0])
 
-    # 5) Passageway chain for 1F upper section rooms
-    if 'PASSAGEWAY-1F-1' in nodes and 'PASSAGEWAY-1F-2' in nodes:
-        add_edge(graph, 'PASSAGEWAY-1F-1', 'PASSAGEWAY-1F-2')
-        for upper_room in ['STAFFROOM2-1F', 'ROOM3-1F']:
-            if upper_room in nodes:
-                add_edge(graph, upper_room, 'PASSAGEWAY-1F-2')
-        corridor_list = corridors_for_floor(2)
-        if corridor_list:
-            px, py = nodes['PASSAGEWAY-1F-1']['coords']
-            nearest = min(corridor_list,
-                          key=lambda c: math.dist((px, py), nodes[c[0]]['coords']))
-            add_edge(graph, 'PASSAGEWAY-1F-1', nearest[0])
+    # STEP 5 - Also directly connect LIFT nodes to BALCONY-1F (same physical cluster)
+    if 'LIFT-1F' in nodes and 'BALCONY-1F' in nodes:
+        add_edge(graph, 'LIFT-1F', 'BALCONY-1F')
 
-    # 6) Vertical connectors floor-to-floor
-    for floor in range(1, 4):
-        upper = floor + 1
-        pairs = [
-            (node_by_floor_tag(floor, 'STAIRS-END'),    node_by_floor_tag(upper, 'STAIRS-END')),
-            (node_by_floor_tag(floor, 'STAIRS-CURVED'), node_by_floor_tag(upper, 'STAIRS-CURVED')),
-            (node_by_floor_tag(floor, 'LIFT'),          node_by_floor_tag(upper, 'LIFT')),
-        ]
-        for a, b in pairs:
-            if a and b:
-                add_edge(graph, a, b)
+    # STEP 6 - Chain each vertical family floor by floor
+    for family_prefix, getter in [
+        ('LIFT',         lambda n: nodes[n].get('type') == 'lift'),
+        ('STAIRSEND',    lambda n: nodes[n].get('type') == 'stairs' and nodes[n].get('stairs_kind') == 'straight'),
+        ('CURVEDSTAIRS', lambda n: nodes[n].get('type') == 'stairs' and nodes[n].get('stairs_kind') == 'curved'),
+    ]:
+        chain = sorted(
+            [nid for nid in nodes if getter(nid)],
+            key=lambda n: nodes[n]['floor']
+        )
+        for i in range(len(chain) - 1):
+            add_edge(graph, chain[i], chain[i+1])
+
+    # STEP 7 - Extra direct edges for physical adjacency the waypoint system misses.
+    for pair in [
+        ('MAINENTRANCE-GF', 'HALLWAY-TURNPOINT-1-GF'),
+        ('OFFICE-GF',       'HALLWAY-TURNPOINT-1-GF'),
+        ('CURVEDSTAIRS-GF', 'HALLWAY-TURNPOINT-1-GF'),
+        ('LIFT-GF',         'HALLWAY-TURNPOINT-1-GF'),
+        ('ADMIN-GF',        'HALLWAY-TURNPOINT-1-GF'),
+        ('BALCONY-1F',      'HALLWAY-TURNPOINT-1-1F'),
+    ]:
+        if pair[0] in nodes and pair[1] in nodes:
+            add_edge(graph, pair[0], pair[1])
 
     return graph
 
-
 graph = build_graph()
 
-# Initialize storage and learned weights at import time
+
+def validate_graph(graph):
+    """Lightweight checks to catch broken connectivity at startup."""
+    # Bidirectional check
+    for a, neighbors in graph.items():
+        for b in neighbors:
+            if a not in graph.get(b, []):
+                print(f"[graph] Missing reverse edge {b}->{a}")
+    # Connectivity (only among declared nodes)
+    remaining = set(graph.keys())
+    if remaining:
+        seen = set()
+        stack = [next(iter(remaining))]
+        while stack:
+            node = stack.pop()
+            if node in seen:
+                continue
+            seen.add(node)
+            stack.extend(graph.get(node, []))
+        dangling = remaining - seen
+        if dangling:
+            print(f"[graph] Unreachable nodes: {sorted(dangling)}")
+    # Floor connector sanity: lifts/stairs should link to other floors
+    verticals = [n for n, d in nodes.items() if d.get('type') in ('lift', 'stairs')]
+    for v in verticals:
+        floors = {nodes[nbr]['floor'] for nbr in graph.get(v, []) if nodes[nbr]['floor'] != nodes[v]['floor']}
+        if not floors:
+            print(f"[graph] Vertical connector {v} lacks cross-floor link")
+
+# Initialize storage at import time
 init_db()
-_learned_weights = load_learned_weights()
+validate_graph(graph)
 
 # -------------------------------------------------------------------
 # Pathfinding
@@ -296,29 +423,35 @@ def edge_cost(a, b):
     cost = base
     if f1 != f2:
         floor_delta = abs(f1 - f2)
-        if 'STAIRS-CURVED' in a or 'STAIRS-CURVED' in b:
+        a_type, b_type = nodes[a].get('type'), nodes[b].get('type')
+        a_kind, b_kind = nodes[a].get('stairs_kind'), nodes[b].get('stairs_kind')
+        if (a_type == 'stairs' and a_kind == 'curved') or (b_type == 'stairs' and b_kind == 'curved'):
             cost = base + STAIRS_R_COST * floor_delta
-        elif 'STAIRS-END' in a or 'STAIRS-END' in b:
+        elif a_type == 'stairs' or b_type == 'stairs':
             cost = base + STAIRS_L_COST * floor_delta
-        elif 'LIFT' in a or 'LIFT' in b:
+        elif a_type == 'lift' or b_type == 'lift':
             cost = base + LIFT_COST * floor_delta
         else:
             cost = base + STAIRS_L_COST * floor_delta
 
-    key = f"{a}->{b}"
+    learned = get_learned_weights()
+    key     = f"{a}->{b}"
     key_rev = f"{b}->{a}"
-    weight = _learned_weights.get(key, _learned_weights.get(key_rev, 1.0))
+    weight  = _clamp_weight(learned.get(key, learned.get(key_rev, 1.0)))
     return cost * weight
-
 
 def heuristic(a, b):
     (x1, y1) = nodes[a]['coords']
     (x2, y2) = nodes[b]['coords']
     f1, f2 = nodes[a]['floor'], nodes[b]['floor']
-    return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2) + min(STAIRS_L_COST, LIFT_COST) * abs(f1 - f2)
+    planar = math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+    vertical_penalty = min(STAIRS_L_COST, LIFT_COST) * abs(f1 - f2)
+    return planar + vertical_penalty
 
 
 def a_star_search(start, goal, avoid_stairs=False, avoid_elevators=False):
+    if start not in nodes or goal not in nodes:
+        return {}
     frontier = [(0, start)]
     came_from = {start: None}
     cost_so_far = {start: 0}
@@ -329,13 +462,14 @@ def a_star_search(start, goal, avoid_stairs=False, avoid_elevators=False):
             break
 
         for nxt in graph.get(current, []):
-            if avoid_stairs and ('STAIRS-END' in nxt or 'STAIRS-CURVED' in nxt):
-                continue
-            if avoid_elevators and 'LIFT' in nxt:
-                continue
             if nodes[nxt].get('dead_end') and nxt != goal:
                 continue
-
+            if avoid_stairs:
+                if nodes[nxt].get('type') == 'stairs':
+                    continue
+            if avoid_elevators:
+                if nodes[nxt].get('type') == 'lift':
+                    continue
             new_cost = cost_so_far[current] + edge_cost(current, nxt)
             if nxt not in cost_so_far or new_cost < cost_so_far[nxt]:
                 cost_so_far[nxt] = new_cost
@@ -362,31 +496,43 @@ def reconstruct_path(came_from, start, goal):
 # -------------------------------------------------------------------
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    global _learned_weights
-    _learned_weights = load_learned_weights()
-
     path_coords_json = "[]"
     error_message = None
-    FLOOR_DISPLAY = {1: 'Ground Floor', 2: 'First Floor', 3: 'Second Floor', 4: 'Third Floor'}
-    CATEGORY_ORDER = [
-        'Entrance & Navigation', 'Offices', 'Labs & Classrooms',
-        'Halls & Meeting Rooms', 'Library & Research', 'Staff Rooms',
-        'Student Services', 'Facilities', 'Rooms',
-    ]
-    grouped_nodes = {cat: [] for cat in CATEGORY_ORDER}
-    for k, v in nodes.items():
-        if v.get('is_waypoint'):
+    stop_labels_json = "[]"
+
+    # Build a flat list: (node_id, display_label, floor_int, category_str)
+    all_opts = []
+    for node_id, data in nodes.items():
+        if data.get('is_waypoint'):
             continue
-        cat = v.get('category', 'Rooms')
-        label = f"{v['label']} ({FLOOR_DISPLAY[v['floor']]})"
-        grouped_nodes.setdefault(cat, []).append((k, label))
-    for cat in grouped_nodes:
-        grouped_nodes[cat].sort(key=lambda x: x[1])
-    node_opts = [(cat, grouped_nodes[cat]) for cat in CATEGORY_ORDER if grouped_nodes[cat]]
+        floor_label = FLOOR_DISPLAY[data['floor']]
+        display = f"{data['label']} ({floor_label})"
+        all_opts.append({
+            'id':       node_id,
+            'label':    display,
+            'floor':    data['floor'],
+            'floor_label': floor_label,
+            'category': data.get('category', 'Other'),
+        })
+    all_opts.sort(key=lambda x: (x['floor'], x['label']))
+
+    # Pass to template as JSON so JS can rebuild groups dynamically
+    nodes_opts_json = json.dumps(all_opts)
+
+    # Also build server-side grouped structures for <noscript> fallback
+    by_floor = {}
+    for opt in all_opts:
+        by_floor.setdefault(opt['floor_label'], []).append(opt)
+    by_floor_ordered = [(fl, by_floor[fl]) for fl in
+                        ['Ground Floor', 'First Floor', 'Second Floor', 'Third Floor']
+                        if fl in by_floor]
+
     nodes_json = json.dumps(nodes)
+    node_degrees = {nid: len(neighbors) for nid, neighbors in graph.items()}
+    node_degrees_json = json.dumps(node_degrees)
+    waypoints = []
 
     if request.method == 'POST':
-        error_message = None
         start = request.form.get('start_node')
         end = request.form.get('end_node')
         stops = request.form.getlist('stops[]')
@@ -400,7 +546,15 @@ def index():
 
         stops = [s for s in stops if s and s.strip() and valid_node(s)]
         if not (valid_node(start) and valid_node(end)):
-            return render_template('index.html', nodes=node_opts, path_data=path_coords_json, all_nodes=nodes_json, error_message=None)
+            return render_template('index.html',
+                path_data=path_coords_json,
+                all_nodes=nodes_json,
+                node_degrees_json=node_degrees_json,
+                all_opts=all_opts,
+                nodes_opts_json=nodes_opts_json,
+                by_floor_ordered=by_floor_ordered,
+                error_message="One or more selected locations are invalid. Please try again.",
+                stop_labels_json=stop_labels_json)
 
         waypoints = [start] + stops + [end]
         full_path = []
@@ -423,190 +577,252 @@ def index():
                 break
 
         if success and full_path:
-            coord_list = [
-                {
-                    'id': n,
-                    'x': nodes[n]['coords'][0],
-                    'y': nodes[n]['coords'][1],
-                    'floor': nodes[n]['floor'],
-                }
-                for n in full_path
-            ]
+            # Build a lookup: which waypoint index does each path position belong to?
+            # waypoints = [start, stop1, stop2, ..., end]
+            seg_boundaries = set()
+            for wp in waypoints[1:]:   # every waypoint except start is a segment boundary
+                seg_boundaries.add(wp)
+
+            coord_list = []
+            current_seg = 0
+            for idx, n in enumerate(full_path):
+                # When we reach a waypoint boundary (except the very first node), advance segment
+                if idx > 0 and n in seg_boundaries and current_seg < len(waypoints) - 2:
+                    current_seg += 1
+                coord_list.append({
+                    'id':      n,
+                    'x':       nodes[n]['coords'][0],
+                    'y':       nodes[n]['coords'][1],
+                    'floor':   nodes[n]['floor'],
+                    'type':    nodes[n].get('type'),
+                    'segment': current_seg,
+                })
             path_coords_json = json.dumps(coord_list)
         elif not success:
             error_message = ("Route not found. The selected locations may not be connected under your current mobility "
                              "settings. Try a different mobility mode or check your selections.")
 
-    return render_template('index.html', nodes=node_opts, path_data=path_coords_json, all_nodes=nodes_json,
-                           error_message=error_message if request.method == 'POST' else None)
+    stop_labels_json = json.dumps([
+        {'id': wp, 'label': nodes[wp]['label']}
+        for wp in waypoints[1:-1]   # intermediate stops only
+        if wp in nodes
+    ])
 
+    return render_template('index.html',
+                           path_data=path_coords_json,
+                           all_nodes=nodes_json,
+                           node_degrees_json=node_degrees_json,
+                           all_opts=all_opts,
+                           nodes_opts_json=nodes_opts_json,
+                           by_floor_ordered=by_floor_ordered,
+                           error_message=error_message if request.method == 'POST' else None,
+                           stop_labels_json=stop_labels_json)
 
 @app.route('/feedback', methods=['POST'])
+@csrf.exempt
+@require_json_origin
 def save_feedback():
     data = request.get_json(silent=True)
-    if not data or not all(k in data for k in ('start', 'end', 'path', 'rating')):
-        return jsonify({'status': 'error', 'message': 'Missing required fields'}), 400
-    if not isinstance(data['rating'], int) or not (1 <= data['rating'] <= 5):
-        return jsonify({'status': 'error', 'message': 'Invalid rating'}), 400
-    conn = sqlite3.connect(DB_PATH)
-    conn.execute('INSERT INTO feedback VALUES (NULL,?,?,?,?,?,?)',
-                 (datetime.datetime.now().isoformat(), data['start'], data['end'],
-                  json.dumps(data['path']), data['rating'], data.get('comment', '')))
-    conn.commit()
+    if not data:
+        return jsonify({'status': 'error', 'message': 'Invalid JSON'}), 400
+    required = ['start', 'end', 'path', 'rating']
+    for field in required:
+        if field not in data:
+            return jsonify({'status': 'error', 'message': f'Missing field: {field}'}), 400
+    rating = data.get('rating')
+    if not isinstance(rating, int) or not (1 <= rating <= 5):
+        return jsonify({'status': 'error', 'message': 'Rating must be integer 1-5'}), 400
 
-    path = data.get('path', [])
-    rating = data.get('rating', 0)
-    delta = 0.05 if rating >= 4 else (-0.10 if rating <= 2 else 0)
-    for i in range(len(path) - 1):
-        edge = f"{path[i]}->{path[i+1]}"
-        cur = conn.execute('SELECT multiplier FROM edge_weights WHERE edge=?', (edge,)).fetchone()
-        old = cur[0] if cur else 1.0
-        new_w = round(0.9 * old + 0.1 * (old + delta), 4)
-        conn.execute('INSERT OR REPLACE INTO edge_weights VALUES (?,?)', (edge, new_w))
-    conn.commit()
-    conn.close()
+    # Use timeout to handle concurrent writes gracefully
+    conn = sqlite3.connect(DB_PATH, timeout=10)
+    try:
+        conn.execute('INSERT INTO feedback VALUES (NULL,?,?,?,?,?,?)',
+                     (datetime.datetime.now().isoformat(), data['start'], data['end'],
+                      json.dumps(data['path']), rating, data.get('comment', '')))
+        conn.commit()
+
+        path = data.get('path', [])
+        delta = 0.05 if rating >= 4 else (-0.10 if rating <= 2 else 0)
+        for i in range(len(path) - 1):
+            edge = f"{path[i]}->{path[i+1]}"
+            cur = conn.execute('SELECT multiplier FROM edge_weights WHERE edge=?',
+                               (edge,)).fetchone()
+            old = cur[0] if cur else 1.0
+            adjusted = old + delta
+            decayed = 0.9 * adjusted + 0.1 * 1.0  # pull slightly toward neutral
+            new_w = round(_clamp_weight(decayed), 4)
+            conn.execute('INSERT OR REPLACE INTO edge_weights VALUES (?,?)', (edge, new_w))
+        conn.commit()
+    finally:
+        conn.close()
+
+    _weight_cache['loaded_at'] = 0
     return jsonify({'status': 'ok'})
-
 
 @app.route('/stats')
 def stats():
     conn = sqlite3.connect(DB_PATH)
-    
-    # If a specific route is requested, return its average rating
-    route_param = request.args.get('route')
-    route_avg = None
-    route_count = 0
-    if route_param and '+' in route_param:
-        parts = route_param.split('+', 1)
-        route_start, route_end = parts[0].strip(), parts[1].strip()
-        row = conn.execute(
-            'SELECT AVG(rating), COUNT(*) FROM feedback WHERE start=? AND end=?',
-            (route_start, route_end)
-        ).fetchone()
-        if row and row[0] is not None:
-            route_avg = round(row[0], 2)
-            route_count = row[1]
+    try:
+        route_param = request.args.get('route')
+        route_avg = None
+        route_count = 0
+        if route_param and '+' in route_param:
+            parts = route_param.split('+', 1)
+            route_start, route_end = parts[0].strip(), parts[1].strip()
+            row = conn.execute(
+                'SELECT AVG(rating), COUNT(*) FROM feedback WHERE start=? AND end=?',
+                (route_start, route_end)
+            ).fetchone()
+            if row and row[0] is not None:
+                route_avg = round(row[0], 2)
+                route_count = row[1]
 
-    # Global stats always returned
-    global_avg = conn.execute('SELECT AVG(rating) FROM feedback').fetchone()[0]
-    total_count = conn.execute('SELECT COUNT(*) FROM feedback').fetchone()[0]
-    weights = conn.execute('SELECT edge, multiplier FROM edge_weights').fetchall()
-    conn.close()
-    
-    return jsonify({
-        'avg_rating': route_avg if route_avg is not None else (
-            round(global_avg, 2) if global_avg else None
-        ),
-        'route_avg': route_avg,
-        'route_count': route_count,
-        'global_avg': round(global_avg, 2) if global_avg else None,
-        'total_feedback': total_count,
-        'edge_weights': dict(weights)
-    })
+        global_avg = conn.execute('SELECT AVG(rating) FROM feedback').fetchone()[0]
+        total_count = conn.execute('SELECT COUNT(*) FROM feedback').fetchone()[0]
+        weights = conn.execute('SELECT edge, multiplier FROM edge_weights').fetchall()
+        return jsonify({
+            'avg_rating': route_avg if route_avg is not None else (
+                round(global_avg, 2) if global_avg else None
+            ),
+            'route_avg': route_avg,
+            'route_count': route_count,
+            'global_avg': round(global_avg, 2) if global_avg else None,
+            'total_feedback': total_count,
+            'edge_weights': dict(weights)
+        })
+    finally:
+        conn.close()
 
 
 @app.route('/admin')
+@require_auth
 def admin():
     conn = sqlite3.connect(DB_PATH)
-    top_routes = conn.execute('''
-        SELECT start, end, COUNT(*) as trips, AVG(rating) as avg_rating
-        FROM feedback GROUP BY start, end ORDER BY trips DESC LIMIT 10
-    ''').fetchall()
-    modified_weights = conn.execute(
-        'SELECT edge, multiplier FROM edge_weights WHERE multiplier != 1.0 ORDER BY multiplier ASC'
-    ).fetchall()
-    recent_feedback = conn.execute('''
-        SELECT timestamp, start, end, rating, comment
-        FROM feedback ORDER BY id DESC LIMIT 20
-    ''').fetchall()
-    total_feedback = conn.execute('SELECT COUNT(*) FROM feedback').fetchone()[0]
-    global_avg = conn.execute('SELECT AVG(rating) FROM feedback').fetchone()[0]
-    total_edges_modified = conn.execute(
-        'SELECT COUNT(*) FROM edge_weights WHERE multiplier != 1.0'
-    ).fetchone()[0]
-    all_faqs = conn.execute(
-        'SELECT id, keywords, answer, active FROM faq ORDER BY id ASC'
-    ).fetchall()
-    conn.close()
-    return render_template('admin.html',
-        top_routes=top_routes,
-        modified_weights=modified_weights,
-        recent_feedback=recent_feedback,
-        total_feedback=total_feedback,
-        global_avg=round(global_avg, 2) if global_avg else None,
-        total_edges_modified=total_edges_modified,
-        node_labels={k: v['label'] for k, v in nodes.items()},
-        all_faqs=all_faqs
-    )
+    try:
+        top_routes = conn.execute('''
+            SELECT start, end, COUNT(*) as trips, AVG(rating) as avg_rating
+            FROM feedback GROUP BY start, end ORDER BY trips DESC LIMIT 10
+        ''').fetchall()
+        modified_weights = conn.execute(
+            'SELECT edge, multiplier FROM edge_weights WHERE multiplier != 1.0 ORDER BY multiplier ASC'
+        ).fetchall()
+        recent_feedback = conn.execute('''
+            SELECT timestamp, start, end, rating, comment
+            FROM feedback ORDER BY id DESC LIMIT 20
+        ''').fetchall()
+        total_feedback = conn.execute('SELECT COUNT(*) FROM feedback').fetchone()[0]
+        global_avg = conn.execute('SELECT AVG(rating) FROM feedback').fetchone()[0]
+        total_edges_modified = conn.execute(
+            'SELECT COUNT(*) FROM edge_weights WHERE multiplier != 1.0'
+        ).fetchone()[0]
+        all_faqs = conn.execute(
+            'SELECT id, keywords, answer, active FROM faq ORDER BY id ASC'
+        ).fetchall()
+        return render_template('admin.html',
+            top_routes=top_routes,
+            modified_weights=modified_weights,
+            recent_feedback=recent_feedback,
+            total_feedback=total_feedback,
+            global_avg=round(global_avg, 2) if global_avg else None,
+            total_edges_modified=total_edges_modified,
+            node_labels={k: v['label'] for k, v in nodes.items()},
+            all_faqs=all_faqs
+        )
+    finally:
+        conn.close()
 
 
 @app.route('/faq')
 def get_faqs():
     conn = sqlite3.connect(DB_PATH)
-    rows = conn.execute(
-        'SELECT id, keywords, answer FROM faq WHERE active = 1 ORDER BY id ASC'
-    ).fetchall()
-    conn.close()
-    return jsonify([
-        {'id': r[0], 'keywords': [k.strip() for k in r[1].split(',')], 'answer': r[2]}
-        for r in rows
-    ])
+    try:
+        rows = conn.execute(
+            'SELECT id, keywords, answer FROM faq WHERE active = 1 ORDER BY id ASC'
+        ).fetchall()
+        return jsonify([
+            {'id': r[0], 'keywords': [k.strip() for k in r[1].split(',')], 'answer': r[2]}
+            for r in rows
+        ])
+    finally:
+        conn.close()
 
 
 @app.route('/admin/faq/add', methods=['POST'])
+@require_auth
+@csrf.exempt
+@require_json_origin
 def faq_add():
     data = request.get_json(silent=True)
     if not data or not data.get('keywords') or not data.get('answer'):
         return jsonify({'status': 'error', 'message': 'keywords and answer required'}), 400
     conn = sqlite3.connect(DB_PATH)
-    conn.execute('INSERT INTO faq (keywords, answer, active) VALUES (?, ?, 1)',
-                 (data['keywords'].strip(), data['answer'].strip()))
-    conn.commit()
-    conn.close()
-    return jsonify({'status': 'ok'})
+    try:
+        conn.execute('INSERT INTO faq (keywords, answer, active) VALUES (?, ?, 1)',
+                     (data['keywords'].strip(), data['answer'].strip()))
+        conn.commit()
+        return jsonify({'status': 'ok'})
+    finally:
+        conn.close()
 
 
 @app.route('/admin/faq/toggle/<int:faq_id>', methods=['POST'])
+@require_auth
+@csrf.exempt
+@require_json_origin
 def faq_toggle(faq_id):
     conn = sqlite3.connect(DB_PATH)
-    conn.execute('UPDATE faq SET active = 1 - active WHERE id = ?', (faq_id,))
-    conn.commit()
-    conn.close()
-    return jsonify({'status': 'ok'})
+    try:
+        conn.execute('UPDATE faq SET active = 1 - active WHERE id = ?', (faq_id,))
+        conn.commit()
+        return jsonify({'status': 'ok'})
+    finally:
+        conn.close()
 
 
 @app.route('/admin/faq/delete/<int:faq_id>', methods=['POST'])
+@require_auth
+@csrf.exempt
+@require_json_origin
 def faq_delete(faq_id):
     conn = sqlite3.connect(DB_PATH)
-    conn.execute('DELETE FROM faq WHERE id = ?', (faq_id,))
-    conn.commit()
-    conn.close()
-    return jsonify({'status': 'ok'})
+    try:
+        conn.execute('DELETE FROM faq WHERE id = ?', (faq_id,))
+        conn.commit()
+        return jsonify({'status': 'ok'})
+    finally:
+        conn.close()
 
 
 @app.route('/admin/reset-weights', methods=['POST'])
+@require_auth
+@csrf.exempt
+@require_json_origin
 def reset_weights():
     conn = sqlite3.connect(DB_PATH)
-    conn.execute('UPDATE edge_weights SET multiplier = 1.0')
-    conn.commit()
-    conn.close()
-    return jsonify({'status': 'ok', 'message': 'All edge weights reset to 1.0'})
+    try:
+        conn.execute('UPDATE edge_weights SET multiplier = 1.0')
+        conn.commit()
+        _weight_cache['loaded_at'] = 0
+        return jsonify({'status': 'ok', 'message': 'All edge weights reset to 1.0'})
+    finally:
+        conn.close()
 
 
-# -------------------------------------------------------------------
-# Test routes to sanity check A* during development
-#   Route 1 (same floor): ENTRANCE-GF → COMPUTER-LAB-GF
-#   Route 2 (multi-floor, elevator): ENTRANCE-GF → RESEARCH-PUBLICATION-CENTRE-2F (elevator only)
-#   Route 3 (multi-floor, stairs): ENTRANCE-GF → ROOM1-3F (stairs)
-# -------------------------------------------------------------------
-
+@app.route('/health')
+def health():
+    return jsonify({
+        'status': 'ok',
+        'admin_configured': bool(ADMIN_USER and ADMIN_PASS),
+        'db_path': DB_PATH,
+        'db_exists': os.path.exists(DB_PATH)
+    })
 
 
 @app.route('/coord-picker')
+@require_auth
 def coord_picker():
     return app.send_static_file('coord_picker.html')
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
-
+    app.run(debug=os.environ.get('FLASK_DEBUG', 'false').lower() == 'true')

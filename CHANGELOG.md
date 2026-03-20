@@ -1,6 +1,118 @@
 ﻿# NMIT Wayfinder — Changelog
 
-## v2 — Current Version
+## v3 — Current Version
+**Compared against v2 (March 2026)**
+
+---
+
+### app.py
+
+**Changed: Admin authentication hardened**
+- Removed `python-dotenv` dependency and `load_dotenv()` call entirely
+- `ADMIN_USER` and `ADMIN_PASS` are now hardcoded constants at the top of the file — no env vars required
+- `SECRET_KEY` is now a fixed hardcoded string — previously used `os.urandom()` which regenerated on every restart, invalidating all sessions and CSRF tokens
+- `require_auth` stripped of the 503 guard that blocked all admin routes when env vars were unset
+
+**Changed: Node label fix**
+- `ENTREPRENEURSHIPCELL-2F` label updated from `'Entrepreneurship Cell'` to `'Startup Incubator / Entrepreneurship Cell'` to match the physical floor plan
+
+**Changed: FAQ seed updated**
+- Entrepreneurship Cell FAQ entry now includes keywords: `startup`, `startup incubator`, `incubator`
+- Answer text updated to match the new label
+
+---
+
+### templates/index.html
+
+**Fixed: TomSelect script load order**
+- TomSelect library `<script>` tag was loaded after the inline script block that calls `new TomSelect()` — on slow or cached loads this caused dropdowns to silently fail
+- Moved the library tag before the inline script
+
+**Fixed: Icon filename inconsistency**
+- `<link rel="icon">` and `<link rel="apple-touch-icon">` were referencing `icon-192.png` (old file) while `manifest.json` references `icon-192-v2.png`
+- Both now use `icon-192-v2.png` for consistency
+
+---
+
+### static/script.js
+
+**Fixed: Floor modal callback null bug (critical)**
+- `onFloorConfirmed()` called `hideFloorConfirmModal()` first which set `_floorConfirmCallback = null`, then checked `if (_floorConfirmCallback)` — always null, so the callback never fired
+- Result: tapping "Yes, I'm here" did nothing — floor never switched, checkpoint never advanced
+- Fix: callback saved to local variable before `hideFloorConfirmModal()` is called
+
+**Fixed: Map auto-switches floor after confirmation**
+- `switchFloor(targetFloor)` now fires immediately when user confirms the floor modal, before `advanceCheckpoint()` runs
+
+**Fixed: Line animation gap on multi-stop same-floor routes**
+- `renderSVG` was drawing each route segment as a separate `<polyline>` — when two segments shared a boundary point, the CSS dash animation started at offset 0 on each, creating a visible gap at the join
+- Fix: all nodes on the same floor are now merged into one continuous polyline, eliminating the phase mismatch
+
+**Fixed: Line animation break after checkpoint on doubled-back corridor routes**
+- `highlightRemainingPath` was filtering nodes by floor only, causing zigzag rendering when a multi-stop route doubles back through the same corridor
+- Fix: replaced flat floor filter with `toBuckets()` — splits nodes by (segment, floor) pair so each leg gets its own clean polyline; floor transitions bridge endpoints with a shared node
+
+**Fixed: splitIdx finding wrong occurrence on multi-stop routes**
+- `highlightRemainingPath` used a single `findIndex` for the previous checkpoint, which could match an earlier corridor node re-visited in a later segment
+- Fix: cumulative forward scan through all preceding checkpoints to find each one's correct index
+
+**New: Checkpoint logic for intermediate stops**
+- User-selected intermediate stops (via `window.stopLabels`) are now always checkpoints regardless of graph degree
+- Previously only nodes with degree ≥ 3 became checkpoints — rooms like Principal's Room (degree 2) were silently skipped, causing the floor modal to fire prematurely
+
+**New: Lift checkpoint logic — skip intermediate floors**
+- For lift routes, only the departure floor and the final arrival floor get checkpoints
+- Intermediate lift floors (e.g. 1F when going GF→2F) are skipped — user rides straight through without unnecessary confirmations
+- Stairs still checkpoint every floor landing as before
+
+**New: Map resets on Finish Navigation**
+- Tapping Finish Navigation now clears all SVG overlays, pins, route summary, and legend
+- `pathData` and `checkpoints` reset to empty arrays
+
+**Fixed: Red destination pin shows from start on multi-stop routes**
+- Red pin was drawn unconditionally whenever the destination was on the visible floor
+- Now suppressed until the user is on the final leg (destination's segment = highest segment in path)
+
+**Fixed: Finish Navigation button always visible**
+- Button was `position: absolute` inside `.map-section` which has `overflow: hidden` — button was being silently clipped
+- Changed to `position: fixed` in CSS so it always floats over the viewport regardless of container overflow
+
+---
+
+### templates/admin.html
+
+**Fixed: AJAX actions failing with 401**
+- All four `fetch()` calls (reset weights, toggle FAQ, delete FAQ, add FAQ) now include `credentials: 'include'` so the browser forwards stored Basic Auth credentials with every request
+
+---
+
+### static/service-worker.js
+
+**Changed: Cache version bumped to v6**
+- Forces all clients to discard the old v5 cache and fetch fresh assets on next load
+- Required to pick up updated icon files
+
+---
+
+### readme.md
+
+**Updated: Getting Started section**
+- Removed outdated Step 0 about `.env.example`, `python-dotenv`, and environment variables
+- Added admin panel and coord picker login instructions
+- Updated project structure to reflect `admin.html`, correct icon filenames, and FAQ chatbot
+
+---
+
+### Files unchanged from v2
+- `test_app.py` — all tests unchanged
+- `manifest.json` — unchanged
+- `static/style.css` — unchanged (checkpoint-btn position: fixed was already in place)
+- `static/floor1-4.png` — unchanged
+- `static/coord_picker.html` — unchanged
+
+---
+
+## v2 — Previous Version
 **Compared against v1 (initial uploaded codebase, March 2026)**
 
 ---
@@ -21,8 +133,10 @@
 
 **Changed: /feedback route hardened**
 - Now uses get_json(silent=True) to handle malformed JSON gracefully
-- Validates that start, end, path, ating fields are present
-- Validates that ating is an integer between 1 and 5
+- Validates that start, end, path, 
+ating fields are present
+- Validates that 
+ating is an integer between 1 and 5
 - Returns 400 with error message on invalid input (v1 would crash or silently misbehave)
 
 **Changed: Node data expanded**
@@ -71,7 +185,8 @@ ode_opts grouped structure from Flask
 
 **Removed: Entire zoom/pan system**
 - Deleted globals: scale, panX, panY, isDragging, startX, startY, lastPinchDist
-- Deleted functions: updateMapTransform(), zoomToward(), zoomMap(), esetZoom(), initMapPanZoom(), distanceBetweenTouches()
+- Deleted functions: updateMapTransform(), zoomToward(), zoomMap(), 
+esetZoom(), initMapPanZoom(), distanceBetweenTouches()
 - Removed initMapPanZoom() call from DOMContentLoaded
 - Removed updateMapTransform() call from switchFloor()
 
@@ -172,7 +287,8 @@ ode_opts grouped structure from Flask
 
 ### Files unchanged from v1
 - 	est_app.py — all 8 tests unchanged
-- equirements.txt — unchanged
+- 
+equirements.txt — unchanged
 - manifest.json — unchanged
 - service-worker.js — unchanged
 - static/coord_picker.html — unchanged
