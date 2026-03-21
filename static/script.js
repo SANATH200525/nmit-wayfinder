@@ -314,7 +314,11 @@ function resetToForm() {
     // Mobile cleanup
     const topBar = document.getElementById('mobile-top-bar');
     if (topBar) topBar.style.display = 'none';
+    const strip = document.getElementById('mobile-directions-strip');
+    if (strip) strip.style.display = 'none';
     document.body.classList.remove('has-route');
+    document.body.style.position = '';
+    document.body.style.width = '';
     document.documentElement.style.overflow = '';
 }
 
@@ -348,6 +352,7 @@ function closeRouteForm() {
     const sheet = document.getElementById('route-form-sheet');
     if (sheet) sheet.classList.add('sheet-hidden');
     routeFormOpen = false;
+    document.documentElement.style.overflow = 'hidden';
 }
 
 function toggleMobileDirections() {
@@ -670,6 +675,8 @@ function showSuccessOverlay(elapsedTimeStr) {
     const timeEl = document.getElementById('success-elapsed-time');
     if (timeEl) timeEl.textContent = elapsedTimeStr;
     document.body.classList.remove('has-route');
+    document.body.style.position = '';
+    document.body.style.width = '';
     document.documentElement.style.overflow = '';
     overlay.style.display = 'flex';
     setTimeout(() => {
@@ -721,23 +728,6 @@ function drawPath(path, logicalPath = path) {
     // On desktop, switch left panel to route-active view
     if (!isMobile()) showRouteActivePanel();
 
-    if (isMobile()) {
-        document.body.classList.add('has-route');
-        closeRouteForm();
-        populateMobileStrip(logicalPath);
-        syncNavSVGs();
-        const mobileLabel = document.getElementById('mobile-route-label');
-        if (mobileLabel) {
-            mobileLabel.textContent =
-                `${window.allNodes[globalStart.id]?.label || globalStart.id} → ` +
-                `${window.allNodes[globalEnd.id]?.label   || globalEnd.id}`;
-        }
-        const topBar = document.getElementById('mobile-top-bar');
-        if (topBar) topBar.style.display = 'flex';
-        const strip = document.getElementById('mobile-directions-strip');
-        if (strip) strip.style.display = 'block';
-    }
-
     const legend = document.getElementById('map-legend');
     if (legend) legend.style.display = 'flex';
 
@@ -761,21 +751,45 @@ function drawPath(path, logicalPath = path) {
         summary.style.maxWidth = 'none';
     }
 
-    if (feedbackTimer) clearTimeout(feedbackTimer);
-    feedbackTimer = null;
-
+    // Assign checkpoints BEFORE populating any mobile UI
     checkpoints          = routeCheckpoints;
     currentCheckpointIdx = 0;
     navStartTime         = Date.now();
 
-    if (checkpoints.length > 0) {
-        showCheckpointButton();
-    } else {
-        const btn = document.getElementById('checkpoint-btn');
-        if (btn) {
-            btn.textContent   = 'Finish Navigation';
-            btn.className     = 'checkpoint-btn finish-btn';
-            btn.style.display = 'flex';
+    if (isMobile()) {
+        document.body.classList.add('has-route');
+        closeRouteForm();
+        populateMobileStrip(logicalPath);
+        syncNavSVGs();
+        const mobileLabel = document.getElementById('mobile-route-label');
+        if (mobileLabel) {
+            mobileLabel.textContent =
+                `${window.allNodes[globalStart.id]?.label || globalStart.id} → ` +
+                `${window.allNodes[globalEnd.id]?.label   || globalEnd.id}`;
+        }
+        const topBar = document.getElementById('mobile-top-bar');
+        if (topBar) topBar.style.display = 'flex';
+        const strip = document.getElementById('mobile-directions-strip');
+        if (strip) strip.style.display = 'flex';
+        document.documentElement.style.overflow = 'hidden';
+        // Force sync the FAB after everything is in place
+        syncMobileCheckpointBtn();
+    }
+
+    if (feedbackTimer) clearTimeout(feedbackTimer);
+    feedbackTimer = null;
+
+    // Desktop checkpoint button only
+    if (!isMobile()) {
+        if (checkpoints.length > 0) {
+            showCheckpointButton();
+        } else {
+            const btn = document.getElementById('checkpoint-btn');
+            if (btn) {
+                btn.textContent   = 'Finish Navigation';
+                btn.className     = 'checkpoint-btn finish-btn';
+                btn.style.display = 'flex';
+            }
         }
     }
 }
@@ -1496,7 +1510,7 @@ function syncNavSVGs() {
 }
 
 function syncNavFloor(floorNum) {
-    document.querySelectorAll('.nav-tab').forEach(tab =>
+    document.querySelectorAll('.floor-tab').forEach(tab =>
         tab.classList.toggle('active', tab.dataset.floor == floorNum));
     for (let i = 1; i <= 4; i++) {
         const el = document.getElementById(`nav-f${i}`);
@@ -1670,3 +1684,6 @@ class PDRNavigator {
         if (this.onUpdate) this.onUpdate(this.position);
     }
 }
+
+
+

@@ -75,6 +75,12 @@ html, body {
     background: var(--bg-grad);
     -webkit-font-smoothing: antialiased;
 }
+html { overscroll-behavior: none; }
+body.has-route {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+}
 
 /* ── Desktop App Shell ── */
 .app-container {
@@ -250,6 +256,12 @@ h1 {
     cursor: default !important;
 }
 .ts-dropdown .optgroup:first-child .optgroup-header { border-top: none !important; }
+.nav-fab-btn,
+.floor-pick-btn,
+.floor-tab,
+.nav-back-btn {
+    touch-action: manipulation;
+}
 
 /* ── BUTTONS
    Default: black text, white bg, black border
@@ -815,7 +827,7 @@ input[type="radio"] { accent-color: var(--teal); }
    MOBILE-FIRST  ≤ 768px
    ================================================================ */
 @media (max-width: 768px) {
-    html, body { height: 100%; overflow: hidden; background: var(--surface-3); }
+    html, body { height: 100%; background: var(--surface-3); }
     body { align-items: flex-start; }
 
     .app-container {
@@ -835,10 +847,11 @@ input[type="radio"] { accent-color: var(--teal); }
     }
 
     .route-form-sheet {
-        position: fixed; top: 0; bottom: 0; left: 0; right: 0; z-index: 3000;
+        position: fixed; inset: 0; z-index: 80;
         background: var(--surface); border-radius: 0;
         box-shadow: none;
-        max-height: 100dvh; height: 100dvh; overflow: hidden;
+        max-height: 100dvh; height: 100dvh; overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
         transform: translateY(0);
         transition: transform 0.35s cubic-bezier(0.32,0.72,0,1);
         border-top: none;
@@ -890,6 +903,7 @@ input[type="radio"] { accent-color: var(--teal); }
         width: max-content;
         min-width: 180px;
     }
+    #checkpoint-btn { display: none !important; }
 
     .map-legend {
         position: absolute; bottom: 130px; left: 12px;
@@ -911,7 +925,7 @@ input[type="radio"] { accent-color: var(--teal); }
 .mobile-top-bar { display: none; }
 @media (max-width: 768px) {
     .mobile-top-bar {
-        position: fixed; top: 0; left: 0; right: 0; z-index: 2000;
+        position: sticky; top: 0; left: 0; right: 0; z-index: 60;
         background: rgba(255,255,255,0.97); backdrop-filter: blur(14px);
         padding: env(safe-area-inset-top,0px) 16px 0;
         display: flex; align-items: center; justify-content: space-between;
@@ -941,10 +955,11 @@ input[type="radio"] { accent-color: var(--teal); }
     .mobile-nav-screen {
         position: fixed;
         inset: 0;
-        z-index: 2500;
+        z-index: 50;
         background: #f2f2f2;
         display: flex;
         flex-direction: column;
+        height: 100%;
         overflow: hidden;
     }
 
@@ -955,8 +970,9 @@ input[type="radio"] { accent-color: var(--teal); }
         gap: 10px;
         padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 10px;
         background: rgba(242,242,242,0.97);
-        position: relative;
-        z-index: 10;
+        position: sticky;
+        top: 0;
+        z-index: 60;
         flex-shrink: 0;
     }
     .nav-back-btn {
@@ -992,13 +1008,18 @@ input[type="radio"] { accent-color: var(--teal); }
     /* ── Map area ── */
     .nav-map-area {
         position: relative;
-        height: 240px;
+        height: 52vh;
         flex-shrink: 0;
         background: #e8e4de;
         overflow: hidden;
     }
     .nav-map-viewport {
-        position: absolute; inset: 0;
+        position: relative;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        pointer-events: auto;
     }
     .nav-floor-img {
         position: absolute; inset: 0; width: 100%; height: 100%;
@@ -1014,34 +1035,6 @@ input[type="radio"] { accent-color: var(--teal); }
     }
 
     /* ── Floating pill floor switcher ── */
-    .nav-floor-pill {
-        position: absolute;
-        bottom: 12px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 5;
-        background: rgba(255,255,255,0.97);
-        border-radius: 32px;
-        padding: 4px;
-        display: flex;
-        gap: 2px;
-        box-shadow: 0 2px 14px rgba(0,0,0,0.14);
-    }
-    .nav-tab {
-        padding: 6px 18px;
-        border-radius: 26px;
-        font-size: 12px; font-weight: 700;
-        border: none; background: none;
-        color: var(--text-muted);
-        cursor: pointer; touch-action: manipulation;
-        min-height: 36px; min-width: 44px;
-        transition: all 0.18s;
-        letter-spacing: 0.3px;
-    }
-    .nav-tab.active {
-        background: var(--text-primary);
-        color: white;
-    }
 
     /* ── Scrollable sheet below map ── */
     .nav-sheet {
@@ -1050,7 +1043,7 @@ input[type="radio"] { accent-color: var(--teal); }
         -webkit-overflow-scrolling: touch;
         background: var(--surface);
         border-radius: 20px 20px 0 0;
-        padding: 0 18px calc(env(safe-area-inset-bottom, 0px) + 72px);
+        padding: 0 18px calc(env(safe-area-inset-bottom, 0px) + 90px);
         margin-top: -16px;
     }
     .nav-sheet-handle {
@@ -1132,6 +1125,10 @@ input[type="radio"] { accent-color: var(--teal); }
         padding: 0;
         display: flex;
         flex-direction: column;
+        -webkit-overflow-scrolling: touch;
+    }
+    #mobile-directions-list {
+        -webkit-overflow-scrolling: touch;
     }
     .nav-directions-list li {
         display: flex;
@@ -1204,12 +1201,15 @@ input[type="radio"] { accent-color: var(--teal); }
         bottom: 0; left: 0; right: 0;
         height: calc(70px + env(safe-area-inset-bottom, 0px));
         padding-bottom: env(safe-area-inset-bottom, 0px);
+        padding-left: 16px;
+        padding-right: 16px;
         background: rgba(245,245,245,0.98);
         border-top: 0.5px solid #e0e0e0;
         display: flex;
         align-items: center;
         justify-content: center;
-        z-index: 2600;
+        z-index: 100;
+        pointer-events: auto;
     }
 
     /* Central FAB — checkpoint action */
@@ -1396,17 +1396,14 @@ input[type="radio"] { accent-color: var(--teal); }
 @media (max-width: 768px) {
     .route-form-sheet {
         position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
+        inset: 0 !important;
         width: 100% !important;
         height: 100dvh !important;
         max-height: 100dvh !important;
         margin: 0 !important;
         border-radius: 0 !important;
-        z-index: 9999 !important;
+        z-index: 80 !important;
         background-color: var(--surface) !important;
-        
-        /* Enable scrolling for the container */
         overflow-y: auto !important; 
         -webkit-overflow-scrolling: touch !important;
     }
