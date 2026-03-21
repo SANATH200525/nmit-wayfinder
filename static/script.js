@@ -977,7 +977,9 @@ function generateDirections(path) {
         // Vector from traveller to landmark
         const lx = landmark.coords[0] - traveller.x;
         const ly = landmark.coords[1] - traveller.y;
-        // Rotate by -travelHeading to get local frame
+        // Project the landmark vector into the traveller's local side axis.
+        // With the current heading convention (0=east, 90=south, 180=west, 270=north),
+        // positive values correspond to the right side of travel on the floor plan.
         const rad = travelHeading * Math.PI / 180;
         const local_y = -lx * Math.sin(rad) + ly * Math.cos(rad);
         return local_y > 0 ? 'right' : 'left';
@@ -1007,7 +1009,7 @@ function generateDirections(path) {
 
     // ── Build instruction text ────────────────────────────────────────────────
 
-    directions.push(`[START] You are at ${nodeLabel(path[0].id)} on the ${FLOOR_NAMES[path[0].floor]}.`);
+    directions.push(`[START] You are at ${nodeLabel(path[0].id)} on the ${FLOOR_NAMES[path[0].floor]}. Face the main corridor and begin your route.`);
 
     let i = 1;
     let prevHeading = null; // track heading across steps for turn detection
@@ -1072,8 +1074,9 @@ function generateDirections(path) {
             let turnText = '';
             if (prevHeading !== null) {
                 const turn = turnDir(prevHeading, corridorHeading);
-                if (turn === 'left')     turnText = 'Turn left. ';
-                else if (turn === 'right') turnText = 'Turn right. ';
+                if (turn === 'left')       turnText = 'Take a left. ';
+                else if (turn === 'right') turnText = 'Take a right. ';
+                // else: going straight, no turn instruction needed
             }
 
             // Find rooms alongside this corridor stretch for landmark context
@@ -1085,29 +1088,28 @@ function generateDirections(path) {
                 ? nodeLabel(nodeAtEnd.id) : null;
 
             let instruction = '';
+            const floorCtx = ` on the ${FLOOR_NAMES[prev.floor]}`;
 
             if (isPassageway) {
-                instruction = `${turnText}Take the passageway (${distStr}).`;
+                const passDir = prev.y > 40 ? 'north (away from the main corridor)' : 'south (towards the main corridor)';
+                instruction = `${turnText}Take the passageway ${passDir} (${distStr}).`;
             } else if (nearbyRooms.length > 0) {
-                // Pick 1 landmark to reference — closest one to midpoint of corridor
                 const midIdx = Math.floor(corridorNodes.length / 2);
                 const mid = corridorNodes[midIdx] || prev;
                 const ref = nearbyRooms.reduce((best, r) => {
                     const d = Math.hypot(r.coords[0] - mid.x, r.coords[1] - mid.y);
                     return d < best.d ? { ...r, d } : best;
                 }, { ...nearbyRooms[0], d: 999 });
-
                 const side = landmarkSide(mid, ref, corridorHeading);
-
                 if (endLabel) {
-                    instruction = `${turnText}Walk ${distStr} heading ${cardDir}, passing ${ref.label} on your ${side}, until you reach ${endLabel}.`;
+                    instruction = `${turnText}Walk ${distStr} along the corridor${floorCtx}, with ${ref.label} on your ${side}, until you reach ${endLabel}.`;
                 } else {
-                    instruction = `${turnText}Walk ${distStr} heading ${cardDir}, with ${ref.label} on your ${side}.`;
+                    instruction = `${turnText}Walk ${distStr} along the corridor${floorCtx}, keeping ${ref.label} on your ${side}.`;
                 }
             } else if (endLabel) {
-                instruction = `${turnText}Walk ${distStr} heading ${cardDir} towards ${endLabel}.`;
+                instruction = `${turnText}Walk ${distStr} along the corridor${floorCtx} towards ${endLabel}.`;
             } else {
-                instruction = `${turnText}Walk ${distStr} heading ${cardDir} along the corridor.`;
+                instruction = `${turnText}Walk ${distStr} along the corridor${floorCtx}.`;
             }
 
             directions.push(`[WALK] ${instruction}`);
@@ -1136,13 +1138,14 @@ function generateDirections(path) {
                 landmarkHint = ` You'll see ${lm.label} on your ${side}.`;
             }
 
+            const distLabel = Math.round(dist) > 0 ? ` (about ${Math.round(dist)}m)` : '';
             let instruction = '';
             if (turn === 'left') {
-                instruction = `Turn left and walk ${Math.round(dist)}m to ${nodeLabel(curr.id)}.${landmarkHint}`;
+                instruction = `Take a left and head to ${nodeLabel(curr.id)}${distLabel}.${landmarkHint}`;
             } else if (turn === 'right') {
-                instruction = `Turn right and walk ${Math.round(dist)}m to ${nodeLabel(curr.id)}.${landmarkHint}`;
+                instruction = `Take a right and head to ${nodeLabel(curr.id)}${distLabel}.${landmarkHint}`;
             } else {
-                instruction = `Continue straight for ${Math.round(dist)}m to ${nodeLabel(curr.id)}.${landmarkHint}`;
+                instruction = `Go straight ahead to ${nodeLabel(curr.id)}${distLabel}.${landmarkHint}`;
             }
 
             directions.push(`[GO] ${instruction}`);
@@ -1154,7 +1157,7 @@ function generateDirections(path) {
         i++;
     }
 
-    directions.push(`[ARRIVED] You have arrived at ${nodeLabel(path[path.length - 1].id)}.`);
+    directions.push(`[ARRIVED] 🎯 You have arrived at your destination: ${nodeLabel(path[path.length - 1].id)} on the ${FLOOR_NAMES[path[path.length - 1].floor]}.`);
 
     // ── Render into DOM ───────────────────────────────────────────────────────
     const list = document.getElementById('directions-list');
@@ -1187,7 +1190,9 @@ function generateDirections(path) {
                 }
             }
             const li = document.createElement('li');
-            li.textContent = text;
+            // Remove raw [TAG] prefix for clean display; keep full text for icon matching logic
+            li.textContent = text.replace(/^\[\w+\]\s*/, '');
+            li._rawText = text; // preserve for badge matching
             list.appendChild(li);
         });
 
@@ -1200,9 +1205,10 @@ function generateDirections(path) {
                 const label    = window.allNodes[cp.id]?.label || cp.id;
                 const isLift   = nodeType(cp.id) === 'lift'   || cp.id.includes('LIFT');
                 const isStairs = nodeType(cp.id) === 'stairs' || cp.id.includes('STAIRS');
-                const matchLift   = isLift   && li.textContent.includes('[LIFT]');
-                const matchStairs = isStairs && li.textContent.includes('[STAIRS]');
-                const matchLabel  = !isLift && !isStairs && label && li.textContent.includes(label);
+                const raw = li._rawText || li.textContent;
+                const matchLift   = isLift   && raw.includes('[LIFT]');
+                const matchStairs = isStairs && raw.includes('[STAIRS]');
+                const matchLabel  = !isLift && !isStairs && label && (raw.includes(label) || li.textContent.includes(label));
                 if (matchLift || matchStairs || matchLabel) {
                     li.setAttribute('data-checkpoint', cpIdx);
                     const badge = document.createElement('span');
@@ -1302,43 +1308,49 @@ function stepIcon(text) {
     if (text.startsWith('[ARRIVED]')) return 'arrived';
     if (text.startsWith('[LIFT]'))    return 'lift';
     if (text.startsWith('[STAIRS]'))  return 'stairs';
-    if (text.startsWith('[WALK]'))    return 'walk';
-    if (text.startsWith('[GO]'))      return 'go';
-    return 'go';
+    if (text.startsWith('[WALK]')) {
+        if (text.includes('Take a left'))  return 'turn-left';
+        if (text.includes('Take a right')) return 'turn-right';
+        return 'walk';
+    }
+    if (text.startsWith('[GO]')) {
+        if (text.includes('Take a left'))  return 'turn-left';
+        if (text.includes('Take a right')) return 'turn-right';
+        return 'straight';
+    }
+    return 'straight';
 }
 
 // SVG icons for each step type (inline, no external dependency)
 function stepIconSVG(type) {
     const icons = {
-        start:   `<svg viewBox="0 0 18 18" fill="none"><path d="M9 15V5M5 9l4-4 4 4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="3" y1="16" x2="15" y2="16" stroke-width="2" stroke-linecap="round"/></svg>`,
-        arrived: `<svg viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke-width="1.5"/><path d="M5.5 9l2.5 3 4.5-5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-        lift:    `<svg viewBox="0 0 18 18" fill="none"><rect x="3" y="2" width="12" height="14" rx="2" stroke-width="1.5"/><path d="M9 6v6M6.5 8.5L9 6l2.5 2.5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-        stairs:  `<svg viewBox="0 0 18 18" fill="none"><path d="M3 15h4v-3h4V9h4V3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-        walk:    `<svg viewBox="0 0 18 18" fill="none"><path d="M12 9H4M4 9l3-3M4 9l3 3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-        go:      `<svg viewBox="0 0 18 18" fill="none"><path d="M6 9h8M14 9l-3-3M14 9l-3 3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        start:      `<svg viewBox="0 0 18 18" fill="none"><path d="M9 15V5M5 9l4-4 4 4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="3" y1="16" x2="15" y2="16" stroke-width="2" stroke-linecap="round"/></svg>`,
+        arrived:    `<svg viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke-width="1.5"/><path d="M5.5 9l2.5 3 4.5-5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        lift:       `<svg viewBox="0 0 18 18" fill="none"><rect x="3" y="2" width="12" height="14" rx="2" stroke-width="1.5"/><path d="M9 6v6M6.5 8.5L9 6l2.5 2.5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        stairs:     `<svg viewBox="0 0 18 18" fill="none"><path d="M3 15h4v-3h4V9h4V3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        walk:       `<svg viewBox="0 0 18 18" fill="none"><path d="M12 9H4M4 9l3-3M4 9l3 3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        go:         `<svg viewBox="0 0 18 18" fill="none"><path d="M6 9h8M14 9l-3-3M14 9l-3 3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        straight:   `<svg viewBox="0 0 18 18" fill="none"><path d="M9 14V4M5 8l4-4 4 4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        'turn-left': `<svg viewBox="0 0 18 18" fill="none"><path d="M14 14V8a4 4 0 0 0-4-4H4m0 0l3 3M4 4l3-3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        'turn-right': `<svg viewBox="0 0 18 18" fill="none"><path d="M4 14V8a4 4 0 0 1 4-4h6m0 0l-3 3m3-3l-3-3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
     };
-    return icons[type] || icons.go;
+    return icons[type] || icons.straight;
 }
 
 // Human-readable step title from tag + instruction text
 function stepTitle(text) {
-    if (text.startsWith('[START]'))   return 'Start';
-    if (text.startsWith('[ARRIVED]')) return 'Arrived';
-    if (text.startsWith('[LIFT]'))    return text.includes('up') ? 'Take lift up' : 'Take lift down';
-    if (text.startsWith('[STAIRS]'))  return text.includes('up') ? 'Take stairs up' : 'Take stairs down';
-    if (text.startsWith('[WALK]')) {
-        const body = text.replace('[WALK] ', '');
-        if (body.startsWith('Turn left'))  return 'Turn left';
-        if (body.startsWith('Turn right')) return 'Turn right';
-        return 'Walk';
-    }
-    if (text.startsWith('[GO]')) {
-        const body = text.replace('[GO] ', '');
-        if (body.startsWith('Turn left'))  return 'Turn left';
-        if (body.startsWith('Turn right')) return 'Turn right';
-        return 'Continue straight';
-    }
-    return text;
+    if (text.startsWith('[START]'))   return 'Starting Point';
+    if (text.startsWith('[ARRIVED]')) return '🎯 Arrived!';
+    if (text.startsWith('[LIFT]'))    return text.includes('up') ? '⬆ Take lift up' : '⬇ Take lift down';
+    if (text.startsWith('[STAIRS]'))  return text.includes('curved')
+        ? (text.includes('up') ? '⬆ Take curved stairs up' : '⬇ Take curved stairs down')
+        : (text.includes('up') ? '⬆ Take main stairs up' : '⬇ Take main stairs down');
+    const body = text.replace(/^\[\w+\]\s*/, '');
+    if (body.startsWith('Take a left'))  return '↰ Turn Left';
+    if (body.startsWith('Take a right')) return '↱ Turn Right';
+    if (body.startsWith('Go straight') || body.startsWith('Walk')) return '↑ Go Straight';
+    if (body.startsWith('Take the passageway')) return '↪ Take Passageway';
+    return body.split('.')[0]; // fallback: first sentence
 }
 
 function populateMobileStrip(logicalPath) {
@@ -1409,7 +1421,7 @@ function populateMobileStrip(logicalPath) {
             .filter(li => !li.style.color.includes('99, 102, 241')); // skip leg headers
 
         srcItems.forEach((srcLi, idx) => {
-            const rawText = srcLi.childNodes[0]?.textContent?.trim() || srcLi.textContent.trim();
+            const rawText = srcLi._rawText || srcLi.childNodes[0]?.textContent?.trim() || srcLi.textContent.trim();
             const type    = stepIcon(rawText);
             const isLast  = idx === srcItems.length - 1;
             const title   = stepTitle(rawText);

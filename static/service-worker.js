@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nmit-wayfinder-v7';
+const CACHE_NAME = 'nmit-wayfinder-v8';
 
 const FLOOR_PLANS = [
   '/static/floor1.png',
@@ -8,9 +8,6 @@ const FLOOR_PLANS = [
 ];
 
 const SHELL_ASSETS = [
-  '/static/style.css',
-  '/static/script.js',
-  '/static/manifest.json',
   '/static/icon-192-v2.png',
   '/static/icon-512-v2.png',
 ];
@@ -77,6 +74,26 @@ self.addEventListener('fetch', e => {
         .then(res => {
           const clone = res.clone();
           caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+          return res;
+        })
+        .catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // App shell files: network-first so instruction/UI changes show up immediately
+  if (
+    url.pathname === '/static/script.js' ||
+    url.pathname === '/static/style.css' ||
+    url.pathname === '/static/manifest.json'
+  ) {
+    e.respondWith(
+      fetch(e.request)
+        .then(res => {
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+          }
           return res;
         })
         .catch(() => caches.match(e.request))
