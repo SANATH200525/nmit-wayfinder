@@ -205,79 +205,80 @@ def get_learned_weights():
 nodes = {
 
     # -- GROUND FLOOR (floor: 1) -------------------------------------
-    'MAINENTRANCE-GF':      {'coords': (80, 59), 'floor': 1, 'label': 'Main Entrance',         'category': 'Entrance'},
-    'OFFICE-GF':            {'coords': (74, 43), 'floor': 1, 'label': 'Office',                'category': 'Offices'},
-    'ADMIN-GF':             {'coords': (76, 59), 'floor': 1, 'label': 'Admin Office',          'category': 'Offices'},
-    'TUTORIAL-GF':          {'coords': (71, 57), 'floor': 1, 'label': 'Tutorial Room',         'category': 'Rooms'},
-    'CONFERENCEROOM1-GF':   {'coords': (55, 43), 'floor': 1, 'label': 'Conference Room 1',     'category': 'Rooms'},
-    'CONFERENCEROOM2-GF':   {'coords': (38, 43), 'floor': 1, 'label': 'Conference Room 2',     'category': 'Rooms'},
-    'COMPUTERLAB-GF':       {'coords': (43, 58), 'floor': 1, 'label': 'Computer Lab',          'category': 'Labs & Rooms'},
-    'CLASSROOM-GF':         {'coords': (34, 43), 'floor': 1, 'label': 'Classroom',             'category': 'Rooms'},
+    'MAINENTRANCE-GF':      {'coords': (77, 58), 'floor': 1, 'label': 'Main Entrance',         'category': 'Entrance'},
+    'OFFICE-GF':            {'coords': (73, 42), 'floor': 1, 'label': 'Office',                'category': 'Offices'},
+    'ADMIN-GF':             {'coords': (75, 63), 'floor': 1, 'label': 'Admin Office',          'category': 'Offices'},
+    'TUTORIAL-GF':          {'coords': (68, 62), 'floor': 1, 'label': 'Tutorial Room',         'category': 'Rooms'},
+    'CONFERENCEROOM1-GF':   {'coords': (49, 58), 'floor': 1, 'label': 'Conference Room 1',     'category': 'Rooms'},
+    'CONFERENCEROOM2-GF':   {'coords': (53, 58), 'floor': 1, 'label': 'Conference Room 2',     'category': 'Rooms'},
+    'COMPUTERLAB-GF':       {'coords': (44, 59), 'floor': 1, 'label': 'Computer Lab',          'category': 'Labs & Rooms'},
+    'CLASSROOM-GF':         {'coords': (34, 58), 'floor': 1, 'label': 'Classroom',             'category': 'Rooms'},
     'LIBRARY-GF':           {'coords': (24, 59), 'floor': 1, 'label': 'Library',               'category': 'Offices'},
-    'PRINCIPALROOM-GF':     {'coords': (19, 59), 'floor': 1, 'label': "Principal's Room",      'category': 'Offices'},
-    'RESTROOMS-GF':         {'coords': (14, 43), 'floor': 1, 'label': 'Restrooms',             'category': 'Restrooms'},
-    'LIFT-GF':              {'coords': (71, 52), 'floor': 1, 'label': 'Lift (Ground Floor)',   'category': 'Lift & Stairs'},
-    'CURVEDSTAIRS-GF':      {'coords': (76, 43), 'floor': 1, 'label': 'Curved Stairs (Ground Floor)', 'category': 'Lift & Stairs'},
-    'STAIRSEND-GF':         {'coords': (11, 58), 'floor': 1, 'label': 'Stairs End (Ground Floor)',   'category': 'Lift & Stairs'},
+    'PRINCIPALROOM-GF':     {'coords': (20, 59), 'floor': 1, 'label': "Principal's Room",      'category': 'Offices'},
+    'RESTROOMS-GF':         {'coords': (14, 56), 'floor': 1, 'label': 'Restrooms',             'category': 'Restrooms'},
+    'LIFT-GF':              {'coords': (72, 52), 'floor': 1, 'label': 'Lift (Ground Floor)',   'category': 'Lift & Stairs'},
+    'CURVEDSTAIRS-GF':      {'coords': (77, 43), 'floor': 1, 'label': 'Curved Stairs (Ground Floor)', 'category': 'Lift & Stairs'},
+    'STAIRSEND-GF':         {'coords': (11, 55), 'floor': 1, 'label': 'Stairs End (Ground Floor)',   'category': 'Lift & Stairs'},
     # GF waypoints
-    'HALLWAY-TURNPOINT-1-GF': {'coords': (74, 57), 'floor': 1, 'label': 'GF Turn 1', 'is_waypoint': True},
-    'HALLWAY-TURNPOINT-2-GF': {'coords': (44, 58), 'floor': 1, 'label': 'GF Turn 2', 'is_waypoint': True},
-    'HALLWAY-TURNPOINT-3-GF': {'coords': (13, 57), 'floor': 1, 'label': 'GF Turn 3', 'is_waypoint': True},
+    'HALLWAY-TURNPOINT-1-GF': {'coords': (74, 58), 'floor': 1, 'label': 'GF Turn 1', 'is_waypoint': True},
+    'HALLWAY-TURNPOINT-2-GF': {'coords': (39, 59), 'floor': 1, 'label': 'GF Turn 2', 'is_waypoint': True},
+    'HALLWAY-TURNPOINT-3-GF': {'coords': (12, 60), 'floor': 1, 'label': 'GF Turn 3 (End)', 'is_waypoint': True},
 
     # -- FIRST FLOOR (floor: 2) --------------------------------------
-    'MEDIAUNIT-1F':         {'coords': (71, 43), 'floor': 2, 'label': 'Media Unit',            'category': 'Rooms'},
-    'BALCONY-1F':           {'coords': (78, 61), 'floor': 2, 'label': 'Balcony',               'category': 'Rooms', 'dead_end': True},
-    'ROOM1-1F':             {'coords': (66, 43), 'floor': 2, 'label': 'Room 1',                'category': 'Rooms'},
-    'SEMINARHALL-1F':       {'coords': (55, 60), 'floor': 2, 'label': 'Seminar Hall',          'category': 'Labs & Rooms'},
-    'DESIGNLAB-1F':         {'coords': (51, 60), 'floor': 2, 'label': 'Design Thinking Lab',   'category': 'Labs & Rooms'},
-    'UPSROOM-1F':           {'coords': (48, 60), 'floor': 2, 'label': 'UPS Room',              'category': 'Rooms'},
-    'STAFFROOM1-1F':        {'coords': (33, 43), 'floor': 2, 'label': 'Staff Room 1',          'category': 'Offices'},
-    'STAFFROOM2-1F':        {'coords': (36, 27), 'floor': 2, 'label': 'Staff Room 2',          'category': 'Offices'},
-    'ROOM3-1F':             {'coords': (36, 29), 'floor': 2, 'label': 'Room 3',                'category': 'Rooms'},
-    'BOARDROOM-1F':         {'coords': (22, 60), 'floor': 2, 'label': 'Board Room',            'category': 'Rooms'},
-    'ROOM2-1F':             {'coords': (18, 61), 'floor': 2, 'label': 'Room 2',                'category': 'Rooms'},
-    'RESTROOMS-1F':         {'coords': (13, 43), 'floor': 2, 'label': 'Restrooms',             'category': 'Restrooms'},
+    'MEDIAUNIT-1F':         {'coords': (71, 42), 'floor': 2, 'label': 'Media Unit',            'category': 'Rooms'},
+    'BALCONY-1F':           {'coords': (75, 60), 'floor': 2, 'label': 'Balcony',               'category': 'Rooms', 'dead_end': True},
+    'ROOM1-1F':             {'coords': (66, 64), 'floor': 2, 'label': 'Room 1',                'category': 'Rooms'},
+    'SEMINARHALL-1F':       {'coords': (55, 62), 'floor': 2, 'label': 'Seminar Hall',          'category': 'Labs & Rooms'},
+    'DESIGNLAB-1F':         {'coords': (52, 58), 'floor': 2, 'label': 'Design Thinking Lab',   'category': 'Labs & Rooms'},
+    'UPSROOM-1F':           {'coords': (47, 60), 'floor': 2, 'label': 'UPS Room',              'category': 'Rooms'},
+    'STAFFROOM1-1F':        {'coords': (33, 60), 'floor': 2, 'label': 'Staff Room 1',          'category': 'Offices'},
+    'STAFFROOM2-1F':        {'coords': (36, 30), 'floor': 2, 'label': 'Staff Room 2',          'category': 'Offices'},
+    'ROOM3-1F':             {'coords': (37, 27), 'floor': 2, 'label': 'Room 3',                'category': 'Rooms'},
+    'BOARDROOM-1F':         {'coords': (22, 61), 'floor': 2, 'label': 'Board Room',            'category': 'Rooms'},
+    'ROOM2-1F':             {'coords': (19, 61), 'floor': 2, 'label': 'Room 2',                'category': 'Rooms'},
+    'RESTROOMS-1F':         {'coords': (13, 57), 'floor': 2, 'label': 'Restrooms',             'category': 'Restrooms'},
     'LIFT-1F':              {'coords': (69, 53), 'floor': 2, 'label': 'Lift (First Floor)',    'category': 'Lift & Stairs'},
-    'CURVEDSTAIRS-1F':      {'coords': (73, 43), 'floor': 2, 'label': 'Curved Stairs (First Floor)', 'category': 'Lift & Stairs'},
-    'STAIRSEND-1F':         {'coords': (8, 57), 'floor': 2, 'label': 'Stairs End (First Floor)',   'category': 'Lift & Stairs'},
+    'CURVEDSTAIRS-1F':      {'coords': (74, 42), 'floor': 2, 'label': 'Curved Stairs (First Floor)', 'category': 'Lift & Stairs'},
+    'STAIRSEND-1F':         {'coords': ( 9, 58), 'floor': 2, 'label': 'Stairs End (First Floor)',   'category': 'Lift & Stairs'},
     # 1F waypoints
     'HALLWAY-TURNPOINT-1-1F': {'coords': (72, 59), 'floor': 2, 'label': '1F Turn 1', 'is_waypoint': True},
     'HALLWAY-TURNPOINT-2-1F': {'coords': (36, 59), 'floor': 2, 'label': '1F Turn 2', 'is_waypoint': True},
-    'HALLWAY-TURNPOINT-3-1F': {'coords': (8, 60), 'floor': 2, 'label': '1F Turn 3', 'is_waypoint': True},
-    # 1F passageway branch up to StaffRoom2/Room3
-    'PASSAGEWAY-1F': {'coords': (36, 43), 'floor': 2, 'label': '1F Passageway Mid', 'is_waypoint': True},
+    'HALLWAY-TURNPOINT-3-1F': {'coords': (11, 62), 'floor': 2, 'label': '1F Turn 3 (End)', 'is_waypoint': True},
+    # 1F passageway branch
+    'PASSAGEWAY-1F':     {'coords': (36, 59), 'floor': 2, 'label': '1F Passageway Entry', 'is_waypoint': True},
+    'PASSAGEWAY-1F-TOP': {'coords': (36, 43), 'floor': 2, 'label': '1F Passageway Top',   'is_waypoint': True},
 
     # -- SECOND FLOOR (floor: 3) -------------------------------------
-    'ALUMNIRELATIONSOFFICE-2F': {'coords': (67, 42), 'floor': 3, 'label': 'Alumni Relations Office', 'category': 'Offices'},
-    'STUDENTCOUNCILROOM-2F': {'coords': (67, 61), 'floor': 3, 'label': 'Student Council Room', 'category': 'Rooms'},
-    'CORPORATERELATIONSDEPT-2F': {'coords': (70, 61), 'floor': 3, 'label': 'Corporate Relations Department', 'category': 'Offices'},
-    'CASESTUDYLAB1-2F': {'coords': (46, 43), 'floor': 3, 'label': 'Case Study Lab 1', 'category': 'Labs & Rooms'},
-    'CASESTUDYLAB2-2F': {'coords': (50, 43), 'floor': 3, 'label': 'Case Study Lab 2', 'category': 'Labs & Rooms'},
-    'RESEARCHDEPT-2F': {'coords': (39, 59), 'floor': 3, 'label': 'Research & Publication Centre', 'category': 'Offices'},
-    'FACULTYLOUNGE-2F': {'coords': (32, 43), 'floor': 3, 'label': 'Faculty Lounge', 'category': 'Offices'},
-    'ENTREPRENEURSHIPCELL-2F': {'coords': (22, 59), 'floor': 3, 'label': 'Entrepreneurship Cell', 'category': 'Offices'},
-    'PLACEMENTCELL-2F': {'coords': (18, 60), 'floor': 3, 'label': 'Placement Cell & Career Counseling', 'category': 'Offices'},
-    'RESTROOMS-2F': {'coords': (13, 43), 'floor': 3, 'label': 'Restrooms', 'category': 'Restrooms'},
-    'LIFT-2F': {'coords': (65, 52), 'floor': 3, 'label': 'Lift (Second Floor)', 'category': 'Lift & Stairs'},
-    'CURVEDSTAIRS-2F': {'coords': (70, 42), 'floor': 3, 'label': 'Curved Stairs (Second Floor)', 'category': 'Lift & Stairs'},
-    'STAIRSEND-2F': {'coords': (10, 56), 'floor': 3, 'label': 'Stairs End (Second Floor)', 'category': 'Lift & Stairs'},
+    'ALUMNIRELATIONSOFFICE-2F':  {'coords': (67, 42), 'floor': 3, 'label': 'Alumni Relations Office',             'category': 'Offices'},
+    'STUDENTCOUNCILROOM-2F':     {'coords': (67, 61), 'floor': 3, 'label': 'Student Council Room',                'category': 'Rooms'},
+    'CORPORATERELATIONSDEPT-2F': {'coords': (70, 61), 'floor': 3, 'label': 'Corporate Relations Department',      'category': 'Offices'},
+    'CASESTUDYLAB1-2F':          {'coords': (45, 58), 'floor': 3, 'label': 'Case Study Lab 1',                    'category': 'Labs & Rooms'},
+    'CASESTUDYLAB2-2F':          {'coords': (50, 58), 'floor': 3, 'label': 'Case Study Lab 2',                    'category': 'Labs & Rooms'},
+    'RESEARCHDEPT-2F':           {'coords': (40, 60), 'floor': 3, 'label': 'Research & Publication Centre',       'category': 'Offices'},
+    'FACULTYLOUNGE-2F':          {'coords': (31, 58), 'floor': 3, 'label': 'Faculty Lounge',                      'category': 'Offices'},
+    'ENTREPRENEURSHIPCELL-2F':   {'coords': (21, 60), 'floor': 3, 'label': 'Entrepreneurship Cell',               'category': 'Offices'},
+    'PLACEMENTCELL-2F':          {'coords': (18, 61), 'floor': 3, 'label': 'Placement Cell & Career Counseling',  'category': 'Offices'},
+    'RESTROOMS-2F':              {'coords': (13, 57), 'floor': 3, 'label': 'Restrooms',                           'category': 'Restrooms'},
+    'LIFT-2F':                   {'coords': (66, 52), 'floor': 3, 'label': 'Lift (Second Floor)',                  'category': 'Lift & Stairs'},
+    'CURVEDSTAIRS-2F':           {'coords': (70, 43), 'floor': 3, 'label': 'Curved Stairs (Second Floor)',         'category': 'Lift & Stairs'},
+    'STAIRSEND-2F':              {'coords': ( 9, 57), 'floor': 3, 'label': 'Stairs End (Second Floor)',            'category': 'Lift & Stairs'},
     # 2F waypoints
-    'HALLWAY-TURNPOINT-1-2F': {'coords': (69, 58), 'floor': 3, 'label': '2F Turn 1', 'is_waypoint': True},
-    'HALLWAY-TURNPOINT-2-2F': {'coords': (10, 59), 'floor': 3, 'label': '2F Turn 2', 'is_waypoint': True},
+    'HALLWAY-TURNPOINT-1-2F': {'coords': (69, 57), 'floor': 3, 'label': '2F Turn 1', 'is_waypoint': True},
+    'HALLWAY-TURNPOINT-2-2F': {'coords': (11, 60), 'floor': 3, 'label': '2F Turn 2 (End)', 'is_waypoint': True},
     'HALLWAY-TURNPOINT-3-2F': {'coords': (40, 58), 'floor': 3, 'label': '2F Turn 3', 'is_waypoint': True},
 
     # -- THIRD FLOOR (floor: 4) --------------------------------------
-    'ROOM1-3F': {'coords': (33, 43), 'floor': 4, 'label': 'Room 1', 'category': 'Rooms'},
-    'ROOM2-3F': {'coords': (48, 43), 'floor': 4, 'label': 'Room 2', 'category': 'Rooms'},
-    'ROOM3-3F': {'coords': (52, 43), 'floor': 4, 'label': 'Room 3', 'category': 'Rooms'},
-    'ROOM4-3F': {'coords': (71, 43), 'floor': 4, 'label': 'Room 4', 'category': 'Rooms'},
-    'RESTROOMS-3F': {'coords': (14, 43), 'floor': 4, 'label': 'Restrooms', 'category': 'Restrooms'},
-    'LIFT-3F': {'coords': (69, 54), 'floor': 4, 'label': 'Lift (Third Floor)', 'category': 'Lift & Stairs'},
+    'ROOM1-3F':     {'coords': (33, 59), 'floor': 4, 'label': 'Room 1',                    'category': 'Rooms'},
+    'ROOM2-3F':     {'coords': (47, 59), 'floor': 4, 'label': 'Room 2',                    'category': 'Rooms'},
+    'ROOM3-3F':     {'coords': (52, 59), 'floor': 4, 'label': 'Room 3',                    'category': 'Rooms'},
+    'ROOM4-3F':     {'coords': (70, 43), 'floor': 4, 'label': 'Room 4',                    'category': 'Rooms'},
+    'RESTROOMS-3F': {'coords': (13, 57), 'floor': 4, 'label': 'Restrooms',                 'category': 'Restrooms'},
+    'LIFT-3F':      {'coords': (69, 53), 'floor': 4, 'label': 'Lift (Third Floor)',         'category': 'Lift & Stairs'},
     'CURVEDSTAIRS-3F': {'coords': (74, 43), 'floor': 4, 'label': 'Curved Stairs (Third Floor)', 'category': 'Lift & Stairs'},
-    'STAIRSEND-3F': {'coords': (10, 57), 'floor': 4, 'label': 'Stairs End (Third Floor)', 'category': 'Lift & Stairs'},
+    'STAIRSEND-3F': {'coords': ( 9, 57), 'floor': 4, 'label': 'Stairs End (Third Floor)',  'category': 'Lift & Stairs'},
     # 3F waypoints
     'HALLWAY-TURNPOINT-1-3F': {'coords': (72, 58), 'floor': 4, 'label': '3F Turn 1', 'is_waypoint': True},
-    'HALLWAY-TURNPOINT-2-3F': {'coords': (10, 60), 'floor': 4, 'label': '3F Turn 2', 'is_waypoint': True},
+    'HALLWAY-TURNPOINT-2-3F': {'coords': (12, 60), 'floor': 4, 'label': '3F Turn 2 (End)', 'is_waypoint': True},
     'HALLWAY-TURNPOINT-3-3F': {'coords': (41, 59), 'floor': 4, 'label': '3F Turn 3', 'is_waypoint': True},
 }
 
@@ -325,18 +326,48 @@ def build_graph():
             add_edge(graph, wps[i][0], wps[i+1][0])
 
     # STEP 2 - 1F passageway branch:
-    #   HALLWAY-TURNPOINT-2-1F (x=36,y=59) <-> PASSAGEWAY-1F (x=36,y=43)
-    #   PASSAGEWAY-1F <-> STAFFROOM2-1F and ROOM3-1F
+    #   HALLWAY-TURNPOINT-2-1F <-> PASSAGEWAY-1F (corridor entry)
+    #   PASSAGEWAY-1F <-> PASSAGEWAY-1F-TOP
+    #   PASSAGEWAY-1F-TOP <-> STAFFROOM2-1F and ROOM3-1F (ONLY connection for these rooms)
     if 'PASSAGEWAY-1F' in nodes and 'HALLWAY-TURNPOINT-2-1F' in nodes:
         add_edge(graph, 'HALLWAY-TURNPOINT-2-1F', 'PASSAGEWAY-1F')
-        for upper in ('STAFFROOM2-1F', 'ROOM3-1F'):
-            if upper in nodes:
-                add_edge(graph, 'PASSAGEWAY-1F', upper)
+        if 'PASSAGEWAY-1F-TOP' in nodes:
+            add_edge(graph, 'PASSAGEWAY-1F', 'PASSAGEWAY-1F-TOP')
+            for upper in ('STAFFROOM2-1F', 'ROOM3-1F'):
+                if upper in nodes:
+                    add_edge(graph, 'PASSAGEWAY-1F-TOP', upper)
+
+    # STEP 2b - Force Restrooms and StairsEnd to connect ONLY through
+    #           the corridor end waypoint on each floor.
+    end_wp_map = {
+        1: 'HALLWAY-TURNPOINT-3-GF',
+        2: 'HALLWAY-TURNPOINT-3-1F',
+        3: 'HALLWAY-TURNPOINT-2-2F',
+        4: 'HALLWAY-TURNPOINT-2-3F',
+    }
+    for nid, data in nodes.items():
+        if 'RESTROOMS' in nid or 'STAIRSEND' in nid:
+            floor = data['floor']
+            end_wp = end_wp_map.get(floor)
+            if end_wp and end_wp in nodes:
+                add_edge(graph, nid, end_wp)
+
+    # STEP 2c - Direct edge: Classroom <-> Principal's Room
+    #           Both are on the same corridor stretch — no intermediate checkpoint needed.
+    if 'CLASSROOM-GF' in nodes and 'PRINCIPALROOM-GF' in nodes:
+        add_edge(graph, 'CLASSROOM-GF', 'PRINCIPALROOM-GF')
 
     # STEP 3 - Connect every non-waypoint, non-vertical, non-dead-end room
     #          to its two nearest hallway waypoints on the same floor.
+    #          Exclude: passageway rooms (they connect only via passageway branch)
+    #                   restrooms/stairsend (they connect only via end waypoint)
+    passageway_only = {'STAFFROOM2-1F', 'ROOM3-1F'}
+    end_only = {nid for nid in nodes if 'RESTROOMS' in nid or 'STAIRSEND' in nid}
+
     for nid, data in nodes.items():
         if is_waypoint(nid) or is_vertical(nid) or is_dead_end(nid):
+            continue
+        if nid in passageway_only or nid in end_only:
             continue
         floor = data['floor']
         wps = [(wid, wd) for wid, wd in nodes.items()

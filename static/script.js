@@ -808,30 +808,11 @@ function renderSVG(svgId, points, globalStart, globalEnd, stops, nextCheckpoint 
     if (!svg) return;
     svg.innerHTML = '';
 
-    // One polyline per floor — merge all segments.
-    // Include stair/lift boundary nodes on adjacent floors so the path
-    // connects cleanly across floor transitions (stairs-only mode fix).
+    // One polyline per floor — merge all segments on this floor into one path.
     const byFloor = {};
-    points.forEach((p, idx) => {
+    points.forEach(p => {
         if (!byFloor[p.floor]) byFloor[p.floor] = [];
         byFloor[p.floor].push(p);
-
-        // If this is a vertical node transitioning floors, also add it
-        // to the adjacent floor's list as a bridge point so the line
-        // starts/ends at the right edge rather than leaving a gap.
-        const isVertical = nodeType(p.id) === 'stairs' || nodeType(p.id) === 'lift';
-        if (isVertical) {
-            const prev = points[idx - 1];
-            const next = points[idx + 1];
-            if (prev && prev.floor !== p.floor) {
-                if (!byFloor[prev.floor]) byFloor[prev.floor] = [];
-                byFloor[prev.floor].push(p);
-            }
-            if (next && next.floor !== p.floor) {
-                if (!byFloor[next.floor]) byFloor[next.floor] = [];
-                byFloor[next.floor].push(p);
-            }
-        }
     });
 
     Object.entries(byFloor).forEach(([, floorPts]) => {
@@ -1684,6 +1665,3 @@ class PDRNavigator {
         if (this.onUpdate) this.onUpdate(this.position);
     }
 }
-
-
-
