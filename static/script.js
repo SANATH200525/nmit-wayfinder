@@ -527,12 +527,6 @@ function highlightRemainingPath(checkpointIdx) {
 
     const globalStart = pathData[0];
     const globalEnd   = pathData[pathData.length - 1];
-    const stops = pathData.filter(p =>
-        p.id !== globalStart.id && p.id !== globalEnd.id &&
-        !p.id.includes('elbow') &&
-        !window.allNodes[p.id]?.is_waypoint &&
-        nodeType(p.id) !== 'lift' && nodeType(p.id) !== 'stairs'
-    );
 
     // Split nodes into (segment, floor) buckets.
     // On a floor change, the last point of the outgoing bucket is prepended
@@ -605,10 +599,6 @@ function highlightRemainingPath(checkpointIdx) {
         });
 
         // Markers
-        stops.forEach(stop => {
-            if (stop.floor === f && remaining.some(p => p.id === stop.id))
-                draw3DPin(svg, stop.x, stop.y, "marker-stop");
-        });
         if (globalStart.floor === f && remaining.some(p => p.id === globalStart.id))
             draw3DPin(svg, globalStart.x, globalStart.y, "marker-start");
 
@@ -703,19 +693,13 @@ function drawPath(path, logicalPath = path) {
 
     const globalStart = logicalPath[0];
     const globalEnd   = logicalPath[logicalPath.length - 1];
-    const stops = logicalPath.filter(p =>
-        p.id !== globalStart.id && p.id !== globalEnd.id &&
-        !p.id.includes('elbow') &&
-        !window.allNodes[p.id]?.is_waypoint &&
-        nodeType(p.id) !== 'lift' && nodeType(p.id) !== 'stairs'
-    );
 
     const routeCheckpoints = computeCheckpoints(logicalPath);
     const nextCheckpoint   = routeCheckpoints.length > 0 ? routeCheckpoints[0] : null;
 
     for (let i = 1; i <= 4; i++) {
         if (floorPaths[i].length > 1) {
-            renderSVG(`svg-f${i}`, floorPaths[i], globalStart, globalEnd, stops, nextCheckpoint);
+            renderSVG(`svg-f${i}`, floorPaths[i], globalStart, globalEnd, nextCheckpoint);
         } else {
             const svg = document.getElementById(`svg-f${i}`);
             if (svg) svg.innerHTML = '';
@@ -803,12 +787,12 @@ function drawPath(path, logicalPath = path) {
 //
 // Red destination pin suppressed until the user is on the final leg.
 // ---------------------------------------------------------------------------
-function renderSVG(svgId, points, globalStart, globalEnd, stops, nextCheckpoint = null) {
+function renderSVG(svgId, points, globalStart, globalEnd, nextCheckpoint = null) {
     const svg = document.getElementById(svgId);
     if (!svg) return;
     svg.innerHTML = '';
 
-    // One polyline per floor — merge all segments on this floor into one path.
+    // One polyline per floor — merge all segments.
     const byFloor = {};
     points.forEach(p => {
         if (!byFloor[p.floor]) byFloor[p.floor] = [];
@@ -828,12 +812,6 @@ function renderSVG(svgId, points, globalStart, globalEnd, stops, nextCheckpoint 
         pl.setAttribute("points", pts);
         pl.setAttribute("class", "path-line");
         svg.appendChild(pl);
-    });
-
-    // Stop markers (orange)
-    stops.forEach(stop => {
-        if (points.some(p => p.id === stop.id))
-            draw3DPin(svg, stop.x, stop.y, "marker-stop");
     });
 
     // Start marker (green)

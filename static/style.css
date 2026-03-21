@@ -390,7 +390,7 @@ input[type="radio"] { accent-color: var(--teal); }
 }
 .route-summary-from  { color: #10b981; overflow: hidden; text-overflow: ellipsis; max-width: 85px; white-space: nowrap; }
 .route-summary-to    { color: #ef4444; overflow: hidden; text-overflow: ellipsis; max-width: 85px; white-space: nowrap; }
-.route-summary-stop  { color: #f59e0b; overflow: hidden; text-overflow: ellipsis; max-width: 70px; white-space: nowrap; flex-shrink: 0; }
+.route-summary-stop  { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; max-width: 70px; white-space: nowrap; flex-shrink: 0; }
 .route-summary-arrow { color: var(--text-muted); flex-shrink: 0; font-size: 13px; }
 
 /* ── Map Display ── */
@@ -448,7 +448,6 @@ input[type="radio"] { accent-color: var(--teal); }
 .marker-3d        { filter: drop-shadow(0px 6px 5px rgba(0,0,0,0.3)); }
 .marker-start     { fill: #10b981; stroke: #fff; stroke-width: 2; }
 .marker-end       { fill: #ef4444; stroke: #fff; stroke-width: 2; }
-.marker-stop      { fill: #f59e0b; stroke: #fff; stroke-width: 2; }
 .marker-checkpoint{ fill: #8b5cf6; stroke: #fff; stroke-width: 2; }
 .user-pointer     { fill: var(--teal); stroke: #fff; stroke-width: 2px; }
 
