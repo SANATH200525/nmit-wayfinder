@@ -30,6 +30,7 @@ let _floorConfirmCallback = null;
 let currentStartFloor = 'Ground Floor';
 let tsStart, tsEnd, tsStopInstances = [];
 let currentSessionId = null;
+window.allNodes = NODES;
 
 const isMobile = () => window.innerWidth <= 768;
 const nodeType = (id) => NODES[id]?.type || null;
@@ -144,6 +145,19 @@ window.addStopField = function () {
   const newSel = container.lastElementChild.querySelector('.stop-select');
   const ts = makeTomSelect(newSel, 'floor', '');
   if (ts) tsStopInstances.push(ts);
+  return ts;
+};
+
+window.removeStopField = function (trigger) {
+  const group = trigger?.closest('.stop-group');
+  if (!group) return;
+  const select = group.querySelector('.stop-select');
+  const ts = select?.tomselect || null;
+  if (ts) {
+    tsStopInstances = tsStopInstances.filter(instance => instance !== ts);
+    ts.destroy();
+  }
+  group.remove();
 };
 
 // ---------------------------------------------------------------------------
@@ -846,6 +860,273 @@ function toast(msg) {
   el.className = 'toast-msg'; el.textContent = msg;
   document.body.appendChild(el); setTimeout(() => el.remove(), 3000);
 }
+
+// ---------------------------------------------------------------------------
+// Pin-to-navigate popup
+// ---------------------------------------------------------------------------
+(function initPinToNavigate() {
+  const SNAP_THRESHOLD = 8;
+  const pointerState = new WeakMap();
+  let popupState = null;
+  let suppressNextMapClick = false;
+
+  function getCurrentVisibleFloor() {
+    return parseInt(document.querySelector('.floor-tab.active')?.dataset.floor || '1', 10);
+  }
+
+  function getPopup() {
+    return document.getElementById('pin-popup');
+  }
+
+  function getFloorLabel(floorNum) {
+    return FLOOR_NAMES[floorNum] || `Floor ${floorNum}`;
+  }
+
+  function getDropdownPulseTarget(selectOrTs) {
+    if (!selectOrTs) return null;
+    if (selectOrTs.wrapper) return selectOrTs.wrapper;
+    if (selectOrTs.tomselect?.wrapper) return selectOrTs.tomselect.wrapper;
+    const el = typeof selectOrTs === 'string' ? document.querySelector(selectOrTs) : selectOrTs;
+    return el?.tomselect?.wrapper || el?.closest('.ts-wrapper') || null;
+  }
+
+  function pulseElement(el) {
+    if (!el) return;
+    el.classList.remove('dropdown-pulse');
+    void el.offsetWidth;
+    el.classList.add('dropdown-pulse');
+    window.setTimeout(() => el.classList.remove('dropdown-pulse'), 700);
+  }
+
+  function hidePopup() {
+    const popup = getPopup();
+    if (!popup) return;
+    popup.style.display = 'none';
+    popupState = null;
+  }
+
+  function positionPopup(clientX, clientY) {
+    const popup = getPopup();
+    if (!popup) return;
+    popup.style.display = 'block';
+    popup.style.visibility = 'hidden';
+    popup.style.left = '0px';
+    popup.style.top = '0px';
+    const margin = 12;
+    const popupWidth = popup.offsetWidth || 180;
+    const popupHeight = popup.offsetHeight || 120;
+    const left = Math.min(Math.max(clientX, margin), window.innerWidth - popupWidth - margin);
+    const top = Math.min(Math.max(clientY, margin), window.innerHeight - popupHeight - margin);
+    popup.style.left = `${left}px`;
+    popup.style.top = `${top}px`;
+    popup.style.visibility = 'visible';
+  }
+
+  function showSnapPulse(floorNum, coords) {
+    const svg = document.getElementById(`svg-f${floorNum}`);
+    if (!svg) return;
+    svg.querySelectorAll('.pin-snap-feedback').forEach(el => el.remove());
+    const pulse = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    pulse.setAttribute('cx', coords.x);
+    pulse.setAttribute('cy', coords.y);
+    pulse.setAttribute('r', '1.25');
+    pulse.setAttribute('class', 'snap-pulse pin-snap-feedback');
+    pulse.addEventListener('animationend', () => pulse.remove(), { once: true });
+    svg.appendChild(pulse);
+  }
+
+  function findNearestNode(coords, floorNum) {
+    let best = null;
+    for (const [id, data] of Object.entries(NODES)) {
+      if (data.floor !== floorNum || data.is_waypoint) continue;
+      const [nodeX, nodeY] = data.coords;
+      const dist = Math.hypot(nodeX - coords.x, nodeY - coords.y);
+      if (!best || dist < best.dist) {
+        best = { id, data, dist, coords: { x: nodeX, y: nodeY } };
+      }
+    }
+    return best;
+  }
+
+  function percentCoordsFromImageEvent(event, imageEl) {
+    if (!imageEl || !imageEl.clientWidth || !imageEl.clientHeight) return null;
+
+    const rect = imageEl.getBoundingClientRect();
+    const rawPercentX = typeof event.offsetX === 'number'
+      ? (event.offsetX / imageEl.clientWidth) * 100
+      : (((event.clientX || 0) - rect.left) / imageEl.clientWidth) * 100;
+    const rawPercentY = typeof event.offsetY === 'number'
+      ? (event.offsetY / imageEl.clientHeight) * 100
+      : (((event.clientY || 0) - rect.top) / imageEl.clientHeight) * 100;
+
+    const naturalWidth = imageEl.naturalWidth || imageEl.clientWidth;
+    const naturalHeight = imageEl.naturalHeight || imageEl.clientHeight;
+    const renderedScale = Math.min(imageEl.clientWidth / naturalWidth, imageEl.clientHeight / naturalHeight);
+    const renderedWidth = naturalWidth * renderedScale;
+    const renderedHeight = naturalHeight * renderedScale;
+    const padPercentX = ((imageEl.clientWidth - renderedWidth) / 2 / imageEl.clientWidth) * 100;
+    const padPercentY = ((imageEl.clientHeight - renderedHeight) / 2 / imageEl.clientHeight) * 100;
+    const renderedWidthPercent = (renderedWidth / imageEl.clientWidth) * 100;
+    const renderedHeightPercent = (renderedHeight / imageEl.clientHeight) * 100;
+
+    const x = ((rawPercentX - padPercentX) / renderedWidthPercent) * 100;
+    const y = ((rawPercentY - padPercentY) / renderedHeightPercent) * 100;
+
+    if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 100 || y < 0 || y > 100) {
+      return null;
+    }
+
+    return { x, y };
+  }
+
+  function setStartFromNode(nodeId) {
+    const node = NODES[nodeId];
+    if (!node) return;
+    const floorLabel = getFloorLabel(node.floor);
+    const floorBtn = Array.from(document.querySelectorAll('.floor-pick-btn'))
+      .find(btn => btn.dataset.floorLabel === floorLabel);
+    if (floorBtn) {
+      floorBtn.click();
+      pulseElement(floorBtn);
+    }
+    const startTs = document.getElementById('start_node')?.tomselect;
+    if (startTs) {
+      startTs.setValue(nodeId, false);
+      pulseElement(getDropdownPulseTarget(startTs));
+      toast(`Start set to ${node.label}`);
+    }
+  }
+
+  function addStopFromNode(nodeId) {
+    const node = NODES[nodeId];
+    if (!node) return;
+    const stopTs = window.addStopField?.();
+    if (stopTs && typeof stopTs.setValue === 'function') {
+      stopTs.setValue(nodeId, false);
+      pulseElement(getDropdownPulseTarget(stopTs));
+      toast(`Stop added: ${node.label}`);
+    }
+  }
+
+  function setDestinationFromNode(nodeId) {
+    const node = NODES[nodeId];
+    if (!node) return;
+    const endTs = document.getElementById('end_node')?.tomselect;
+    if (endTs) {
+      endTs.setValue(nodeId, false);
+      pulseElement(getDropdownPulseTarget(endTs));
+      toast(`Destination set to ${node.label}`);
+    }
+  }
+
+  function openPopupForNode(nodeMatch, clickEvent) {
+    popupState = {
+      nodeId: nodeMatch.id,
+      floorNum: nodeMatch.data.floor,
+      coords: nodeMatch.coords,
+    };
+    showSnapPulse(nodeMatch.data.floor, nodeMatch.coords);
+    positionPopup(clickEvent.clientX, clickEvent.clientY);
+  }
+
+  function handleMapImageClick(event) {
+    if (suppressNextMapClick) {
+      suppressNextMapClick = false;
+      return;
+    }
+
+    const state = pointerState.get(event.currentTarget);
+    if (state?.moved) {
+      pointerState.delete(event.currentTarget);
+      return;
+    }
+
+    const floorNum = getCurrentVisibleFloor();
+    const activeContainer = document.getElementById(`f${floorNum}-container`);
+    if (!activeContainer || event.currentTarget !== activeContainer.querySelector('.map-image')) return;
+
+    const coords = percentCoordsFromImageEvent(event, event.currentTarget);
+    if (!coords) {
+      hidePopup();
+      toast('Tap closer to a room');
+      return;
+    }
+
+    const nearest = findNearestNode(coords, floorNum);
+    if (!nearest || nearest.dist >= SNAP_THRESHOLD) {
+      hidePopup();
+      toast('Tap closer to a room');
+      return;
+    }
+
+    openPopupForNode(nearest, event);
+  }
+
+  function trackPointerStart(event) {
+    pointerState.set(event.currentTarget, {
+      x: event.clientX,
+      y: event.clientY,
+      moved: false,
+    });
+  }
+
+  function trackPointerMove(event) {
+    const state = pointerState.get(event.currentTarget);
+    if (!state) return;
+    if (Math.hypot(event.clientX - state.x, event.clientY - state.y) > 6) {
+      state.moved = true;
+    }
+  }
+
+  function bindPopupActions() {
+    const popup = getPopup();
+    if (!popup) return;
+    popup.addEventListener('click', event => event.stopPropagation());
+
+    document.getElementById('pin-popup-start')?.addEventListener('click', () => {
+      if (!popupState) return;
+      setStartFromNode(popupState.nodeId);
+      hidePopup();
+    });
+
+    document.getElementById('pin-popup-stop')?.addEventListener('click', () => {
+      if (!popupState) return;
+      addStopFromNode(popupState.nodeId);
+      hidePopup();
+    });
+
+    document.getElementById('pin-popup-destination')?.addEventListener('click', () => {
+      if (!popupState) return;
+      setDestinationFromNode(popupState.nodeId);
+      hidePopup();
+    });
+  }
+
+  document.addEventListener('click', event => {
+    const popup = getPopup();
+    if (!popup || popup.style.display === 'none') return;
+    if (popup.contains(event.target)) return;
+    hidePopup();
+    if (event.target.closest('.map-container')) {
+      suppressNextMapClick = true;
+      window.setTimeout(() => { suppressNextMapClick = false; }, 0);
+    }
+  }, true);
+
+  window.addEventListener('resize', hidePopup);
+  window.addEventListener('scroll', hidePopup, true);
+
+  document.addEventListener('DOMContentLoaded', () => {
+    bindPopupActions();
+    document.querySelectorAll('.map-container .map-image').forEach(imageEl => {
+      imageEl.addEventListener('pointerdown', trackPointerStart);
+      imageEl.addEventListener('pointermove', trackPointerMove);
+      imageEl.addEventListener('pointercancel', () => pointerState.delete(imageEl));
+      imageEl.addEventListener('click', handleMapImageClick);
+      imageEl.addEventListener('dragstart', event => event.preventDefault());
+    });
+  });
+})();
 
 // ---------------------------------------------------------------------------
 // FAQ Chatbot

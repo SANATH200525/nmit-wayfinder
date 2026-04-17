@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -121,7 +121,7 @@
                                 <select name="stops[]" class="stop-select" required></select>
                             </div>
                             <button type="button" class="remove-stop"
-                                onclick="this.closest('.stop-group').remove()">Remove</button>
+                                onclick="removeStopField(this)">Remove</button>
                         </div>
                     </div>
                 </template>
@@ -306,6 +306,12 @@
     </div>
 
     <div class="mobile-safe-area-bottom"></div>
+
+    <div id="pin-popup" class="pin-popup" style="display:none;">
+        <button type="button" id="pin-popup-start" class="pin-popup-btn">Set as Start</button>
+        <button type="button" id="pin-popup-stop" class="pin-popup-btn">Add as Stop</button>
+        <button type="button" id="pin-popup-destination" class="pin-popup-btn">Set as Destination</button>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/intro.js@7.2.0/minified/intro.min.js"></script>

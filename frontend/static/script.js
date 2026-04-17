@@ -22,10 +22,10 @@ const nodeType = (id) => (window.allNodes[id]?.type) || null;
 // ---------------------------------------------------------------------------
 function applyDarkMode(dark) {
     document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-    const moonIcon  = document.getElementById('dark-icon');
-    const sunIcon   = document.getElementById('light-icon');
+    const moonIcon = document.getElementById('dark-icon');
+    const sunIcon = document.getElementById('light-icon');
     if (moonIcon) moonIcon.style.display = dark ? 'none' : 'block';
-    if (sunIcon)  sunIcon.style.display  = dark ? 'block' : 'none';
+    if (sunIcon) sunIcon.style.display = dark ? 'block' : 'none';
 }
 
 function toggleDarkMode() {
@@ -114,18 +114,18 @@ function fitSVGToImage() {
 
         const cw = container.clientWidth;
         const ch = container.clientHeight;
-        const iw = img.naturalWidth  || cw;
+        const iw = img.naturalWidth || cw;
         const ih = img.naturalHeight || ch;
 
-        const scale   = Math.min(cw / iw, ch / ih);
-        const rw      = iw * scale;
-        const rh      = ih * scale;
+        const scale = Math.min(cw / iw, ch / ih);
+        const rw = iw * scale;
+        const rh = ih * scale;
         const offsetX = (cw - rw) / 2;
         const offsetY = (ch - rh) / 2;
 
-        svg.style.left   = offsetX + 'px';
-        svg.style.top    = offsetY + 'px';
-        svg.style.width  = rw + 'px';
+        svg.style.left = offsetX + 'px';
+        svg.style.top = offsetY + 'px';
+        svg.style.width = rw + 'px';
         svg.style.height = rh + 'px';
     }
 }
@@ -141,19 +141,19 @@ function fitNavSVGToImage() {
 
         const cw = container.clientWidth;
         const ch = container.clientHeight;
-        const iw = img.naturalWidth  || cw;
+        const iw = img.naturalWidth || cw;
         const ih = img.naturalHeight || ch;
         if (!cw || !ch) continue;
 
-        const scale   = Math.min(cw / iw, ch / ih);
-        const rw      = iw * scale;
-        const rh      = ih * scale;
+        const scale = Math.min(cw / iw, ch / ih);
+        const rw = iw * scale;
+        const rh = ih * scale;
         const offsetX = (cw - rw) / 2;
         const offsetY = (ch - rh) / 2;
 
-        svg.style.left   = offsetX + 'px';
-        svg.style.top    = offsetY + 'px';
-        svg.style.width  = rw + 'px';
+        svg.style.left = offsetX + 'px';
+        svg.style.top = offsetY + 'px';
+        svg.style.width = rw + 'px';
         svg.style.height = rh + 'px';
     }
 }
@@ -194,9 +194,9 @@ function makeOrthogonalPath(path) {
 function computeCheckpoints(logicalPath) {
     if (!logicalPath || logicalPath.length === 0) return [];
 
-    const result   = [];
+    const result = [];
     const addedIds = new Set();
-    const stopIds  = (window.stopLabels || []).map(s => s.id);
+    const stopIds = (window.stopLabels || []).map(s => s.id);
 
     function addCheckpoint(node) {
         if (!node) return;
@@ -214,13 +214,13 @@ function computeCheckpoints(logicalPath) {
         const next = logicalPath[i + 1];
 
         const currType = nodeType(curr.id);
-        const isWp     = window.allNodes[curr.id]?.is_waypoint;
+        const isWp = window.allNodes[curr.id]?.is_waypoint;
 
         if (isWp) continue;
 
         // --- Floor transition ---
         if (next && curr.floor !== next.floor) {
-            const isLift   = currType === 'lift';
+            const isLift = currType === 'lift';
             const isStairs = currType === 'stairs';
 
             if (isLift) {
@@ -254,9 +254,9 @@ function computeCheckpoints(logicalPath) {
         // --- User-selected stop or high-degree junction ---
         const isUserStop = stopIds.includes(curr.id);
         const isStopNode = currType !== 'lift' && currType !== 'stairs' &&
-                           curr.id !== logicalPath[0].id &&
-                           curr.id !== logicalPath[logicalPath.length - 1].id;
-        const degree     = (window.nodeDegrees && window.nodeDegrees[curr.id]) || 0;
+            curr.id !== logicalPath[0].id &&
+            curr.id !== logicalPath[logicalPath.length - 1].id;
+        const degree = (window.nodeDegrees && window.nodeDegrees[curr.id]) || 0;
         const isJunction = degree >= 3;
 
         if (isStopNode && (isUserStop || isJunction)) {
@@ -279,8 +279,8 @@ function computeCheckpoints(logicalPath) {
 // ---------------------------------------------------------------------------
 function showRouteActivePanel() {
     // Hide form elements
-    const form       = document.getElementById('nav-form');
-    const stopsCont  = document.getElementById('stops-container');
+    const form = document.getElementById('nav-form');
+    const stopsCont = document.getElementById('stops-container');
     if (form) form.classList.add('form-hidden');
 
     // Show route info panel
@@ -302,12 +302,12 @@ function resetToForm() {
         const svg = document.getElementById(`svg-f${f}`);
         if (svg) svg.innerHTML = '';
     }
-    const legend  = document.getElementById('map-legend');
+    const legend = document.getElementById('map-legend');
     const summary = document.getElementById('route-summary');
-    if (legend)  legend.style.display  = 'none';
+    if (legend) legend.style.display = 'none';
     if (summary) summary.style.display = 'none';
     hideCheckpointButton();
-    pathData    = [];
+    pathData = [];
     checkpoints = [];
     currentCheckpointIdx = 0;
 
@@ -325,9 +325,9 @@ function resetToForm() {
 function showCheckpointButton() {
     const btn = document.getElementById('checkpoint-btn');
     if (!btn) return;
-    const isLast      = currentCheckpointIdx >= checkpoints.length - 1;
-    btn.textContent   = isLast ? 'Finish Navigation' : 'Reached Checkpoint';
-    btn.className     = isLast ? 'checkpoint-btn finish-btn' : 'checkpoint-btn';
+    const isLast = currentCheckpointIdx >= checkpoints.length - 1;
+    btn.textContent = isLast ? 'Finish Navigation' : 'Reached Checkpoint';
+    btn.className = isLast ? 'checkpoint-btn finish-btn' : 'checkpoint-btn';
     btn.style.display = 'flex';
 }
 
@@ -369,20 +369,20 @@ function toggleMobileDirections() {
 // ---------------------------------------------------------------------------
 function showFloorConfirmModal(floorNum, method, onResponse) {
     const modal = document.getElementById('floor-confirm-modal');
-    const icon  = document.getElementById('floor-confirm-icon');
+    const icon = document.getElementById('floor-confirm-icon');
     const title = document.getElementById('floor-confirm-title');
-    const body  = document.getElementById('floor-confirm-body');
+    const body = document.getElementById('floor-confirm-body');
     if (!modal) { onResponse(true); return; }
 
     const floorName = FLOOR_NAMES[floorNum] || `Floor ${floorNum}`;
 
-    icon.textContent      = method === 'lift' ? 'LIFT' : 'STAIRS';
-    icon.style.color      = method === 'lift' ? '#6366f1' : '#f59e0b';
+    icon.textContent = method === 'lift' ? 'LIFT' : 'STAIRS';
+    icon.style.color = method === 'lift' ? '#6366f1' : '#f59e0b';
     icon.style.fontFamily = "'Orbitron', sans-serif";
-    icon.style.fontSize   = '14px';
+    icon.style.fontSize = '14px';
     icon.style.fontWeight = '700';
     icon.style.letterSpacing = '1px';
-    icon.style.padding    = '8px 16px';
+    icon.style.padding = '8px 16px';
     icon.style.borderRadius = '8px';
     icon.style.background = method === 'lift'
         ? 'rgba(99,102,241,0.1)' : 'rgba(245,158,11,0.1)';
@@ -426,31 +426,31 @@ function onCheckpointReached() {
             const svg = document.getElementById(`svg-f${f}`);
             if (svg) svg.innerHTML = '';
         }
-        const legend  = document.getElementById('map-legend');
+        const legend = document.getElementById('map-legend');
         const summary = document.getElementById('route-summary');
-        if (legend)  legend.style.display  = 'none';
+        if (legend) legend.style.display = 'none';
         if (summary) summary.style.display = 'none';
         // Hide mobile nav screen
         const navScreen = document.getElementById('mobile-directions-strip');
         if (navScreen) navScreen.style.display = 'none';
-        pathData   = [];
+        pathData = [];
         checkpoints = [];
         const elapsed = navStartTime ? Math.round((Date.now() - navStartTime) / 1000) : 0;
-        const mins    = Math.floor(elapsed / 60);
-        const secs    = elapsed % 60;
+        const mins = Math.floor(elapsed / 60);
+        const secs = elapsed % 60;
         showSuccessOverlay(mins > 0 ? `${mins} min ${secs} sec` : `${secs} sec`);
         return;
     }
 
-    const reachedCp    = checkpoints[currentCheckpointIdx];
-    const nextCp       = checkpoints[currentCheckpointIdx + 1];
-    const reachedType  = nodeType(reachedCp.id);
-    const isLiftNode   = reachedType === 'lift'   || reachedCp.id.includes('LIFT');
-    const isStairNode  = reachedType === 'stairs' || reachedCp.id.includes('STAIRS')
-                         || reachedCp.id.includes('CURVEDSTAIRS');
+    const reachedCp = checkpoints[currentCheckpointIdx];
+    const nextCp = checkpoints[currentCheckpointIdx + 1];
+    const reachedType = nodeType(reachedCp.id);
+    const isLiftNode = reachedType === 'lift' || reachedCp.id.includes('LIFT');
+    const isStairNode = reachedType === 'stairs' || reachedCp.id.includes('STAIRS')
+        || reachedCp.id.includes('CURVEDSTAIRS');
     const floorChanging = nextCp && reachedCp.floor !== nextCp.floor;
 
-    const needsLiftConfirm  = isLiftNode  && floorChanging;
+    const needsLiftConfirm = isLiftNode && floorChanging;
     const needsStairConfirm = isStairNode && floorChanging;
 
     function advanceCheckpoint() {
@@ -472,7 +472,7 @@ function onCheckpointReached() {
 
     if (needsLiftConfirm || needsStairConfirm) {
         hideCheckpointButton();
-        const method      = isLiftNode ? 'lift' : 'stairs';
+        const method = isLiftNode ? 'lift' : 'stairs';
         const targetFloor = nextCp.floor;
         showFloorConfirmModal(targetFloor, method, (confirmed) => {
             if (confirmed) {
@@ -523,10 +523,10 @@ function highlightRemainingPath(checkpointIdx) {
     if (splitIdx === -1) splitIdx = 0;
 
     const traversed = orthoPath.slice(0, splitIdx + 1);
-    const remaining  = orthoPath.slice(splitIdx);
+    const remaining = orthoPath.slice(splitIdx);
 
     const globalStart = pathData[0];
-    const globalEnd   = pathData[pathData.length - 1];
+    const globalEnd = pathData[pathData.length - 1];
 
     // Split nodes into (segment, floor) buckets.
     // On a floor change, the last point of the outgoing bucket is prepended
@@ -536,27 +536,27 @@ function highlightRemainingPath(checkpointIdx) {
     function toBuckets(nodes) {
         const buckets = [];
         let curSeg = null, curFloor = null, curPts = [];
-        
+
         nodes.forEach(p => {
             const seg = p.segment ?? 0;
             if (seg !== curSeg || p.floor !== curFloor) {
                 // Save the outgoing bucket
                 if (curPts.length >= 2) buckets.push({ floor: curFloor, pts: [...curPts] });
-                
+
                 // If it's a segment change on the SAME floor, keep the last point to bridge the gap
                 if (curFloor !== null && p.floor === curFloor && curPts.length > 0) {
                     curPts = [curPts[curPts.length - 1], p];
                 } else {
                     curPts = [p];
                 }
-                
+
                 curSeg = seg;
                 curFloor = p.floor;
             } else {
                 curPts.push(p);
             }
         });
-        
+
         // Push the final bucket
         if (curPts.length >= 2) buckets.push({ floor: curFloor, pts: [...curPts] });
 
@@ -570,12 +570,12 @@ function highlightRemainingPath(checkpointIdx) {
             if (prev && prev.floor !== p.floor) extra.push({ floor: prev.floor, pts: [prev, p] });
             if (next && next.floor !== p.floor) extra.push({ floor: next.floor, pts: [p, next] });
         });
-        
+
         return [...buckets, ...extra];
     }
 
     const travBuckets = toBuckets(traversed);
-    const remBuckets  = toBuckets(remaining);
+    const remBuckets = toBuckets(remaining);
 
     for (let f = 1; f <= 4; f++) {
         const svg = document.getElementById(`svg-f${f}`);
@@ -614,7 +614,7 @@ function highlightRemainingPath(checkpointIdx) {
 
         // Next checkpoint purple dot
         const nextIdx = currentCheckpointIdx + 1;
-        const nextCp  = nextIdx < checkpoints.length ? checkpoints[nextIdx] : null;
+        const nextCp = nextIdx < checkpoints.length ? checkpoints[nextIdx] : null;
         if (nextCp && nextCp.floor === f && remaining.some(p => p.id === nextCp.id))
             drawCheckpointDot(svg, nextCp.x, nextCp.y);
     }
@@ -629,16 +629,16 @@ function scrollDirectionsToCheckpoint(nodeId) {
     const items = Array.from(list.querySelectorAll('li'));
     if (items.length === 0) return;
 
-    const label    = window.allNodes[nodeId]?.label || '';
-    const nType    = nodeType(nodeId);
-    const isLift   = nType === 'lift'   || nodeId.includes('LIFT');
+    const label = window.allNodes[nodeId]?.label || '';
+    const nType = nodeType(nodeId);
+    const isLift = nType === 'lift' || nodeId.includes('LIFT');
     const isStairs = nType === 'stairs' || nodeId.includes('STAIRS');
 
     items.forEach(li => li.classList.remove('directions-active'));
     let target = null;
-    if (isLift)        target = items.find(li => li.textContent.startsWith('[LIFT]'));
+    if (isLift) target = items.find(li => li.textContent.startsWith('[LIFT]'));
     else if (isStairs) target = items.find(li => li.textContent.startsWith('[STAIRS]'));
-    else if (label)    items.forEach(li => { if (li.textContent.includes(label)) target = li; });
+    else if (label) items.forEach(li => { if (li.textContent.includes(label)) target = li; });
 
     if (!target && items.length > 0) target = items.slice(0, -1).pop() || items[0];
     if (target) {
@@ -647,7 +647,7 @@ function scrollDirectionsToCheckpoint(nodeId) {
     }
 
     if (isMobile()) {
-        const stripItem  = document.querySelector(
+        const stripItem = document.querySelector(
             `#mobile-directions-list li[data-checkpoint="${currentCheckpointIdx}"]`);
         const stripItems = document.querySelectorAll('#mobile-directions-list li');
         stripItems.forEach(li => li.classList.remove('directions-active'));
@@ -697,10 +697,10 @@ function drawPath(path, logicalPath = path) {
     });
 
     const globalStart = logicalPath[0];
-    const globalEnd   = logicalPath[logicalPath.length - 1];
+    const globalEnd = logicalPath[logicalPath.length - 1];
 
     const routeCheckpoints = computeCheckpoints(logicalPath);
-    const nextCheckpoint   = routeCheckpoints.length > 0 ? routeCheckpoints[0] : null;
+    const nextCheckpoint = routeCheckpoints.length > 0 ? routeCheckpoints[0] : null;
 
     for (let i = 1; i <= 4; i++) {
         if (floorPaths[i].length > 1) {
@@ -722,28 +722,28 @@ function drawPath(path, logicalPath = path) {
 
     const summary = document.getElementById('route-summary');
     if (summary) {
-        const startLabel         = window.allNodes[globalStart.id]?.label || globalStart.id;
-        const endLabel           = window.allNodes[globalEnd.id]?.label   || globalEnd.id;
+        const startLabel = window.allNodes[globalStart.id]?.label || globalStart.id;
+        const endLabel = window.allNodes[globalEnd.id]?.label || globalEnd.id;
         const intermediateLabels = (window.stopLabels || []).map(s => s.label);
-        const allLabels          = [startLabel, ...intermediateLabels, endLabel];
+        const allLabels = [startLabel, ...intermediateLabels, endLabel];
         summary.innerHTML = allLabels.map((label, i) => {
             let cls = 'route-summary-stop';
-            if (i === 0)                    cls = 'route-summary-from';
+            if (i === 0) cls = 'route-summary-from';
             else if (i === allLabels.length - 1) cls = 'route-summary-to';
             const span = `<span class="${cls}" title="${label}">${label}</span>`;
             return i < allLabels.length - 1
                 ? span + '<span class="route-summary-arrow"> → </span>'
                 : span;
         }).join('');
-        summary.style.display  = 'flex';
+        summary.style.display = 'flex';
         summary.style.flexWrap = 'wrap';
         summary.style.maxWidth = 'none';
     }
 
     // Assign checkpoints BEFORE populating any mobile UI
-    checkpoints          = routeCheckpoints;
+    checkpoints = routeCheckpoints;
     currentCheckpointIdx = 0;
-    navStartTime         = Date.now();
+    navStartTime = Date.now();
 
     if (isMobile()) {
         document.body.classList.add('has-route');
@@ -754,7 +754,7 @@ function drawPath(path, logicalPath = path) {
         if (mobileLabel) {
             mobileLabel.textContent =
                 `${window.allNodes[globalStart.id]?.label || globalStart.id} → ` +
-                `${window.allNodes[globalEnd.id]?.label   || globalEnd.id}`;
+                `${window.allNodes[globalEnd.id]?.label || globalEnd.id}`;
         }
         const topBar = document.getElementById('mobile-top-bar');
         if (topBar) topBar.style.display = 'flex';
@@ -775,8 +775,8 @@ function drawPath(path, logicalPath = path) {
         } else {
             const btn = document.getElementById('checkpoint-btn');
             if (btn) {
-                btn.textContent   = 'Finish Navigation';
-                btn.className     = 'checkpoint-btn finish-btn';
+                btn.textContent = 'Finish Navigation';
+                btn.className = 'checkpoint-btn finish-btn';
                 btn.style.display = 'flex';
             }
         }
@@ -824,8 +824,8 @@ function renderSVG(svgId, points, globalStart, globalEnd, nextCheckpoint = null)
         draw3DPin(svg, globalStart.x, globalStart.y, "marker-start");
 
     // Red destination pin — only on the final leg.
-    const maxSeg   = Math.max(...points.map(p => p.segment ?? 0));
-    const destSeg  = points.find(p => p.id === globalEnd.id)?.segment ?? maxSeg;
+    const maxSeg = Math.max(...points.map(p => p.segment ?? 0));
+    const destSeg = points.find(p => p.id === globalEnd.id)?.segment ?? maxSeg;
     const isFinalLeg = !nextCheckpoint || destSeg === maxSeg;
     if (isFinalLeg && points.some(p => p.id === globalEnd.id))
         draw3DPin(svg, globalEnd.x, globalEnd.y, "marker-end");
@@ -839,7 +839,7 @@ function renderSVG(svgId, points, globalStart, globalEnd, nextCheckpoint = null)
 // Marker helpers
 // ---------------------------------------------------------------------------
 function draw3DPin(svg, x, y, className) {
-    const g   = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
     const pin = document.createElementNS("http://www.w3.org/2000/svg", "path");
     pin.setAttribute("d", "M0,0 C-0.8,-1.1 -1.6,-2 -1.6,-3 C-1.6,-4 -0.8,-4.6 0,-4.6 C0.8,-4.6 1.6,-4 1.6,-3 C1.6,-2 0.8,-1.1 0,0 Z");
     pin.setAttribute("class", `marker-3d ${className}`);
@@ -896,10 +896,10 @@ function generateDirections(path) {
     const directions = [];
     if (!path || path.length === 0) return directions;
 
-    const nodeLabel  = (id) => window.allNodes[id]?.label || id;
+    const nodeLabel = (id) => window.allNodes[id]?.label || id;
     const isTransition = (id) => nodeType(id) === 'stairs' || nodeType(id) === 'lift';
-    const isWaypoint   = (id) => window.allNodes[id]?.is_waypoint ||
-                                  id.includes('HALLWAY') || id.includes('PASSAGEWAY');
+    const isWaypoint = (id) => window.allNodes[id]?.is_waypoint ||
+        id.includes('HALLWAY') || id.includes('PASSAGEWAY');
 
     // ── Geometry helpers ──────────────────────────────────────────────────────
 
@@ -919,7 +919,7 @@ function generateDirections(path) {
     // Cardinal label for a heading
     function cardinal(h) {
         if (h < 22.5 || h >= 337.5) return 'east';
-        if (h < 67.5)  return 'south-east';
+        if (h < 67.5) return 'south-east';
         if (h < 112.5) return 'south';
         if (h < 157.5) return 'south-west';
         if (h < 202.5) return 'west';
@@ -998,7 +998,7 @@ function generateDirections(path) {
 
         // ── Floor transition ──────────────────────────────────────────────────
         if (curr.floor !== prev.floor) {
-            const isLift   = nodeType(curr.id) === 'lift';
+            const isLift = nodeType(curr.id) === 'lift';
             const isStairs = nodeType(curr.id) === 'stairs';
             const isCurved = isStairs && window.allNodes[curr.id]?.stairs_kind === 'curved';
 
@@ -1010,10 +1010,10 @@ function generateDirections(path) {
                     path[j].floor !== prev.floor &&
                     (isLift ? nodeType(path[j].id) === 'lift' : nodeType(path[j].id) === 'stairs')
                 ) { j++; }
-                const exitNode  = path[Math.min(j, path.length - 1)];
+                const exitNode = path[Math.min(j, path.length - 1)];
                 const exitFloor = path[Math.min(j, path.length - 1) - 1]?.floor ?? exitNode.floor;
-                const goingUp   = exitFloor > originFloor;
-                const tag       = isLift ? '[LIFT]' : '[STAIRS]';
+                const goingUp = exitFloor > originFloor;
+                const tag = isLift ? '[LIFT]' : '[STAIRS]';
 
                 if (isLift) {
                     directions.push(`${tag} Enter the lift and go ${goingUp ? 'up' : 'down'} to the ${FLOOR_NAMES[exitFloor]}.`);
@@ -1052,7 +1052,7 @@ function generateDirections(path) {
             let turnText = '';
             if (prevHeading !== null) {
                 const turn = turnDir(prevHeading, corridorHeading);
-                if (turn === 'left')       turnText = 'Take a left. ';
+                if (turn === 'left') turnText = 'Take a left. ';
                 else if (turn === 'right') turnText = 'Take a right. ';
                 // else: going straight, no turn instruction needed
             }
@@ -1062,7 +1062,7 @@ function generateDirections(path) {
 
             // What's at the end of this corridor stretch?
             const nodeAtEnd = j < path.length ? path[j] : null;
-            const endLabel  = nodeAtEnd && !isWaypoint(nodeAtEnd.id) && !isTransition(nodeAtEnd.id)
+            const endLabel = nodeAtEnd && !isWaypoint(nodeAtEnd.id) && !isTransition(nodeAtEnd.id)
                 ? nodeLabel(nodeAtEnd.id) : null;
 
             let instruction = '';
@@ -1104,7 +1104,7 @@ function generateDirections(path) {
 
         // ── Direct room-to-room step ──────────────────────────────────────────
         if (!isTransition(curr.id)) {
-            const h    = heading(prev, curr);
+            const h = heading(prev, curr);
             const dist = distM(prev, curr);
             const turn = prevHeading !== null ? turnDir(prevHeading, h) : null;
 
@@ -1155,10 +1155,10 @@ function generateDirections(path) {
                 })();
                 if (stepSeg !== lastSeg && stepSeg >= 0) {
                     lastSeg = stepSeg;
-                    const legNum   = stepSeg + 1;
+                    const legNum = stepSeg + 1;
                     const legStart = window.allNodes[path.find(p => (p.segment ?? 0) === stepSeg)?.id]?.label || '';
-                    const legEnd   = window.allNodes[[...path].reverse().find(p => (p.segment ?? 0) === stepSeg)?.id]?.label || '';
-                    const header   = document.createElement('li');
+                    const legEnd = window.allNodes[[...path].reverse().find(p => (p.segment ?? 0) === stepSeg)?.id]?.label || '';
+                    const header = document.createElement('li');
                     header.textContent = `— LEG ${legNum}: ${legStart} → ${legEnd} —`;
                     header.style.cssText =
                         'list-style:none;font-weight:700;font-size:11px;color:var(--steel);' +
@@ -1179,14 +1179,14 @@ function generateDirections(path) {
             let cpIdx = 0;
             Array.from(list.querySelectorAll('li')).forEach(li => {
                 if (cpIdx >= checkpoints.length) return;
-                const cp       = checkpoints[cpIdx];
-                const label    = window.allNodes[cp.id]?.label || cp.id;
-                const isLift   = nodeType(cp.id) === 'lift'   || cp.id.includes('LIFT');
+                const cp = checkpoints[cpIdx];
+                const label = window.allNodes[cp.id]?.label || cp.id;
+                const isLift = nodeType(cp.id) === 'lift' || cp.id.includes('LIFT');
                 const isStairs = nodeType(cp.id) === 'stairs' || cp.id.includes('STAIRS');
                 const raw = li._rawText || li.textContent;
-                const matchLift   = isLift   && raw.includes('[LIFT]');
+                const matchLift = isLift && raw.includes('[LIFT]');
                 const matchStairs = isStairs && raw.includes('[STAIRS]');
-                const matchLabel  = !isLift && !isStairs && label && (raw.includes(label) || li.textContent.includes(label));
+                const matchLabel = !isLift && !isStairs && label && (raw.includes(label) || li.textContent.includes(label));
                 if (matchLift || matchStairs || matchLabel) {
                     li.setAttribute('data-checkpoint', cpIdx);
                     const badge = document.createElement('span');
@@ -1221,13 +1221,13 @@ function calculateMetrics(path) {
     }
 
     const totalMeters = distance * COORD_TO_METERS;
-    const seconds     = totalMeters / WALK_SPEED;
-    const mins        = Math.floor(seconds / 60);
-    const secs        = Math.round(seconds % 60);
+    const seconds = totalMeters / WALK_SPEED;
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.round(seconds % 60);
 
     document.getElementById('m-distance').textContent = totalMeters.toFixed(1);
-    document.getElementById('m-time').textContent     = `${mins} min ${secs} sec`;
-    document.getElementById('m-floors').textContent   = floorChanges;
+    document.getElementById('m-time').textContent = `${mins} min ${secs} sec`;
+    document.getElementById('m-floors').textContent = floorChanges;
     document.getElementById('metrics-bar').style.display = 'flex';
     const rip = document.getElementById('route-info-panel');
     if (rip) rip.style.display = 'block';
@@ -1240,7 +1240,7 @@ function calculateMetrics(path) {
             // Refresh mobile metric cards now that rating is available
             if (isMobile()) {
                 const floorEl = document.getElementById('m-floors');
-                const cards   = document.getElementById('mobile-metrics-cards');
+                const cards = document.getElementById('mobile-metrics-cards');
                 if (cards) {
                     cards.innerHTML =
                         `<div class="nav-metric-card">
@@ -1282,17 +1282,17 @@ function calculateMetrics(path) {
 // ---------------------------------------------------------------------------
 
 function stepIcon(text) {
-    if (text.startsWith('[START]'))   return 'start';
+    if (text.startsWith('[START]')) return 'start';
     if (text.startsWith('[ARRIVED]')) return 'arrived';
-    if (text.startsWith('[LIFT]'))    return 'lift';
-    if (text.startsWith('[STAIRS]'))  return 'stairs';
+    if (text.startsWith('[LIFT]')) return 'lift';
+    if (text.startsWith('[STAIRS]')) return 'stairs';
     if (text.startsWith('[WALK]')) {
-        if (text.includes('Take a left'))  return 'turn-left';
+        if (text.includes('Take a left')) return 'turn-left';
         if (text.includes('Take a right')) return 'turn-right';
         return 'walk';
     }
     if (text.startsWith('[GO]')) {
-        if (text.includes('Take a left'))  return 'turn-left';
+        if (text.includes('Take a left')) return 'turn-left';
         if (text.includes('Take a right')) return 'turn-right';
         return 'straight';
     }
@@ -1302,13 +1302,13 @@ function stepIcon(text) {
 // SVG icons for each step type (inline, no external dependency)
 function stepIconSVG(type) {
     const icons = {
-        start:      `<svg viewBox="0 0 18 18" fill="none"><path d="M9 15V5M5 9l4-4 4 4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="3" y1="16" x2="15" y2="16" stroke-width="2" stroke-linecap="round"/></svg>`,
-        arrived:    `<svg viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke-width="1.5"/><path d="M5.5 9l2.5 3 4.5-5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-        lift:       `<svg viewBox="0 0 18 18" fill="none"><rect x="3" y="2" width="12" height="14" rx="2" stroke-width="1.5"/><path d="M9 6v6M6.5 8.5L9 6l2.5 2.5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-        stairs:     `<svg viewBox="0 0 18 18" fill="none"><path d="M3 15h4v-3h4V9h4V3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-        walk:       `<svg viewBox="0 0 18 18" fill="none"><path d="M12 9H4M4 9l3-3M4 9l3 3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-        go:         `<svg viewBox="0 0 18 18" fill="none"><path d="M6 9h8M14 9l-3-3M14 9l-3 3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-        straight:   `<svg viewBox="0 0 18 18" fill="none"><path d="M9 14V4M5 8l4-4 4 4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        start: `<svg viewBox="0 0 18 18" fill="none"><path d="M9 15V5M5 9l4-4 4 4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="3" y1="16" x2="15" y2="16" stroke-width="2" stroke-linecap="round"/></svg>`,
+        arrived: `<svg viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke-width="1.5"/><path d="M5.5 9l2.5 3 4.5-5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        lift: `<svg viewBox="0 0 18 18" fill="none"><rect x="3" y="2" width="12" height="14" rx="2" stroke-width="1.5"/><path d="M9 6v6M6.5 8.5L9 6l2.5 2.5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        stairs: `<svg viewBox="0 0 18 18" fill="none"><path d="M3 15h4v-3h4V9h4V3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        walk: `<svg viewBox="0 0 18 18" fill="none"><path d="M12 9H4M4 9l3-3M4 9l3 3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        go: `<svg viewBox="0 0 18 18" fill="none"><path d="M6 9h8M14 9l-3-3M14 9l-3 3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        straight: `<svg viewBox="0 0 18 18" fill="none"><path d="M9 14V4M5 8l4-4 4 4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
         'turn-left': `<svg viewBox="0 0 18 18" fill="none"><path d="M14 14V8a4 4 0 0 0-4-4H4m0 0l3 3M4 4l3-3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
         'turn-right': `<svg viewBox="0 0 18 18" fill="none"><path d="M4 14V8a4 4 0 0 1 4-4h6m0 0l-3 3m3-3l-3-3" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
     };
@@ -1317,14 +1317,14 @@ function stepIconSVG(type) {
 
 // Human-readable step title from tag + instruction text
 function stepTitle(text) {
-    if (text.startsWith('[START]'))   return 'Starting Point';
+    if (text.startsWith('[START]')) return 'Starting Point';
     if (text.startsWith('[ARRIVED]')) return '🎯 Arrived!';
-    if (text.startsWith('[LIFT]'))    return text.includes('up') ? '⬆ Take lift up' : '⬇ Take lift down';
-    if (text.startsWith('[STAIRS]'))  return text.includes('curved')
+    if (text.startsWith('[LIFT]')) return text.includes('up') ? '⬆ Take lift up' : '⬇ Take lift down';
+    if (text.startsWith('[STAIRS]')) return text.includes('curved')
         ? (text.includes('up') ? '⬆ Take curved stairs up' : '⬇ Take curved stairs down')
         : (text.includes('up') ? '⬆ Take main stairs up' : '⬇ Take main stairs down');
     const body = text.replace(/^\[\w+\]\s*/, '');
-    if (body.startsWith('Take a left'))  return '↰ Turn Left';
+    if (body.startsWith('Take a left')) return '↰ Turn Left';
     if (body.startsWith('Take a right')) return '↱ Turn Right';
     if (body.startsWith('Go straight') || body.startsWith('Walk')) return '↑ Go Straight';
     if (body.startsWith('Take the passageway')) return '↪ Take Passageway';
@@ -1341,8 +1341,8 @@ function populateMobileStrip(logicalPath) {
     if (pill) pill.textContent = destLabel;
 
     // ── Stat row: Distance + Time ──
-    const distEl  = document.getElementById('m-distance');
-    const timeEl  = document.getElementById('m-time');
+    const distEl = document.getElementById('m-distance');
+    const timeEl = document.getElementById('m-time');
     const statRow = document.getElementById('mobile-metrics-row');
     if (statRow) {
         statRow.innerHTML =
@@ -1357,9 +1357,9 @@ function populateMobileStrip(logicalPath) {
     }
 
     // ── Metric cards: Floor changes + Route rating ──
-    const floorEl  = document.getElementById('m-floors');
+    const floorEl = document.getElementById('m-floors');
     const ratingEl = document.getElementById('m-rating');
-    const cards    = document.getElementById('mobile-metrics-cards');
+    const cards = document.getElementById('mobile-metrics-cards');
     if (cards) {
         cards.innerHTML =
             `<div class="nav-metric-card">
@@ -1390,7 +1390,7 @@ function populateMobileStrip(logicalPath) {
     }
 
     // ── Timeline directions list ──
-    const srcList    = document.getElementById('directions-list');
+    const srcList = document.getElementById('directions-list');
     const mobileList = document.getElementById('mobile-directions-list');
     if (srcList && mobileList) {
         mobileList.innerHTML = '';
@@ -1400,11 +1400,11 @@ function populateMobileStrip(logicalPath) {
 
         srcItems.forEach((srcLi, idx) => {
             const rawText = srcLi._rawText || srcLi.childNodes[0]?.textContent?.trim() || srcLi.textContent.trim();
-            const type    = stepIcon(rawText);
-            const isLast  = idx === srcItems.length - 1;
-            const title   = stepTitle(rawText);
+            const type = stepIcon(rawText);
+            const isLast = idx === srcItems.length - 1;
+            const title = stepTitle(rawText);
             // Sub-text: everything after the [TAG] prefix
-            const sub     = rawText.replace(/^\[[\w]+\]\s*/, '');
+            const sub = rawText.replace(/^\[[\w]+\]\s*/, '');
 
             const li = document.createElement('li');
             const cp = srcLi.getAttribute('data-checkpoint');
@@ -1464,7 +1464,7 @@ function populateMobileStrip(logicalPath) {
 
 function syncNavSVGs() {
     for (let f = 1; f <= 4; f++) {
-        const src  = document.getElementById(`svg-f${f}`);
+        const src = document.getElementById(`svg-f${f}`);
         const dest = document.getElementById(`svg-nav-f${f}`);
         if (src && dest) dest.innerHTML = src.innerHTML;
     }
@@ -1544,8 +1544,8 @@ function closeFeedback() {
 
 function submitFeedback() {
     const allSelected = [...document.querySelectorAll('#star-rating span.selected')];
-    const selected    = allSelected.length > 0 ? allSelected[allSelected.length - 1] : null;
-    const rating      = selected ? +selected.dataset.val : null;
+    const selected = allSelected.length > 0 ? allSelected[allSelected.length - 1] : null;
+    const rating = selected ? +selected.dataset.val : null;
     if (!rating) { toast('Please select a star rating before submitting.'); return; }
     if (!pathData || pathData.length === 0) { closeFeedback(); return; }
 
@@ -1554,20 +1554,20 @@ function submitFeedback() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         body: JSON.stringify({
-            start:   pathData[0]?.id || '',
-            end:     pathData[pathData.length - 1]?.id || '',
-            path:    pathData.map(p => p.id),
+            start: pathData[0]?.id || '',
+            end: pathData[pathData.length - 1]?.id || '',
+            path: pathData.map(p => p.id),
             rating,
             comment
         })
     })
-    .then(() => { closeFeedback(); toast('Thanks for your feedback!'); })
-    .catch(() => { closeFeedback(); toast('Could not send feedback right now.'); });
+        .then(() => { closeFeedback(); toast('Thanks for your feedback!'); })
+        .catch(() => { closeFeedback(); toast('Could not send feedback right now.'); });
 }
 
 function toast(msg) {
     const el = document.createElement('div');
-    el.className   = 'toast-msg';
+    el.className = 'toast-msg';
     el.textContent = msg;
     document.body.appendChild(el);
     setTimeout(() => el.remove(), 3000);
@@ -1592,7 +1592,7 @@ function faqMatch(input) {
 }
 
 function toggleFAQChat() {
-    const chat   = document.getElementById('faq-chat');
+    const chat = document.getElementById('faq-chat');
     const bubble = document.getElementById('faq-bubble');
     if (!chat) return;
     const isOpen = chat.style.display !== 'none';
@@ -1619,7 +1619,7 @@ function appendFAQMessage(text, sender) {
     const messages = document.getElementById('faq-messages');
     if (!messages) return;
     const div = document.createElement('div');
-    div.className   = `faq-msg faq-msg-${sender}`;
+    div.className = `faq-msg faq-msg-${sender}`;
     div.textContent = text;
     messages.appendChild(div);
     messages.scrollTop = messages.scrollHeight;
@@ -1630,15 +1630,15 @@ function appendFAQMessage(text, sender) {
 // ---------------------------------------------------------------------------
 class PDRNavigator {
     constructor(floorGraph, onPositionUpdate) {
-        this.graph    = floorGraph;
+        this.graph = floorGraph;
         this.onUpdate = onPositionUpdate;
         this.position = null;
-        this.heading  = 0;
+        this.heading = 0;
         this.stepCount = 0;
         this.lastCheckpointNode = null;
     }
-    start()  { /* Request DeviceMotion + DeviceOrientation permissions (iOS 13+) */ }
-    stop()   { /* Remove event listeners */ }
+    start() { /* Request DeviceMotion + DeviceOrientation permissions (iOS 13+) */ }
+    stop() { /* Remove event listeners */ }
     onStep(heading, strideLength) { /* Update estimated position */ }
     snapToNode(threshold = 5) { /* Find nearest node within threshold % units */ }
     snapToCheckpoint(node) {
@@ -1661,8 +1661,8 @@ class PDRNavigator {
      */
     function eventToNodeCoords(e, container) {
         const wrapper = container.querySelector('.panzoom-wrapper') || container;
-        const img     = wrapper.querySelector('.map-image');
-        const svg     = wrapper.querySelector('.map-overlay');
+        const img = wrapper.querySelector('.map-image');
+        const svg = wrapper.querySelector('.map-overlay');
         if (!img || !svg) return null;
 
         // Bounding rect of the SVG overlay in viewport pixels
@@ -1673,8 +1673,8 @@ class PDRNavigator {
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
         // Map from screen px → SVG viewBox units (0–100)
-        const svgX = ((clientX - rect.left) / rect.width)  * 100;
-        const svgY = ((clientY - rect.top)  / rect.height) * 100;
+        const svgX = ((clientX - rect.left) / rect.width) * 100;
+        const svgY = ((clientY - rect.top) / rect.height) * 100;
         return { x: svgX, y: svgY };
     }
 
@@ -1691,7 +1691,7 @@ class PDRNavigator {
             if (data.is_waypoint) continue;
             const dx = data.coords[0] - coords.x;
             const dy = data.coords[1] - coords.y;
-            const d  = Math.sqrt(dx * dx + dy * dy);
+            const d = Math.sqrt(dx * dx + dy * dy);
             if (d < bestDist) { bestDist = d; bestId = id; }
         }
         return bestId;
@@ -1770,7 +1770,7 @@ class PDRNavigator {
      */
     function attachPinListeners(containerEl, floorNum) {
         let longPressTimer = null;
-        let didLongPress   = false;
+        let didLongPress = false;
 
         function handlePress(e) {
             if (floorNum !== activeFloor()) return;
@@ -1797,9 +1797,9 @@ class PDRNavigator {
         }
 
         // Touch — long-press
-        containerEl.addEventListener('touchstart', handlePress,  { passive: true });
-        containerEl.addEventListener('touchend',   cancelPress,  { passive: true });
-        containerEl.addEventListener('touchmove',  cancelPress,  { passive: true });
+        containerEl.addEventListener('touchstart', handlePress, { passive: true });
+        containerEl.addEventListener('touchend', cancelPress, { passive: true });
+        containerEl.addEventListener('touchmove', cancelPress, { passive: true });
 
         // Desktop — right-click (contextmenu)
         containerEl.addEventListener('contextmenu', (e) => {
@@ -1818,5 +1818,5 @@ class PDRNavigator {
 
     // Bridge: app.js stores its tsEnd reference here so we can access it.
     // Call window._registerTsEnd(tsInstance) from app.js after creation.
-    window._registerTsEnd = function(ts) { window._tsEnd = ts; };
-})();
+    window._registerTsEnd = function (ts) { window._tsEnd = ts; };
+})();

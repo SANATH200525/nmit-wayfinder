@@ -1,5 +1,5 @@
 /* ============================================================
-   NMIT WAYFINDER — Blue Design System
+   NMIT WAYFINDER â€” Blue Design System
    Light: white surfaces, #3B82F6 accent, #1a1f36 ink
    Dark:  #0f172a bg, #1e293b surfaces, #3B82F6 accent
    Button rule: default = black text / white bg / black border
@@ -39,7 +39,7 @@
     --radius-xl: 28px;
 }
 
-/* ── Dark mode ── */
+/* â”€â”€ Dark mode â”€â”€ */
 [data-theme="dark"] {
     --accent: #3B82F6;
     --accent-d: #60a5fa;
@@ -73,7 +73,7 @@
     .introjs-arrow.bottom { border-top-color: var(--surface) !important; }
     .introjs-arrow.left { border-right-color: var(--surface) !important; }
     .introjs-arrow.right { border-left-color: var(--surface) !important; }
-    
+
     .introjs-button {
         background: var(--accent) !important;
         color: #ffffff !important;
@@ -87,7 +87,7 @@
     }
 }
 
-/* ── Reset ── */
+/* â”€â”€ Reset â”€â”€ */
 *,
 *::before,
 *::after {
@@ -115,7 +115,7 @@ body.has-route {
     width: 100%;
 }
 
-/* ── Desktop App Shell ── */
+/* â”€â”€ Desktop App Shell â”€â”€ */
 .app-container {
     display: flex;
     width: 95%;
@@ -135,7 +135,7 @@ body.has-route {
     }
 }
 
-/* ── Navigator Panel ── */
+/* â”€â”€ Navigator Panel â”€â”€ */
 .navigator-panel {
     flex: 0 0 340px;
     background: var(--surface);
@@ -159,7 +159,7 @@ body.has-route {
     border-radius: 4px;
 }
 
-/* ── Map Section ── */
+/* â”€â”€ Map Section â”€â”€ */
 .map-section {
     flex: 1;
     background: var(--surface);
@@ -173,7 +173,7 @@ body.has-route {
     position: relative;
 }
 
-/* ── Header ── */
+/* â”€â”€ Header â”€â”€ */
 .header-section {
     text-align: center;
     margin-bottom: 20px;
@@ -234,7 +234,7 @@ h1 {
     margin-bottom: 4px;
 }
 
-/* ── Form ── */
+/* â”€â”€ Form â”€â”€ */
 .form-group {
     margin-bottom: 14px;
 }
@@ -249,7 +249,7 @@ h1 {
     text-transform: uppercase;
 }
 
-/* ── TomSelect ── */
+/* â”€â”€ TomSelect â”€â”€ */
 .ts-wrapper {
     width: 100%;
 }
@@ -337,10 +337,10 @@ h1 {
     touch-action: manipulation;
 }
 
-/* ── BUTTONS
+/* â”€â”€ BUTTONS
    Default: black text, white bg, black border
    Hover:   white text, black bg
-   ── */
+   â”€â”€ */
 .start-btn {
     width: 100%;
     padding: 14px;
@@ -403,7 +403,7 @@ h1 {
     margin-top: 12px;
 }
 
-/* ── Radio group ── */
+/* â”€â”€ Radio group â”€â”€ */
 .radio-group {
     display: flex;
     flex-direction: column;
@@ -424,7 +424,7 @@ input[type="radio"] {
     accent-color: var(--teal);
 }
 
-/* ── Map Header ── */
+/* â”€â”€ Map Header â”€â”€ */
 .map-header {
     display: flex;
     justify-content: space-between;
@@ -469,7 +469,7 @@ input[type="radio"] {
     border-color: var(--text-primary);
 }
 
-/* ── Route Summary ── */
+/* â”€â”€ Route Summary â”€â”€ */
 .route-summary {
     display: flex;
     align-items: center;
@@ -516,7 +516,7 @@ input[type="radio"] {
     font-size: 13px;
 }
 
-/* ── Map Display ── */
+/* â”€â”€ Map Display â”€â”€ */
 .map-display {
     flex: 1;
     min-height: 0;
@@ -534,6 +534,7 @@ input[type="radio"] {
     position: absolute;
     top: 0;
     left: 0;
+    cursor: crosshair;
 }
 
 .map-image {
@@ -541,7 +542,12 @@ input[type="radio"] {
     height: 100%;
     object-fit: contain;
     display: block;
-    pointer-events: none;
+    pointer-events: auto;
+    cursor: crosshair !important;
+}
+
+.map-container .panzoom-wrapper {
+    cursor: crosshair !important;
 }
 
 .map-overlay {
@@ -554,7 +560,7 @@ input[type="radio"] {
     overflow: visible;
 }
 
-/* ── Path Lines — teal for active route ── */
+/* â”€â”€ Path Lines â€” teal for active route â”€â”€ */
 .path-line {
     fill: none;
     stroke: var(--accent);
@@ -601,7 +607,29 @@ input[type="radio"] {
     stroke-dasharray: 3, 5;
 }
 
-/* Alternate route — lighter sky-blue dashed line */
+.snap-pulse {
+    fill: rgba(59, 130, 246, 0.18);
+    stroke: #3B82F6;
+    stroke-width: 0.45;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: snapPulse 0.7s ease-out forwards;
+    pointer-events: none;
+}
+
+@keyframes snapPulse {
+    0% {
+        opacity: 0.95;
+        transform: scale(0.75);
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(3.8);
+    }
+}
+
+/* Alternate route â€” lighter sky-blue dashed line */
 .path-line-alt {
     fill: none;
     stroke: rgba(125, 211, 252, 0.75);
@@ -612,7 +640,7 @@ input[type="radio"] {
     animation: flowDash 1.2s linear infinite;
 }
 
-/* ALT button — compact, outlined accent */
+/* ALT button â€” compact, outlined accent */
 .alt-route-btn {
     flex: 0 0 auto !important;
     width: auto !important;
@@ -635,7 +663,7 @@ input[type="radio"] {
     color: #fff !important;
 }
 
-/* ── Markers ── */
+/* â”€â”€ Markers â”€â”€ */
 .marker-3d {
     filter: drop-shadow(0px 6px 5px rgba(0, 0, 0, 0.3));
 }
@@ -664,7 +692,7 @@ input[type="radio"] {
     stroke-width: 2px;
 }
 
-/* ── Map Legend ── */
+/* â”€â”€ Map Legend â”€â”€ */
 .map-legend {
     display: flex;
     gap: 14px;
@@ -689,7 +717,7 @@ input[type="radio"] {
     display: inline-block;
 }
 
-/* ── CHECKPOINT BUTTON — outlined ── */
+/* â”€â”€ CHECKPOINT BUTTON â€” outlined â”€â”€ */
 .checkpoint-btn {
     position: absolute;
     bottom: 28px;
@@ -734,7 +762,7 @@ input[type="radio"] {
     box-shadow: var(--shadow-lg);
 }
 
-/* ── Metrics Bar ── */
+/* â”€â”€ Metrics Bar â”€â”€ */
 .metrics-bar {
     display: flex;
     gap: 16px;
@@ -753,14 +781,14 @@ input[type="radio"] {
     font-weight: 700;
 }
 
-/* ── Route Info Panel ── */
+/* â”€â”€ Route Info Panel â”€â”€ */
 #route-info-panel {
     margin-top: 14px;
     border-top: 1px solid var(--border-light);
     padding-top: 14px;
 }
 
-/* ── Directions Panel ── */
+/* â”€â”€ Directions Panel â”€â”€ */
 #directions-panel {
     margin-top: 10px;
     background: var(--surface-2);
@@ -809,7 +837,7 @@ input[type="radio"] {
     color: var(--teal);
 }
 
-/* ── Error Message ── */
+/* â”€â”€ Error Message â”€â”€ */
 .error-message {
     background: rgba(239, 68, 68, 0.08);
     border: 1px solid rgba(239, 68, 68, 0.25);
@@ -822,7 +850,7 @@ input[type="radio"] {
     line-height: 1.5;
 }
 
-/* ── Modals ── */
+/* â”€â”€ Modals â”€â”€ */
 .modal-overlay {
     position: fixed;
     inset: 0;
@@ -884,7 +912,7 @@ input[type="radio"] {
     color: #fff;
 }
 
-/* ── Star Rating ── */
+/* â”€â”€ Star Rating â”€â”€ */
 .star-rating span {
     font-size: 32px;
     color: #d1d5db;
@@ -896,7 +924,7 @@ input[type="radio"] {
     color: #f59e0b;
 }
 
-/* ── Floor Confirm Modal ── */
+/* â”€â”€ Floor Confirm Modal â”€â”€ */
 .floor-confirm-box {
     text-align: center;
     max-width: 330px;
@@ -958,7 +986,7 @@ input[type="radio"] {
     background: #fef2f2;
 }
 
-/* ── Success Overlay ── */
+/* â”€â”€ Success Overlay â”€â”€ */
 .success-box {
     text-align: center;
 }
@@ -979,7 +1007,7 @@ input[type="radio"] {
     color: var(--text-secondary);
 }
 
-/* ── Toast ── */
+/* â”€â”€ Toast â”€â”€ */
 .toast-msg {
     position: fixed;
     bottom: 20px;
@@ -997,7 +1025,64 @@ input[type="radio"] {
     box-shadow: var(--shadow-md);
 }
 
-/* ── FAQ Chatbot ── */
+.pin-popup {
+    position: fixed;
+    min-width: 180px;
+    display: none;
+    padding: 8px;
+    border-radius: 14px;
+    border: 1px solid var(--border-light);
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.16);
+    backdrop-filter: blur(10px);
+    z-index: 10020;
+}
+
+.pin-popup-btn {
+    width: 100%;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.16s ease, color 0.16s ease, transform 0.16s ease;
+}
+
+.pin-popup-btn:hover,
+.pin-popup-btn:focus-visible {
+    background: var(--accent-l);
+    color: var(--accent-d);
+    outline: none;
+    transform: translateX(2px);
+}
+
+.dropdown-pulse {
+    animation: dropdownPulse 0.65s ease;
+}
+
+@keyframes dropdownPulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    }
+
+    35% {
+        transform: scale(1.02);
+        box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.16);
+    }
+
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    }
+}
+
+/* â”€â”€ FAQ Chatbot â”€â”€ */
 .faq-bubble {
     position: fixed;
     bottom: 24px;
@@ -1138,7 +1223,7 @@ input[type="radio"] {
 }
 
 /* ================================================================
-   MOBILE-FIRST  ≤ 768px
+   MOBILE-FIRST  â‰¤ 768px
    ================================================================ */
 @media (max-width: 768px) {
 
@@ -1374,7 +1459,7 @@ input[type="radio"] {
     }
 }
 
-/* ── Mobile Top Bar ── */
+/* â”€â”€ Mobile Top Bar â”€â”€ */
 .mobile-top-bar {
     display: none;
 }
@@ -1427,7 +1512,7 @@ input[type="radio"] {
     }
 }
 
-/* ── Active Navigation Screen ── */
+/* â”€â”€ Active Navigation Screen â”€â”€ */
 .mobile-directions-strip {
     display: none;
 }
@@ -1446,7 +1531,7 @@ input[type="radio"] {
         overflow: hidden;
     }
 
-    /* ── Top bar ── */
+    /* â”€â”€ Top bar â”€â”€ */
     .nav-topbar {
         display: flex;
         align-items: center;
@@ -1500,7 +1585,7 @@ input[type="radio"] {
         flex-shrink: 0;
     }
 
-    /* ── Map area ── */
+    /* â”€â”€ Map area â”€â”€ */
     .nav-map-area {
         position: relative;
         height: 52vh;
@@ -1543,9 +1628,9 @@ input[type="radio"] {
         overflow: visible;
     }
 
-    /* ── Floating pill floor switcher ── */
+    /* â”€â”€ Floating pill floor switcher â”€â”€ */
 
-    /* ── Scrollable sheet below map ── */
+    /* â”€â”€ Scrollable sheet below map â”€â”€ */
     .nav-sheet {
         flex: 1;
         overflow-y: auto;
@@ -1564,7 +1649,7 @@ input[type="radio"] {
         margin: 10px auto 18px;
     }
 
-    /* ── Stat row: Distance + Estimated Time ── */
+    /* â”€â”€ Stat row: Distance + Estimated Time â”€â”€ */
     .nav-stat-row {
         display: flex;
         justify-content: space-between;
@@ -1597,7 +1682,7 @@ input[type="radio"] {
         line-height: 1.1;
     }
 
-    /* ── Metric icon cards: Floor changes + Route rating ── */
+    /* â”€â”€ Metric icon cards: Floor changes + Route rating â”€â”€ */
     .nav-metric-cards {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -1647,7 +1732,7 @@ input[type="radio"] {
         line-height: 1;
     }
 
-    /* ── Journey section label ── */
+    /* â”€â”€ Journey section label â”€â”€ */
     .nav-journey-label {
         font-size: 10px;
         font-weight: 700;
@@ -1657,7 +1742,7 @@ input[type="radio"] {
         margin-bottom: 14px;
     }
 
-    /* ── Timeline directions list ── */
+    /* â”€â”€ Timeline directions list â”€â”€ */
     .nav-directions-list {
         list-style: none;
         margin: 0;
@@ -1764,7 +1849,7 @@ input[type="radio"] {
     }
 
 
-    /* ── Bottom bar — checkpoint FAB only ── */
+    /* â”€â”€ Bottom bar â€” checkpoint FAB only â”€â”€ */
     .nav-bottom-bar {
         position: fixed;
         bottom: 0;
@@ -1783,7 +1868,7 @@ input[type="radio"] {
         pointer-events: auto;
     }
 
-    /* Central FAB — checkpoint action */
+    /* Central FAB â€” checkpoint action */
     .nav-fab-btn {
         width: 56px;
         height: 56px;
@@ -1819,7 +1904,7 @@ input[type="radio"] {
 
 
 
-/* ── Route Form Sheet wrapper ── */
+/* â”€â”€ Route Form Sheet wrapper â”€â”€ */
 .route-form-sheet {
     display: contents;
 }
@@ -1830,7 +1915,7 @@ input[type="radio"] {
     }
 }
 
-/* ── iOS ── */
+/* â”€â”€ iOS â”€â”€ */
 @supports (-webkit-touch-callout: none) {
     body {
         background-attachment: fixed;
@@ -1838,7 +1923,7 @@ input[type="radio"] {
     }
 }
 
-/* ── Dark mode toggle button ── */
+/* â”€â”€ Dark mode toggle button â”€â”€ */
 .header-top-row {
     display: flex;
     align-items: center;
@@ -1867,7 +1952,7 @@ input[type="radio"] {
     border-color: var(--accent);
 }
 
-/* ── Dark mode surface overrides ── */
+/* â”€â”€ Dark mode surface overrides â”€â”€ */
 [data-theme="dark"] .navigator-panel,
 [data-theme="dark"] .map-section,
 [data-theme="dark"] .route-form-sheet,
@@ -1897,6 +1982,18 @@ input[type="radio"] {
 
 [data-theme="dark"] .ts-dropdown .option:hover {
     background: var(--surface-3) !important;
+}
+
+[data-theme="dark"] .pin-popup {
+    background: rgba(30, 41, 59, 0.96);
+    border-color: var(--border);
+    box-shadow: 0 20px 48px rgba(2, 6, 23, 0.45);
+}
+
+[data-theme="dark"] .pin-popup-btn:hover,
+[data-theme="dark"] .pin-popup-btn:focus-visible {
+    background: rgba(59, 130, 246, 0.16);
+    color: #bfdbfe;
 }
 
 [data-theme="dark"] .modal-box {
@@ -1990,7 +2087,7 @@ input[type="radio"] {
     background: var(--bg-grad);
 }
 
-/* ── Route active panel ── */
+/* â”€â”€ Route active panel â”€â”€ */
 .new-route-btn {
     display: flex;
     align-items: center;
@@ -2057,7 +2154,7 @@ input[type="radio"] {
     display: none !important;
 }
 
-/* ── Floor picker (current location floor selector) ── */
+/* â”€â”€ Floor picker (current location floor selector) â”€â”€ */
 .floor-picker {
     display: flex;
     gap: 6px;
@@ -2127,7 +2224,7 @@ input[type="radio"] {
     }
 }
 
-/* ── Alternate Route Buttons ── */
+/* â”€â”€ Alternate Route Buttons â”€â”€ */
 .alt-route-btn {
     flex: 0 0 auto !important;
     width: auto !important;
@@ -2185,8 +2282,8 @@ input[type="radio"] {
     color: #ffffff;
 }
 
-/* ── Panzoom ── */
+/* â”€â”€ Panzoom â”€â”€ */
 .panzoom-wrapper {
     touch-action: none;
 }
-
+
