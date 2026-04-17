@@ -63,6 +63,28 @@
     --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
     --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
     --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
+
+    /* Intro.js Overrides for Dark Mode */
+    .introjs-tooltip {
+        background: var(--surface) !important;
+        color: var(--text-primary) !important;
+    }
+    .introjs-arrow.top { border-bottom-color: var(--surface) !important; }
+    .introjs-arrow.bottom { border-top-color: var(--surface) !important; }
+    .introjs-arrow.left { border-right-color: var(--surface) !important; }
+    .introjs-arrow.right { border-left-color: var(--surface) !important; }
+    
+    .introjs-button {
+        background: var(--accent) !important;
+        color: #ffffff !important;
+        text-shadow: none !important;
+        border-color: var(--accent) !important;
+    }
+    .introjs-skipbutton, .introjs-prevbutton {
+        color: var(--text-secondary) !important;
+        border-color: var(--text-secondary) !important;
+        background: transparent !important;
+    }
 }
 
 /* ── Reset ── */

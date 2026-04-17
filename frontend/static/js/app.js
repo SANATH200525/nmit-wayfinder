@@ -521,12 +521,27 @@ window.onCheckpointReached = function () {
     recordCheckpoint({ sessionId: currentSessionId, checkpointIndex: currentCheckpointIdx, checkpointNodeId: activeCp.id });
   }
 
+  const currentVisibleFloor = parseInt(document.querySelector('.floor-tab.active')?.dataset.floor || '1');
+
   if ((isLiftNode || isStairNode) && floorChanging) {
-    hideCheckpointButton();
-    showFloorConfirmModal(nextCp.floor, isLiftNode ? 'lift' : 'stairs', (confirmed) => {
-      if (confirmed) { window.switchFloor(nextCp.floor); advanceCheckpoint(); }
-      else { toast(`Head to the ${FLOOR_NAMES[nextCp.floor]} and tap the button when you arrive.`); showCheckpointButton(); }
-    });
+    if (nextCp.floor === currentVisibleFloor) {
+      // User is already on the target floor. Skip modal and fast-forward.
+      let targetIdx = currentCheckpointIdx + 1;
+      while (targetIdx < checkpoints.length && checkpoints[targetIdx].floor !== currentVisibleFloor) {
+        targetIdx++;
+      }
+      if (targetIdx < checkpoints.length) {
+        // Set to one before the target so advanceCheckpoint() lands exactly on it
+        currentCheckpointIdx = targetIdx - 1;
+      }
+      advanceCheckpoint();
+    } else {
+      hideCheckpointButton();
+      showFloorConfirmModal(nextCp.floor, isLiftNode ? 'lift' : 'stairs', (confirmed) => {
+        if (confirmed) { window.switchFloor(nextCp.floor); advanceCheckpoint(); }
+        else { toast(`Head to the ${FLOOR_NAMES[nextCp.floor]} and tap the button when you arrive.`); showCheckpointButton(); }
+      });
+    }
   } else { advanceCheckpoint(); }
 };
 
