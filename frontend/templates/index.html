@@ -1,11 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>NMIT Wayfinder - Pro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Orbitron:wght@600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Orbitron:wght@600;700&display=swap"
+        rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intro.js@7.2.0/minified/introjs.min.css">
     <link rel="manifest" href="/static/manifest.json?v=9">
     <link rel="icon" type="image/png" sizes="192x192" href="/static/icon-192.png">
     <link rel="apple-touch-icon" href="/static/icon-192.png">
@@ -14,6 +19,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="stylesheet" href="/static/css/style.css?v=9">
 </head>
+
 <body id="app-body">
 
     <main class="app-container">
@@ -23,92 +29,123 @@
                 <span class="mobile-back-arrow">&#8592;</span> New Route
             </button>
             <div id="mobile-route-label" class="mobile-route-label"></div>
+            <button type="button" id="alt-route-btn-mobile-top" class="alt-route-btn-mobile" title="Alternate route" onclick="requestAlternateRoute()" style="display:none;">ALT</button>
         </div>
 
         <div id="route-form-sheet" class="route-form-sheet">
-        <section class="navigator-panel">
-            <div class="header-section">
-                <div class="header-top-row">
-                    <div class="status-badge"><span class="status-dot"></span> 4-FLOOR SYSTEM READY</div>
-                    <button id="dark-mode-btn" class="dark-mode-btn" onclick="toggleDarkMode()" aria-label="Toggle dark mode" title="Toggle dark mode">
-                        <svg id="dark-icon" width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-                        <svg id="light-icon" width="16" height="16" viewBox="0 0 20 20" fill="none" style="display:none"><circle cx="10" cy="10" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-                    </button>
-                </div>
-                <div class="title-wrapper">
-                    <h1>WAYFINDER</h1>
-                </div>
-            </div>
-
-            <form id="nav-form">
-                <div class="form-group">
-                    <label class="field-label">WHAT FLOOR ARE YOU ON?</label>
-                    <div class="floor-picker" id="floor-picker">
-                        <button type="button" class="floor-pick-btn active" data-floor-label="Ground Floor" onclick="selectStartFloor(this)">GF</button>
-                        <button type="button" class="floor-pick-btn" data-floor-label="First Floor" onclick="selectStartFloor(this)">1F</button>
-                        <button type="button" class="floor-pick-btn" data-floor-label="Second Floor" onclick="selectStartFloor(this)">2F</button>
-                        <button type="button" class="floor-pick-btn" data-floor-label="Third Floor" onclick="selectStartFloor(this)">3F</button>
+            <section class="navigator-panel">
+                <div class="header-section">
+                    <div class="header-top-row">
+                        <div class="status-badge"><span class="status-dot"></span> 4-FLOOR SYSTEM READY</div>
+                        <button id="dark-mode-btn" class="dark-mode-btn" onclick="toggleDarkMode()"
+                            aria-label="Toggle dark mode" title="Toggle dark mode">
+                            <svg id="dark-icon" width="16" height="16" viewBox="0 0 20 20" fill="none">
+                                <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"
+                                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                            </svg>
+                            <svg id="light-icon" width="16" height="16" viewBox="0 0 20 20" fill="none"
+                                style="display:none">
+                                <circle cx="10" cy="10" r="4" stroke="currentColor" stroke-width="1.5" />
+                                <path
+                                    d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42"
+                                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                            </svg>
+                        </button>
+                        <button id="tour-btn" class="dark-mode-btn" onclick="startTour()" aria-label="Help tour"
+                            title="Start guided tour" style="margin-left:4px;font-size:14px;">?</button>
+                    </div>
+                    <div class="title-wrapper">
+                        <h1>WAYFINDER</h1>
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label class="field-label">CURRENT LOCATION</label>
-                    <select id="start_node" name="start_node" required>
-                        <option value="">Select location...</option>
-                    </select>
-                </div>
-
-                <div id="stops-container"></div>
-
-                <button type="button" class="add-stop-btn" onclick="addStopField()">+ ADD STOP</button>
-
-                <div class="form-group" style="margin-top: 15px;">
-                    <label class="field-label">FINAL DESTINATION</label>
-                    <select id="end_node" name="end_node" required>
-                        <option value="">Select location...</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label class="field-label">MOBILITY MODE</label>
-                    <div class="radio-group">
-                        <label><input type="radio" name="mobility" value="none" checked> No Preference</label>
-                        <label><input type="radio" name="mobility" value="elevator_only"> Elevator Only</label>
-                        <label><input type="radio" name="mobility" value="stairs_only"> Stairs Only</label>
-                    </div>
-                </div>
-
-                <div class="action-buttons">
-                    <button type="submit" class="start-btn">INITIATE ROUTE</button>
-                </div>
-            </form>
-
-
-            <template id="stop-template">
-                <div class="form-group stop-group">
-                    <label class="field-label">VIA (STOP)</label>
-                    <div style="display: flex; gap: 5px; align-items: flex-start;">
-                        <div style="flex: 1; min-width: 0;">
-                            <select name="stops[]" class="stop-select" required></select>
+                <form id="nav-form">
+                    <div class="form-group"
+                        data-intro="Select the floor you are currently on, then pick your exact location from the dropdown below."
+                        data-step="1">
+                        <label class="field-label">WHAT FLOOR ARE YOU ON?</label>
+                        <div class="floor-picker" id="floor-picker">
+                            <button type="button" class="floor-pick-btn active" data-floor-label="Ground Floor"
+                                onclick="selectStartFloor(this)">GF</button>
+                            <button type="button" class="floor-pick-btn" data-floor-label="First Floor"
+                                onclick="selectStartFloor(this)">1F</button>
+                            <button type="button" class="floor-pick-btn" data-floor-label="Second Floor"
+                                onclick="selectStartFloor(this)">2F</button>
+                            <button type="button" class="floor-pick-btn" data-floor-label="Third Floor"
+                                onclick="selectStartFloor(this)">3F</button>
                         </div>
-                        <button type="button" class="remove-stop" onclick="this.closest('.stop-group').remove()">Remove</button>
                     </div>
+
+                    <div class="form-group">
+                        <label class="field-label">CURRENT LOCATION</label>
+                        <select id="start_node" name="start_node" required>
+                            <option value="">Select location...</option>
+                        </select>
+                    </div>
+
+                    <div id="stops-container"></div>
+
+                    <button type="button" class="add-stop-btn" onclick="addStopField()">+ ADD STOP</button>
+
+                    <div class="form-group" style="margin-top: 15px;"
+                        data-intro="Choose your final destination from the list. You can search by room name or number."
+                        data-step="3">
+                        <label class="field-label">FINAL DESTINATION</label>
+                        <select id="end_node" name="end_node" required>
+                            <option value="">Select location...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="field-label">MOBILITY MODE</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="mobility" value="none" checked> No Preference</label>
+                            <label><input type="radio" name="mobility" value="elevator_only"> Elevator Only</label>
+                            <label><input type="radio" name="mobility" value="stairs_only"> Stairs Only</label>
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button type="submit" class="start-btn"
+                            data-intro="Tap here to calculate and display the fastest route on the map!"
+                            data-step="4">INITIATE ROUTE</button>
+                    </div>
+                </form>
+
+
+                <template id="stop-template">
+                    <div class="form-group stop-group">
+                        <label class="field-label">VIA (STOP)</label>
+                        <div style="display: flex; gap: 5px; align-items: flex-start;">
+                            <div style="flex: 1; min-width: 0;">
+                                <select name="stops[]" class="stop-select" required></select>
+                            </div>
+                            <button type="button" class="remove-stop"
+                                onclick="this.closest('.stop-group').remove()">Remove</button>
+                        </div>
+                    </div>
+                </template>
+                <div id="route-info-panel" style="display:none;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                        <button class="new-route-btn" onclick="resetToForm()">&#8592; New Route</button>
+                        <button type="button" id="alt-route-btn-desktop" class="start-btn alt-route-btn" title="Show an alternate route" onclick="requestAlternateRoute()" style="display:none;">ALT ROUTE</button>
+                    </div>
+                    <div id="metrics-bar" class="metrics-bar" style="display:none;">
+                        <div class="metric-item"><span class="metric-label">Distance</span><strong
+                                id="m-distance">--</strong> m</div>
+                        <div class="metric-item"><span class="metric-label">Time</span><strong id="m-time">--</strong>
+                        </div>
+                        <div class="metric-item"><span class="metric-label">Floor changes</span><strong
+                                id="m-floors">--</strong></div>
+                        <div class="metric-item"><span class="metric-label">Route rating</span><strong
+                                id="m-rating">--</strong></div>
+                    </div>
+                    <details id="directions-panel" open style="display:none;">
+                        <summary>Turn-by-Turn Directions</summary>
+                        <ol id="directions-list"></ol>
+                    </details>
                 </div>
-            </template>
-            <div id="route-info-panel" style="display:none;">
-                <button class="new-route-btn" onclick="resetToForm()">&#8592; New Route</button>
-                <div id="metrics-bar" class="metrics-bar" style="display:none;">
-                    <div class="metric-item"><span class="metric-label">Distance</span><strong id="m-distance">--</strong> m</div>
-                    <div class="metric-item"><span class="metric-label">Time</span><strong id="m-time">--</strong></div>
-                    <div class="metric-item"><span class="metric-label">Floor changes</span><strong id="m-floors">--</strong></div>
-                    <div class="metric-item"><span class="metric-label">Route rating</span><strong id="m-rating">--</strong></div>
-                </div>
-                <details id="directions-panel" open style="display:none;">
-                    <summary>Turn-by-Turn Directions</summary>
-                    <ol id="directions-list"></ol>
-                </details>
-            </div>
-        </section>
+            </section>
         </div><!-- end route-form-sheet -->
 
         <section class="map-section">
@@ -136,16 +173,20 @@
                     <svg id="svg-f2" class="map-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
                 </div>
                 <div id="f3-container" class="map-container" style="display:none;">
-                    <img src="{{ url_for('static', filename='floor3.png') }}" class="map-image" loading="lazy" onerror="this.style.display='none'">
+                    <img src="{{ url_for('static', filename='floor3.png') }}" class="map-image" loading="lazy"
+                        onerror="this.style.display='none'">
                     <svg id="svg-f3" class="map-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
                 </div>
                 <div id="f4-container" class="map-container" style="display:none;">
-                    <img src="{{ url_for('static', filename='floor4.png') }}" class="map-image" loading="lazy" onerror="this.style.display='none'">
+                    <img src="{{ url_for('static', filename='floor4.png') }}" class="map-image" loading="lazy"
+                        onerror="this.style.display='none'">
                     <svg id="svg-f4" class="map-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
                 </div>
             </div><!-- end map-viewport -->
 
-            <button id="checkpoint-btn" class="checkpoint-btn" style="display:none;" onclick="onCheckpointReached()">
+            <button id="checkpoint-btn" class="checkpoint-btn" style="display:none;" onclick="onCheckpointReached()"
+                data-intro="Tap this button every time you physically arrive at a checkpoint or floor transition on your route."
+                data-step="5">
                 Reached Checkpoint
             </button>
 
@@ -154,9 +195,11 @@
 
                 <!-- Top bar: back + title + destination pill -->
                 <div class="nav-topbar">
-                    <button class="nav-back-btn" onclick="openRouteForm()" aria-label="Back to route form">&#8592;</button>
+                    <button class="nav-back-btn" onclick="openRouteForm()"
+                        aria-label="Back to route form">&#8592;</button>
                     <span class="nav-topbar-title">Wayfinder</span>
                     <div id="nav-dest-pill" class="nav-dest-pill"></div>
+                    <button type="button" id="alt-route-btn-mobile" class="alt-route-btn-mobile" title="Alternate route" onclick="requestAlternateRoute()" style="display:none;">ALT</button>
                 </div>
 
                 <!-- Map area with floating pill floor switcher -->
@@ -164,19 +207,26 @@
                     <div class="nav-map-viewport">
                         <div id="nav-f1" class="nav-floor-img" style="display:block;">
                             <img src="{{ url_for('static', filename='floor1.png') }}" class="nav-floor-png">
-                            <svg id="svg-nav-f1" class="nav-floor-svg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+                            <svg id="svg-nav-f1" class="nav-floor-svg" viewBox="0 0 100 100"
+                                preserveAspectRatio="none"></svg>
                         </div>
                         <div id="nav-f2" class="nav-floor-img" style="display:none;">
-                            <img src="{{ url_for('static', filename='floor2.png') }}" class="nav-floor-png" loading="lazy">
-                            <svg id="svg-nav-f2" class="nav-floor-svg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+                            <img src="{{ url_for('static', filename='floor2.png') }}" class="nav-floor-png"
+                                loading="lazy">
+                            <svg id="svg-nav-f2" class="nav-floor-svg" viewBox="0 0 100 100"
+                                preserveAspectRatio="none"></svg>
                         </div>
                         <div id="nav-f3" class="nav-floor-img" style="display:none;">
-                            <img src="{{ url_for('static', filename='floor3.png') }}" class="nav-floor-png" loading="lazy">
-                            <svg id="svg-nav-f3" class="nav-floor-svg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+                            <img src="{{ url_for('static', filename='floor3.png') }}" class="nav-floor-png"
+                                loading="lazy">
+                            <svg id="svg-nav-f3" class="nav-floor-svg" viewBox="0 0 100 100"
+                                preserveAspectRatio="none"></svg>
                         </div>
                         <div id="nav-f4" class="nav-floor-img" style="display:none;">
-                            <img src="{{ url_for('static', filename='floor4.png') }}" class="nav-floor-png" loading="lazy">
-                            <svg id="svg-nav-f4" class="nav-floor-svg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+                            <img src="{{ url_for('static', filename='floor4.png') }}" class="nav-floor-png"
+                                loading="lazy">
+                            <svg id="svg-nav-f4" class="nav-floor-svg" viewBox="0 0 100 100"
+                                preserveAspectRatio="none"></svg>
                         </div>
                     </div>
                 </div>
@@ -200,14 +250,19 @@
 
                 <!-- Bottom tab bar -->
                 <div class="nav-bottom-bar">
-                    <button id="mobile-checkpoint-btn" class="nav-fab-btn" style="display:none;" onclick="onCheckpointReached()" aria-label="Reached checkpoint">
-                        <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 18V5M6 10l5-5 5 5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <button id="mobile-checkpoint-btn" class="nav-fab-btn" style="display:none;"
+                        onclick="onCheckpointReached()" aria-label="Reached checkpoint">
+                        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                            <path d="M11 18V5M6 10l5-5 5 5" stroke="white" stroke-width="2.2" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
                     </button>
                 </div>
             </div>
             <div id="map-legend" class="map-legend" style="display:none;">
                 <span class="legend-item"><span class="legend-dot" style="background:#10b981;"></span> Start</span>
-                <span class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span> Destination</span>
+                <span class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>
+                    Destination</span>
                 <span class="legend-item"><span class="legend-dot" style="background:#8b5cf6;"></span> Checkpoint</span>
             </div>
         </section>
@@ -244,21 +299,52 @@
             <button id="floor-confirm-yes" class="floor-confirm-yes-btn" onclick="onFloorConfirmed(true)">
                 Yes, I'm here
             </button>
-        <button id="floor-confirm-no" class="floor-confirm-no-btn" onclick="onFloorConfirmed(false)">
-            Wrong floor — go back
-        </button>
+            <button id="floor-confirm-no" class="floor-confirm-no-btn" onclick="onFloorConfirmed(false)">
+                Wrong floor — go back
+            </button>
+        </div>
     </div>
-</div>
 
     <div class="mobile-safe-area-bottom"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/intro.js@7.2.0/minified/intro.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@panzoom/panzoom@4.5.1/dist/panzoom.min.js"></script>
     <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/static/service-worker.js?v=9', { type: 'module', updateViaCache: 'none' })
-          .then(r => console.log('SW registered:', r.scope))
-          .catch(e => console.warn('SW failed:', e));
-      }
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/static/service-worker.js?v=9', { type: 'module', updateViaCache: 'none' })
+                .then(r => console.log('SW registered:', r.scope))
+                .catch(e => console.warn('SW failed:', e));
+        }
+
+        function startTour() {
+            introJs()
+                .setOptions({
+                    steps: [
+                        { intro: '<strong>Welcome to NMIT Wayfinder!</strong><br>This short tour will guide you through navigating the campus.' },
+                        { element: document.querySelector('[data-step="1"]'), intro: 'Select the floor you are currently on using these buttons, then choose your exact location below.' },
+                        { element: document.querySelector('#start_node')?.closest('.form-group') || document.querySelector('#start_node'), intro: 'Your <strong>current location</strong> — search by room name or number.' },
+                        { element: document.querySelector('[data-step="3"]'), intro: 'Your <strong>destination</strong> — pick any room, lab, or office in the building.' },
+                        { element: document.querySelector('[data-step="4"]'), intro: '<strong>INITIATE ROUTE</strong> runs the pathfinding algorithm and draws the optimal route on the map. Hit <strong>ALT</strong> for an alternative path shown in light blue.' },
+                        { element: document.querySelector('[data-step="5"]') || document.querySelector('#checkpoint-btn'), intro: 'As you walk, tap <strong>Reached Checkpoint</strong> each time you arrive at a highlighted point — it tracks your progress and updates the remaining path.' },
+                    ],
+                    showProgress: true,
+                    showBullets: true,
+                    exitOnOverlayClick: true,
+                    nextLabel: 'Next &rarr;',
+                    prevLabel: '&larr; Back',
+                    doneLabel: "Let's Go!",
+                })
+                .start();
+        }
+
+        // Auto-launch tour for first-time visitors
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!localStorage.getItem('wf-tour-done')) {
+                setTimeout(startTour, 800);
+                localStorage.setItem('wf-tour-done', '1');
+            }
+        });
     </script>
     <div id="faq-bubble" class="faq-bubble" onclick="toggleFAQChat()" title="Ask a question">
         <span>?</span>
@@ -266,15 +352,16 @@
     <div id="faq-chat" class="faq-chat" style="display:none;">
         <div class="faq-chat-header">
             <span>Wayfinder Assistant</span>
-            <button onclick="toggleFAQChat()" style="background:none;border:none;color:white;font-size:16px;cursor:pointer;padding:0 4px;">X</button>
+            <button onclick="toggleFAQChat()"
+                style="background:none;border:none;color:white;font-size:16px;cursor:pointer;padding:0 4px;">X</button>
         </div>
         <div class="faq-chat-messages" id="faq-messages">
-            <div class="faq-msg faq-msg-bot">Hi! Ask me anything about the building - room locations, how to navigate, or how to use this app.</div>
+            <div class="faq-msg faq-msg-bot">Hi! Ask me anything about the building - room locations, how to navigate,
+                or how to use this app.</div>
         </div>
         <div class="faq-chat-input-row">
-            <input type="text" id="faq-input" class="faq-input"
-                   placeholder="e.g. Where is the library?"
-                   onkeydown="if(event.key==='Enter') sendFAQ()">
+            <input type="text" id="faq-input" class="faq-input" placeholder="e.g. Where is the library?"
+                onkeydown="if(event.key==='Enter') sendFAQ()">
             <button class="faq-send-btn" onclick="sendFAQ()">Send</button>
         </div>
     </div>
@@ -284,4 +371,5 @@
     <script type="module" src="/static/js/metrics.js?v=9"></script>
     <script type="module" src="/static/js/app.js?v=9"></script>
 </body>
+
 </html>

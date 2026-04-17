@@ -256,8 +256,26 @@ export function planRoute({ startNode, endNode, stops=[], avoidStairs=false,
 }
 
 // ---------------------------------------------------------------------------
-// buildDirections — pure turn-by-turn logic, returns [{ text, floor, type }]
+// planAlternate — returns a second-best path by penalising the primary route's
+// edges, forcing the algorithm to explore a different corridor.
 // ---------------------------------------------------------------------------
+export function planAlternate({ startNode, endNode, stops=[], avoidStairs=false,
+                                avoidElevators=false, nodes, graph,
+                                learnedWeights={}, primaryPath=[] }) {
+  // Build a penalty map from the primary path edges so bidirectionalAStar
+  // naturally avoids them (weight ×4 makes them very unattractive).
+  const penaltyWeights = { ...learnedWeights };
+  for (let i = 0; i < primaryPath.length - 1; i++) {
+    const a = primaryPath[i].id, b = primaryPath[i + 1].id;
+    const key = `${a}->${b}`, keyR = `${b}->${a}`;
+    penaltyWeights[key]  = (penaltyWeights[key]  ?? 1.0) * 4;
+    penaltyWeights[keyR] = (penaltyWeights[keyR] ?? 1.0) * 4;
+  }
+  return planRoute({ startNode, endNode, stops, avoidStairs, avoidElevators,
+                     nodes, graph, learnedWeights: penaltyWeights });
+}
+
+
 export function buildDirections(path, nodes) {
   if (!path || path.length === 0) return [];
 

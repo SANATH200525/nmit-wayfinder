@@ -1648,3 +1648,175 @@ class PDRNavigator {
         if (this.onUpdate) this.onUpdate(this.position);
     }
 }
+
+// =============================================================================
+// PIN-TO-NAVIGATE — long-press or right-click → nearest node → set destination
+// =============================================================================
+(function initPinToNavigate() {
+    const LONG_PRESS_MS = 600; // ms threshold for long-press
+
+    /**
+     * Convert a pointer event inside a map container to SVG coordinate-space
+     * (the 0–100 node coordinate system used by NODES).
+     */
+    function eventToNodeCoords(e, container) {
+        const wrapper = container.querySelector('.panzoom-wrapper') || container;
+        const img     = wrapper.querySelector('.map-image');
+        const svg     = wrapper.querySelector('.map-overlay');
+        if (!img || !svg) return null;
+
+        // Bounding rect of the SVG overlay in viewport pixels
+        const rect = svg.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return null;
+
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+        // Map from screen px → SVG viewBox units (0–100)
+        const svgX = ((clientX - rect.left) / rect.width)  * 100;
+        const svgY = ((clientY - rect.top)  / rect.height) * 100;
+        return { x: svgX, y: svgY };
+    }
+
+    /**
+     * Find the NODES entry nearest to a given {x, y} SVG coordinate.
+     * Only nodes on the currently visible floor are considered.
+     */
+    function nearestNode(coords, floorNum) {
+        const nodes = window.allNodes;
+        if (!nodes) return null;
+        let bestId = null, bestDist = Infinity;
+        for (const [id, data] of Object.entries(nodes)) {
+            if (data.floor !== floorNum) continue;
+            if (data.is_waypoint) continue;
+            const dx = data.coords[0] - coords.x;
+            const dy = data.coords[1] - coords.y;
+            const d  = Math.sqrt(dx * dx + dy * dy);
+            if (d < bestDist) { bestDist = d; bestId = id; }
+        }
+        return bestId;
+    }
+
+    /**
+     * Set a TomSelect dropdown value by id.
+     * Works for both the script.js (window.tsEnd) and app.js (module-scoped tsEnd).
+     */
+    function setEndNodeDropdown(nodeId) {
+        // app.js exports tsEnd via a window bridge if available
+        if (window._tsEnd && typeof window._tsEnd.setValue === 'function') {
+            window._tsEnd.setValue(nodeId, false);
+            return true;
+        }
+        // Fallback: look for any TomSelect instance on #end_node
+        const endEl = document.getElementById('end_node');
+        if (endEl && endEl.tomselect) {
+            endEl.tomselect.setValue(nodeId, false);
+            return true;
+        }
+        return false;
+    }
+
+    /** Show a temporary pin marker on the SVG and a toast confirmation. */
+    function showPinFeedback(svgId, coords, nodeLabel) {
+        const svg = document.getElementById(svgId);
+        if (!svg) return;
+        const old = svg.querySelector('.pin-to-nav-marker');
+        if (old) old.remove();
+
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.classList.add('pin-to-nav-marker');
+        // Ripple circle
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', coords.x);
+        circle.setAttribute('cy', coords.y);
+        circle.setAttribute('r', '2');
+        circle.setAttribute('fill', 'rgba(245,158,11,0.3)');
+        circle.setAttribute('stroke', '#f59e0b');
+        circle.setAttribute('stroke-width', '0.4');
+        // Animate the ripple out
+        const anim = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+        anim.setAttribute('attributeName', 'r');
+        anim.setAttribute('from', '1');
+        anim.setAttribute('to', '5');
+        anim.setAttribute('dur', '0.6s');
+        anim.setAttribute('fill', 'freeze');
+        circle.appendChild(anim);
+        const animOpacity = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+        animOpacity.setAttribute('attributeName', 'opacity');
+        animOpacity.setAttribute('from', '1');
+        animOpacity.setAttribute('to', '0');
+        animOpacity.setAttribute('dur', '0.6s');
+        animOpacity.setAttribute('fill', 'freeze');
+        circle.appendChild(animOpacity);
+
+        g.appendChild(circle);
+        svg.appendChild(g);
+        setTimeout(() => g.remove(), 700);
+
+        if (typeof toast === 'function') {
+            toast(`📍 Destination set: ${nodeLabel}`);
+        }
+    }
+
+    /** Return the currently active floor number. */
+    function activeFloor() {
+        const tab = document.querySelector('.floor-tab.active');
+        return tab ? parseInt(tab.dataset.floor, 10) : 1;
+    }
+
+    /**
+     * Wire up long-press (touchstart → wait → touchend) and contextmenu
+     * (right-click on desktop) on every map container.
+     */
+    function attachPinListeners(containerEl, floorNum) {
+        let longPressTimer = null;
+        let didLongPress   = false;
+
+        function handlePress(e) {
+            if (floorNum !== activeFloor()) return;
+            didLongPress = false;
+            longPressTimer = setTimeout(() => {
+                didLongPress = true;
+                handlePinAction(e, containerEl, floorNum);
+            }, LONG_PRESS_MS);
+        }
+
+        function cancelPress() {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+        }
+
+        function handlePinAction(e, container, floor) {
+            const coords = eventToNodeCoords(e, container);
+            if (!coords) return;
+            const nodeId = nearestNode(coords, floor);
+            if (!nodeId) return;
+            const nodeLabel = window.allNodes[nodeId]?.label || nodeId;
+            const ok = setEndNodeDropdown(nodeId);
+            if (ok) showPinFeedback(`svg-f${floor}`, coords, nodeLabel);
+        }
+
+        // Touch — long-press
+        containerEl.addEventListener('touchstart', handlePress,  { passive: true });
+        containerEl.addEventListener('touchend',   cancelPress,  { passive: true });
+        containerEl.addEventListener('touchmove',  cancelPress,  { passive: true });
+
+        // Desktop — right-click (contextmenu)
+        containerEl.addEventListener('contextmenu', (e) => {
+            if (floorNum !== activeFloor()) return;
+            e.preventDefault();
+            handlePinAction(e, containerEl, floorNum);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        for (let f = 1; f <= 4; f++) {
+            const container = document.getElementById(`f${f}-container`);
+            if (container) attachPinListeners(container, f);
+        }
+    });
+
+    // Bridge: app.js stores its tsEnd reference here so we can access it.
+    // Call window._registerTsEnd(tsInstance) from app.js after creation.
+    window._registerTsEnd = function(ts) { window._tsEnd = ts; };
+})();
