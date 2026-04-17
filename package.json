@@ -1,0 +1,10 @@
+{
+  "name": "nmit-wayfinder",
+  "version": "9.0.0",
+  "private": true,
+  "scripts": {
+    "generate-graph": "python scripts/generate_graph_js.py",
+    "dev": "uvicorn backend.app:app --host 127.0.0.1 --port 8000 --reload",
+    "test": "pytest tests/"
+  }
+}

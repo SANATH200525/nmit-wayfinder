@@ -6,13 +6,13 @@
     <title>NMIT Wayfinder - Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Orbitron:wght@600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
-    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}?v=8">
-    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='icon-192.png') }}">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon-192.png') }}">
+    <link rel="manifest" href="/static/manifest.json?v=9">
+    <link rel="icon" type="image/png" sizes="192x192" href="/static/icon-192.png">
+    <link rel="apple-touch-icon" href="/static/icon-192.png">
     <meta name="theme-color" content="#4f46e5">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=8">
+    <link rel="stylesheet" href="/static/css/style.css?v=9">
 </head>
 <body id="app-body">
 
@@ -40,7 +40,7 @@
                 </div>
             </div>
 
-            <form method="POST" id="nav-form">
+            <form id="nav-form">
                 <div class="form-group">
                     <label class="field-label">WHAT FLOOR ARE YOU ON?</label>
                     <div class="floor-picker" id="floor-picker">
@@ -55,11 +55,6 @@
                     <label class="field-label">CURRENT LOCATION</label>
                     <select id="start_node" name="start_node" required>
                         <option value="">Select location...</option>
-                        {% for group, options in by_floor_ordered %}
-                        <optgroup label="{{ group }}">
-                            {% for opt in options %}<option value="{{ opt.id }}">{{ opt.label }}</option>{% endfor %}
-                        </optgroup>
-                        {% endfor %}
                     </select>
                 </div>
 
@@ -71,11 +66,6 @@
                     <label class="field-label">FINAL DESTINATION</label>
                     <select id="end_node" name="end_node" required>
                         <option value="">Select location...</option>
-                        {% for group, options in by_floor_ordered %}
-                        <optgroup label="{{ group }}">
-                            {% for opt in options %}<option value="{{ opt.id }}">{{ opt.label }}</option>{% endfor %}
-                        </optgroup>
-                        {% endfor %}
                     </select>
                 </div>
 
@@ -92,11 +82,7 @@
                     <button type="submit" class="start-btn">INITIATE ROUTE</button>
                 </div>
             </form>
-            {% if error_message %}
-            <div class="error-message">
-                [ERROR] {{ error_message }}
-            </div>
-            {% endif %}
+
 
             <template id="stop-template">
                 <div class="form-group stop-group">
@@ -268,136 +254,12 @@
 
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
     <script>
-        window.pathData = {{ path_data|safe }};
-        window.allNodes = {{ all_nodes|safe }};
-        window.allOpts = {{ nodes_opts_json|safe }};
-        window.nodeDegrees = {{ node_degrees_json|safe }};
-        window.stopLabels = {{ stop_labels_json|safe }};
-
-        const FLOOR_ORDER = ['Ground Floor','First Floor','Second Floor','Third Floor'];
-        const TYPE_ORDER  = ['Entrance','Offices','Rooms','Labs & Rooms','Restrooms','Lift & Stairs'];
-
-        // Currently selected floor for the start dropdown
-        let currentStartFloor = 'Ground Floor';
-
-        // Build <select> HTML — optionally filtered to a single floor
-        function buildHTML(groupBy, filterFloor) {
-          const order  = groupBy === 'floor' ? FLOOR_ORDER : TYPE_ORDER;
-          const groups = {};
-          window.allOpts.forEach(opt => {
-            // When filtering by floor, only include rooms on that floor
-            if (filterFloor && opt.floor_label !== filterFloor) return;
-            const key = groupBy === 'floor' ? opt.floor_label : opt.category;
-            (groups[key] = groups[key] || []).push(opt);
-          });
-          let html = '<option value="">Select location...</option>';
-          // If filtered to single floor, skip optgroup header — flat list
-          if (filterFloor) {
-            const items = groups[filterFloor] || [];
-            items.sort((a, b) => a.label.localeCompare(b.label))
-                 .forEach(opt => {
-                   html += `<option value="${opt.id}">${opt.label}</option>`;
-                 });
-          } else {
-            order.forEach(grp => {
-              if (!groups[grp]) return;
-              html += `<optgroup label="${grp}">`;
-              groups[grp]
-                .sort((a, b) => a.label.localeCompare(b.label))
-                .forEach(opt => {
-                  html += `<option value="${opt.id}">${opt.label}</option>`;
-                });
-              html += '</optgroup>';
-            });
-          }
-          return html;
-        }
-
-        // After TomSelect renders, re-order its dropdown optgroup divs to match our order
-        function fixOptgroupOrder(ts, groupBy) {
-          const order = groupBy === 'floor' ? FLOOR_ORDER : TYPE_ORDER;
-          const dropdown = ts.dropdown_content;
-          if (!dropdown) return;
-          const ogEls = Array.from(dropdown.querySelectorAll('[data-group]'));
-          if (!ogEls.length) return;
-          ogEls.sort((a, b) => {
-            const ai = order.indexOf(a.getAttribute('data-group'));
-            const bi = order.indexOf(b.getAttribute('data-group'));
-            return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
-          });
-          ogEls.forEach(el => dropdown.appendChild(el));
-        }
-
-        let tsStart, tsEnd, tsStopInstances = [];
-
-        function makeTomSelect(el, groupBy, preselected, filterFloor) {
-          if (typeof el === 'string') el = document.querySelector(el);
-          if (!el) return null;
-          el.innerHTML = buildHTML(groupBy, filterFloor || null);
-          if (preselected) el.value = preselected;
-          const ts = new TomSelect(el, {
-            create: false,
-            sortField: false,
-            dropdownParent: 'body',
-            onInitialize() { if (!filterFloor) fixOptgroupOrder(this, groupBy); },
-            onDropdownOpen() { if (!filterFloor) fixOptgroupOrder(this, groupBy); },
-          });
-          if (preselected) ts.setValue(preselected, true);
-          return ts;
-        }
-
-        // Called when user taps a floor pill (GF/1F/2F/3F)
-        function selectStartFloor(btn) {
-          document.querySelectorAll('.floor-pick-btn').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          currentStartFloor = btn.getAttribute('data-floor-label');
-          // Rebuild start dropdown filtered to that floor
-          const prev = tsStart ? tsStart.getValue() : '';
-          if (tsStart) tsStart.destroy();
-          tsStart = makeTomSelect('#start_node', 'floor', '', currentStartFloor);
-        }
-
-        function regroupDropdowns(groupBy) {
-          const selStart = tsStart ? tsStart.getValue() : '';
-          const selEnd   = tsEnd   ? tsEnd.getValue()   : '';
-          if (tsStart) tsStart.destroy();
-          if (tsEnd)   tsEnd.destroy();
-          // Start dropdown: always filtered to current floor
-          tsStart = makeTomSelect('#start_node', groupBy, selStart, currentStartFloor);
-          // End dropdown: always shows all floors
-          tsEnd   = makeTomSelect('#end_node',   groupBy, selEnd);
-          const prevStops = tsStopInstances.map(ts => ts.getValue());
-          tsStopInstances.forEach(ts => ts.destroy());
-          tsStopInstances = [];
-          document.querySelectorAll('.stop-select').forEach((sel, i) => {
-            const ts = makeTomSelect(sel, groupBy, prevStops[i] || '');
-            if (ts) tsStopInstances.push(ts);
-          });
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-          regroupDropdowns('floor');
-        });
-
-        function addStopField() {
-          const container = document.getElementById('stops-container');
-          const template  = document.getElementById('stop-template');
-          const clone     = template.content.cloneNode(true);
-          container.appendChild(clone);
-          const newSel = container.lastElementChild.querySelector('.stop-select');
-          const ts = makeTomSelect(newSel, 'floor', '');
-          if (ts) tsStopInstances.push(ts);
-        }
-    </script>
-    <script src="{{ url_for('static', filename='script.js') }}?v=8"></script>
-    <script>
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register("{{ url_for('static', filename='service-worker.js') }}?v=8", { updateViaCache: 'none' })
+        navigator.serviceWorker.register('/static/service-worker.js?v=9', { type: 'module', updateViaCache: 'none' })
           .then(r => console.log('SW registered:', r.scope))
           .catch(e => console.warn('SW failed:', e));
       }
     </script>
-
     <div id="faq-bubble" class="faq-bubble" onclick="toggleFAQChat()" title="Ask a question">
         <span>?</span>
     </div>
@@ -416,5 +278,10 @@
             <button class="faq-send-btn" onclick="sendFAQ()">Send</button>
         </div>
     </div>
+    <script type="module" src="/static/js/graph-data.js?v=9"></script>
+    <script type="module" src="/static/js/routing.js?v=9"></script>
+    <script type="module" src="/static/js/pdr.js?v=9"></script>
+    <script type="module" src="/static/js/metrics.js?v=9"></script>
+    <script type="module" src="/static/js/app.js?v=9"></script>
 </body>
 </html>

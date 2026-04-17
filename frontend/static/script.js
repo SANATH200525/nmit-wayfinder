@@ -536,36 +536,41 @@ function highlightRemainingPath(checkpointIdx) {
     function toBuckets(nodes) {
         const buckets = [];
         let curSeg = null, curFloor = null, curPts = [];
+        
         nodes.forEach(p => {
             const seg = p.segment ?? 0;
             if (seg !== curSeg || p.floor !== curFloor) {
-                if (curPts.length >= 2) buckets.push({ floor: curFloor, pts: curPts });
-                const floorChanged = curFloor !== null && p.floor !== curFloor && curPts.length > 0;
-                curPts  = floorChanged ? [curPts[curPts.length - 1], p] : [p];
-                curSeg   = seg;
+                // Save the outgoing bucket
+                if (curPts.length >= 2) buckets.push({ floor: curFloor, pts: [...curPts] });
+                
+                // If it's a segment change on the SAME floor, keep the last point to bridge the gap
+                if (curFloor !== null && p.floor === curFloor && curPts.length > 0) {
+                    curPts = [curPts[curPts.length - 1], p];
+                } else {
+                    curPts = [p];
+                }
+                
+                curSeg = seg;
                 curFloor = p.floor;
             } else {
                 curPts.push(p);
             }
         });
-        if (curPts.length >= 2) buckets.push({ floor: curFloor, pts: curPts });
+        
+        // Push the final bucket
+        if (curPts.length >= 2) buckets.push({ floor: curFloor, pts: [...curPts] });
 
-        // Extra pass: for vertical (stair/lift) nodes that sit at floor
-        // boundaries, add a 2-point bridge bucket on the adjacent floor
-        // so the line visually connects to the stair/lift icon on that floor.
+        // Extra pass for vertical transition bridging
         const extra = [];
         nodes.forEach((p, idx) => {
             const isVertical = nodeType(p.id) === 'stairs' || nodeType(p.id) === 'lift';
             if (!isVertical) return;
             const prev = nodes[idx - 1];
             const next = nodes[idx + 1];
-            if (prev && prev.floor !== p.floor) {
-                extra.push({ floor: prev.floor, pts: [prev, p] });
-            }
-            if (next && next.floor !== p.floor) {
-                extra.push({ floor: next.floor, pts: [p, next] });
-            }
+            if (prev && prev.floor !== p.floor) extra.push({ floor: prev.floor, pts: [prev, p] });
+            if (next && next.floor !== p.floor) extra.push({ floor: next.floor, pts: [p, next] });
         });
+        
         return [...buckets, ...extra];
     }
 
