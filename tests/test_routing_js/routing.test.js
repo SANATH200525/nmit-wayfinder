@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 import {
-  bidirectionalAStar,
+  dStarLite,
   edgeCost,
   heuristic,
   planRoute,
@@ -48,28 +48,28 @@ function test(name, fn) {
 // ---------------------------------------------------------------------------
 
 test('same start and goal returns [start]', () => {
-  const result = bidirectionalAStar({
+  const result = dStarLite({
     start: 'MAINENTRANCE-GF', goal: 'MAINENTRANCE-GF', graph: GRAPH, nodes: NODES,
   });
   assert.deepEqual(result, ['MAINENTRANCE-GF']);
 });
 
 test('invalid start node returns []', () => {
-  const result = bidirectionalAStar({
+  const result = dStarLite({
     start: 'DOES_NOT_EXIST', goal: 'COMPUTERLAB-GF', graph: GRAPH, nodes: NODES,
   });
   assert.deepEqual(result, []);
 });
 
 test('invalid goal node returns []', () => {
-  const result = bidirectionalAStar({
+  const result = dStarLite({
     start: 'MAINENTRANCE-GF', goal: 'DOES_NOT_EXIST', graph: GRAPH, nodes: NODES,
   });
   assert.deepEqual(result, []);
 });
 
 test('same-floor route is non-empty and correct endpoints', () => {
-  const result = bidirectionalAStar({
+  const result = dStarLite({
     start: 'MAINENTRANCE-GF', goal: 'COMPUTERLAB-GF', graph: GRAPH, nodes: NODES,
   });
   assert.ok(result.length > 0, 'path should not be empty');
@@ -78,14 +78,14 @@ test('same-floor route is non-empty and correct endpoints', () => {
 });
 
 test('same-floor route stays on floor 1', () => {
-  const result = bidirectionalAStar({
+  const result = dStarLite({
     start: 'MAINENTRANCE-GF', goal: 'COMPUTERLAB-GF', graph: GRAPH, nodes: NODES,
   });
   assert.ok(result.every(id => NODES[id].floor === 1), 'all nodes should be on floor 1');
 });
 
 test('multi-floor route passes through floor 3', () => {
-  const result = bidirectionalAStar({
+  const result = dStarLite({
     start: 'MAINENTRANCE-GF', goal: 'RESEARCHDEPT-2F', graph: GRAPH, nodes: NODES,
   });
   assert.ok(result.length > 0, 'path should not be empty');
@@ -93,7 +93,7 @@ test('multi-floor route passes through floor 3', () => {
 });
 
 test('elevator_only: no stairs nodes in path', () => {
-  const result = bidirectionalAStar({
+  const result = dStarLite({
     start: 'MAINENTRANCE-GF', goal: 'RESEARCHDEPT-2F',
     graph: GRAPH, nodes: NODES, avoidStairs: true,
   });
@@ -103,7 +103,7 @@ test('elevator_only: no stairs nodes in path', () => {
 });
 
 test('stairs_only: no lift nodes in path', () => {
-  const result = bidirectionalAStar({
+  const result = dStarLite({
     start: 'MAINENTRANCE-GF', goal: 'RESEARCHDEPT-2F',
     graph: GRAPH, nodes: NODES, avoidElevators: true,
   });
@@ -166,7 +166,7 @@ test('edgeCost: cross-floor lift has higher cost than planar', () => {
 
 test('heuristic is admissible (<=) actual path cost for same-floor pair', () => {
   const h = heuristic('MAINENTRANCE-GF', 'COMPUTERLAB-GF', NODES);
-  const path = bidirectionalAStar({ start: 'MAINENTRANCE-GF', goal: 'COMPUTERLAB-GF', graph: GRAPH, nodes: NODES });
+  const path = dStarLite({ start: 'MAINENTRANCE-GF', goal: 'COMPUTERLAB-GF', graph: GRAPH, nodes: NODES });
   let actual = 0;
   for (let i = 1; i < path.length; i++) actual += edgeCost(path[i-1], path[i], NODES);
   assert.ok(h <= actual + 0.001, `heuristic ${h} > actual cost ${actual}`);
@@ -210,7 +210,7 @@ test('parity: 20 random pairs return valid edge-connected paths', async () => {
   const failures = [];
   for (let n = 0; n < 20; n++) {
     const [start, goal] = seededPair();
-    const path = bidirectionalAStar({ start, goal, graph: GRAPH, nodes: NODES });
+    const path = dStarLite({ start, goal, graph: GRAPH, nodes: NODES });
     if (!isValidPath(path)) failures.push(`${start} → ${goal}: invalid edges in JS logic`);
     if (path.length > 0) {
       if (path[0] !== start) failures.push(`${start} → ${goal}: wrong start`);

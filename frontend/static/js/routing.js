@@ -102,121 +102,212 @@ class MinHeap {
 }
 
 // ---------------------------------------------------------------------------
-// bidirectionalAStar — Pohl 1971 stopping criterion
+// dStarLite — Koenig & Likhachev 2002 (static-graph variant)
+//
+// Searches backward from goal → start, maintaining:
+//   g[n]   = best known cost from n to goal (infinity until updated)
+//   rhs[n] = one-step lookahead: min over successors s of (edgeCost(n,s) + g[s])
+//            rhs[goal] = 0 is the seed.
+//
+// A node is "locally consistent" when g[n] === rhs[n].
+// The open list is a min-heap keyed by calculateKey(n).
+// We process until start is locally consistent, then reconstruct
+// the path greedily forward: always step to the neighbour minimising
+// edgeCost(curr→nbr) + g[nbr].
+//
+// On a fully known static graph this yields the same optimal path as A*
+// while expanding nodes from the goal outward (opposite search direction
+// from forward A*, different from bidirectional A*'s two-frontier approach).
 // ---------------------------------------------------------------------------
-export function bidirectionalAStar({
-  start, goal, graph, nodes, 
+export function dStarLite({
+  start, goal, graph, nodes,
   avoidStairs = false, avoidElevators = false,
   learnedWeights = {}
 }) {
   if (start === goal) return [start];
   if (!nodes[start] || !nodes[goal]) return [];
 
-  const fwd = new MinHeap();
-  const bwd = new MinHeap();
-  fwd.push(0, start);
-  bwd.push(0, goal);
-
-  const gF = { [start]: 0 };
-  const gB = { [goal]: 0 };
-  const parentF = { [start]: null };
-  const parentB = { [goal]: null };
-  const fwdVisited = new Set();
-  const bwdVisited = new Set();
-
-  let mu = Infinity;
-  let meetingNode = null;
-
-  function shouldSkip(nid) {
-    if (nid === goal) return false;
+  // ── helpers ────────────────────────────────────────────────────────────
+  function shouldSkip(nid, target) {
+    // Always allow the explicit target (start or goal) through
+    if (nid === target) return false;
     if (nodes[nid]?.dead_end) return true;
     if (avoidStairs && nodes[nid]?.type === 'stairs') return true;
     if (avoidElevators && nodes[nid]?.type === 'lift') return true;
     return false;
   }
 
-  function expandFwd() {
-    if (fwd.size === 0) return;
-    const { item: curr } = fwd.pop();
-    if (fwdVisited.has(curr)) return;
-    fwdVisited.add(curr);
+  // D* Lite key: [min(g,rhs) + h(start,n),  min(g,rhs)]
+  // Using the start-to-n heuristic as the admissible estimate.
+  function calculateKey(n) {
+    const minVal = Math.min(g[n], rhs[n]);
+    return [minVal + heuristic(start, n, nodes), minVal];
+  }
 
-    for (const nbr of (graph[curr] || [])) {
-      if (shouldSkip(nbr)) continue;
-      const newCost = gF[curr] + edgeCost(curr, nbr, nodes, learnedWeights);
-      if (newCost < (gF[nbr] ?? Infinity)) {
-        gF[nbr] = newCost;
-        parentF[nbr] = curr;
-        fwd.push(newCost + heuristic(nbr, goal, nodes), nbr);
-        
-        if (gB[nbr] !== undefined) {
-          const candidate = newCost + gB[nbr];
-          if (candidate < mu) {
-            mu = candidate;
-            meetingNode = nbr;
+  function keyLess(a, b) {
+    return a[0] < b[0] || (a[0] === b[0] && a[1] < b[1]);
+  }
+
+  // ── state ──────────────────────────────────────────────────────────────
+  const INF = Infinity;
+  const g   = {};   // g[n]   = cost-to-reach-goal from n
+  const rhs = {};   // rhs[n] = one-step lookahead
+  const allNodes = Object.keys(graph);
+  for (const n of allNodes) { g[n] = INF; rhs[n] = INF; }
+
+  // Seed: goal costs 0 to reach itself
+  rhs[goal] = 0;
+
+  // Open list: min-heap of { priority: [k1,k2], item: nodeId }
+  // We extend MinHeap's push to accept a two-element key array.
+  // Build a dedicated heap using the same MinHeap but with a
+  // comparator that respects lexicographic key ordering.
+  const openSet = new Map(); // nodeId → key currently in heap (for lazy deletion)
+
+  // We use a priority queue backed by a plain array + re-heapify
+  // approach with lazy deletion (standard D* Lite practice).
+  const heap = []; // elements: { key: [k1,k2], node }
+
+  function heapPush(node, key) {
+    heap.push({ key, node });
+    // bubble up
+    let i = heap.length - 1;
+    while (i > 0) {
+      const parent = (i - 1) >> 1;
+      if (!keyLess(heap[i].key, heap[parent].key)) break;
+      [heap[i], heap[parent]] = [heap[parent], heap[i]];
+      i = parent;
+    }
+  }
+
+  function heapPop() {
+    const top = heap[0];
+    const last = heap.pop();
+    if (heap.length > 0) {
+      heap[0] = last;
+      // sink down
+      let i = 0;
+      while (true) {
+        const l = 2 * i + 1, r = 2 * i + 2;
+        let smallest = i;
+        if (l < heap.length && keyLess(heap[l].key, heap[smallest].key)) smallest = l;
+        if (r < heap.length && keyLess(heap[r].key, heap[smallest].key)) smallest = r;
+        if (smallest === i) break;
+        [heap[i], heap[smallest]] = [heap[smallest], heap[i]];
+        i = smallest;
+      }
+    }
+    return top;
+  }
+
+  function heapTop() { return heap.length > 0 ? heap[0] : null; }
+
+  // Insert goal into open list
+  const goalKey = calculateKey(goal);
+  heapPush(goal, goalKey);
+  openSet.set(goal, goalKey);
+
+  // ── main loop ──────────────────────────────────────────────────────────
+  function computeShortestPath() {
+    while (heap.length > 0) {
+      const startKey = calculateKey(start);
+      const topEl = heapTop();
+      if (!topEl) break;
+
+      // Stop when start is locally consistent AND its key ≥ top of heap
+      if (!keyLess(topEl.key, startKey) && rhs[start] === g[start]) break;
+
+      const { key: kOld, node: u } = heapPop();
+      openSet.delete(u);
+
+      const kNew = calculateKey(u);
+
+      if (keyLess(kOld, kNew)) {
+        // Key is outdated (lazy update) — re-insert with correct key
+        heapPush(u, kNew);
+        openSet.set(u, kNew);
+      } else if (g[u] > rhs[u]) {
+        // Overconsistent: lower g to rhs
+        g[u] = rhs[u];
+        // Update all predecessors (neighbours in undirected graph = same set)
+        for (const pred of (graph[u] || [])) {
+          if (shouldSkip(pred, start)) continue;
+          const newRhs = edgeCost(pred, u, nodes, learnedWeights) + g[u];
+          if (newRhs < rhs[pred]) {
+            rhs[pred] = newRhs;
+            const predKey = calculateKey(pred);
+            heapPush(pred, predKey);
+            openSet.set(pred, predKey);
+          }
+        }
+      } else {
+        // Underconsistent: raise g to infinity and reprocess
+        g[u] = INF;
+        // Reprocess u itself
+        const rhsU = INF; // will be recomputed below
+        let bestRhs = INF;
+        for (const succ of (graph[u] || [])) {
+          if (shouldSkip(succ, goal)) continue;
+          const c = edgeCost(u, succ, nodes, learnedWeights) + g[succ];
+          if (c < bestRhs) bestRhs = c;
+        }
+        rhs[u] = bestRhs;
+        if (rhs[u] !== g[u]) {
+          heapPush(u, calculateKey(u));
+          openSet.set(u, calculateKey(u));
+        }
+        // Update predecessors
+        for (const pred of (graph[u] || [])) {
+          if (shouldSkip(pred, start)) continue;
+          let bestPredRhs = INF;
+          for (const s of (graph[pred] || [])) {
+            if (shouldSkip(s, goal)) continue;
+            const c = edgeCost(pred, s, nodes, learnedWeights) + g[s];
+            if (c < bestPredRhs) bestPredRhs = c;
+          }
+          if (bestPredRhs !== rhs[pred]) {
+            rhs[pred] = bestPredRhs;
+            const predKey = calculateKey(pred);
+            heapPush(pred, predKey);
+            openSet.set(pred, predKey);
           }
         }
       }
     }
   }
 
-  function expandBwd() {
-    if (bwd.size === 0) return;
-    const { item: curr } = bwd.pop();
-    if (bwdVisited.has(curr)) return;
-    bwdVisited.add(curr);
+  computeShortestPath();
 
+  // ── path reconstruction ────────────────────────────────────────────────
+  // If start is unreachable, g[start] stays INF
+  if (g[start] === INF && rhs[start] === INF) return [];
+
+  // Greedy forward descent: from start, always move to the neighbour n
+  // that minimises edgeCost(curr→n) + g[n]
+  const path = [start];
+  const visited = new Set([start]);
+  let curr = start;
+
+  while (curr !== goal) {
+    let bestNbr = null;
+    let bestCost = INF;
     for (const nbr of (graph[curr] || [])) {
-      if (shouldSkip(nbr)) continue;
-      // We go backward, so cost is from nbr to curr
-      const newCost = gB[curr] + edgeCost(nbr, curr, nodes, learnedWeights);
-      if (newCost < (gB[nbr] ?? Infinity)) {
-        gB[nbr] = newCost;
-        parentB[nbr] = curr;
-        bwd.push(newCost + heuristic(nbr, start, nodes), nbr);
-        
-        if (gF[nbr] !== undefined) {
-          const candidate = gF[nbr] + newCost;
-          if (candidate < mu) {
-            mu = candidate;
-            meetingNode = nbr;
-          }
-        }
+      if (shouldSkip(nbr, goal)) continue;
+      if (visited.has(nbr)) continue;
+      const cost = edgeCost(curr, nbr, nodes, learnedWeights) + (g[nbr] ?? INF);
+      if (cost < bestCost) {
+        bestCost = cost;
+        bestNbr = nbr;
       }
     }
+    if (bestNbr === null) return []; // no path to goal
+    visited.add(bestNbr);
+    path.push(bestNbr);
+    curr = bestNbr;
+    if (path.length > allNodes.length) return []; // cycle guard
   }
 
-  while (fwd.size > 0 && bwd.size > 0) {
-    const fTop = fwd._heap[0].priority;
-    const bTop = bwd._heap[0].priority;
-
-    if (fTop >= mu || bTop >= mu) {
-      break;
-    }
-
-    if (fwd.size > 0) expandFwd();
-    if (bwd.size > 0) expandBwd();
-  }
-
-  if (!meetingNode) return [];
-
-  // Path reconstruction
-  const fwdPath = [];
-  let cur = meetingNode;
-  while (cur !== null) {
-    fwdPath.push(cur);
-    cur = parentF[cur] ?? null;
-  }
-  fwdPath.reverse();
-
-  const bwdPath = [];
-  cur = parentB[meetingNode] ?? null;
-  while (cur !== null) {
-    bwdPath.push(cur);
-    cur = parentB[cur] ?? null;
-  }
-
-  return [...fwdPath, ...bwdPath];
+  return path;
 }
 
 // ---------------------------------------------------------------------------
@@ -231,7 +322,7 @@ export function planRoute({ startNode, endNode, stops=[], avoidStairs=false,
   for (let i = 0; i < waypoints.length - 1; i++) {
     const segStart = waypoints[i], segEnd = waypoints[i+1];
     if (segStart === segEnd) continue;
-    const seg = bidirectionalAStar({ 
+    const seg = dStarLite({ 
       start: segStart, goal: segEnd, graph, nodes, 
       avoidStairs, avoidElevators, learnedWeights 
     });
@@ -262,7 +353,7 @@ export function planRoute({ startNode, endNode, stops=[], avoidStairs=false,
 export function planAlternate({ startNode, endNode, stops=[], avoidStairs=false,
                                 avoidElevators=false, nodes, graph,
                                 learnedWeights={}, primaryPath=[] }) {
-  // Build a penalty map from the primary path edges so bidirectionalAStar
+  // Build a penalty map from the primary path edges so dStarLite
   // naturally avoids them (weight ×4 makes them very unattractive).
   const penaltyWeights = { ...learnedWeights };
   for (let i = 0; i < primaryPath.length - 1; i++) {
