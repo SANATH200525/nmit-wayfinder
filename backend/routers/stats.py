@@ -81,6 +81,7 @@ def metrics(conn: Annotated[sqlite3.Connection, Depends(get_db)]):
             rating_dist[str(r)] = count
 
         return {
+            "status": "ok",
             "routing": {
                 "total_sessions": tot_sess,
                 "avg_planned_distance_m": avg_dist,

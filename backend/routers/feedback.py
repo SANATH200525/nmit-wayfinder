@@ -17,7 +17,7 @@ def save_feedback(
     conn: Annotated[sqlite3.Connection, Depends(get_db)],
 ):
     conn.execute(
-        'INSERT INTO feedback VALUES (NULL,?,?,?,?,?,?)',
+        'INSERT INTO feedback VALUES (NULL,?,?,?,?,?,?,?)',
         (
             datetime.datetime.now().isoformat(),
             payload.start,
@@ -25,6 +25,7 @@ def save_feedback(
             json.dumps(payload.path),
             payload.rating,
             payload.comment,
+            json.dumps(payload.tags),
         ),
     )
     conn.commit()

@@ -22,10 +22,8 @@ const nodeType = (id) => (window.allNodes[id]?.type) || null;
 // ---------------------------------------------------------------------------
 function applyDarkMode(dark) {
     document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-    const moonIcon = document.getElementById('dark-icon');
-    const sunIcon = document.getElementById('light-icon');
-    if (moonIcon) moonIcon.style.display = dark ? 'none' : 'block';
-    if (sunIcon) sunIcon.style.display = dark ? 'block' : 'none';
+    const btn = document.getElementById('dark-mode-btn');
+    if (btn) btn.classList.toggle('active', dark);
 }
 
 function toggleDarkMode() {
@@ -81,6 +79,13 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', () => { fitSVGToImage(); fitNavSVGToImage(); });
     loadFAQs();
     fitSVGToImage();
+
+    
+
+    // ── TomSelect init ──
+    const tsStart = new TomSelect('#start_node', { maxOptions: 200 });
+    const tsEnd   = new TomSelect('#end_node',   { maxOptions: 200 });
+    window._registerTsEnd(tsEnd);   // bridge for pin-to-navigate
 
     document.querySelectorAll('.map-image').forEach(img => {
         if (!img.complete) {
@@ -164,9 +169,23 @@ function fitNavSVGToImage() {
 function switchFloor(floorNum) {
     document.querySelectorAll('.floor-tab').forEach(tab =>
         tab.classList.toggle('active', tab.dataset.floor == floorNum));
+    /* NEW */
     for (let i = 1; i <= 4; i++) {
         const container = document.getElementById(`f${i}-container`);
-        if (container) container.style.display = (i == floorNum) ? 'block' : 'none';
+        if (!container) continue;
+        if (i == floorNum) {
+            container.style.display = 'block';
+            container.classList.add('active-floor');       // Change 6 hook
+            requestAnimationFrame(() => {
+                container.style.opacity = '1';
+                container.style.transform = 'translateY(0)';
+            });
+        } else {
+            container.style.opacity = '0';
+            container.style.transform = 'translateY(6px)';
+            container.classList.remove('active-floor');
+            setTimeout(() => { container.style.display = 'none'; }, 350);
+        }
     }
     fitSVGToImage();
     // Keep nav screen floor in sync
@@ -353,6 +372,19 @@ function closeRouteForm() {
     if (sheet) sheet.classList.add('sheet-hidden');
     routeFormOpen = false;
     document.documentElement.style.overflow = 'hidden';
+}
+
+function addStopField() {
+    const template = document.getElementById('stop-template');
+    const container = document.getElementById('stops-container');
+    if (!template || !container) return;
+
+    const clone = template.content.cloneNode(true);
+    const select = clone.querySelector('.stop-select');
+    container.appendChild(clone);
+
+    // Initialize TomSelect on the new stop select
+    new TomSelect(select, { maxOptions: 200 });
 }
 
 function toggleMobileDirections() {
@@ -1595,8 +1627,15 @@ function toggleFAQChat() {
     const chat = document.getElementById('faq-chat');
     const bubble = document.getElementById('faq-bubble');
     if (!chat) return;
-    const isOpen = chat.style.display !== 'none';
-    chat.style.display = isOpen ? 'none' : 'flex';
+    const isOpen = chat.classList.contains('faq-chat-open');
+    if (isOpen) {
+        chat.classList.remove('faq-chat-open');
+        // Wait for exit animation before hiding from layout
+        setTimeout(() => { chat.style.display = 'none'; }, 300);
+    } else {
+        chat.style.display = 'flex';
+        requestAnimationFrame(() => chat.classList.add('faq-chat-open'));
+    }
     bubble.classList.toggle('faq-bubble-open', !isOpen);
 }
 

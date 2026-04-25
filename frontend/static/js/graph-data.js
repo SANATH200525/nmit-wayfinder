@@ -77,7 +77,7 @@ export const NODES = {
       58
     ],
     "floor": 1,
-    "label": "Classroom",
+    "label": "Lecture Hall - 1",
     "category": "Rooms",
     "type": "room"
   },
@@ -189,7 +189,7 @@ export const NODES = {
       60
     ],
     "floor": 2,
-    "label": "Balcony",
+    "label": "Balcony - North Wing",
     "category": "Rooms",
     "dead_end": true,
     "type": "room"
@@ -200,7 +200,7 @@ export const NODES = {
       64
     ],
     "floor": 2,
-    "label": "Room 1",
+    "label": "Lecture Hall - 2",
     "category": "Rooms",
     "type": "room"
   },
@@ -260,7 +260,7 @@ export const NODES = {
       27
     ],
     "floor": 2,
-    "label": "Room 3",
+    "label": "Discussion Room - 1",
     "category": "Rooms",
     "type": "room"
   },
@@ -280,7 +280,7 @@ export const NODES = {
       61
     ],
     "floor": 2,
-    "label": "Room 2",
+    "label": "Lecture Hall - 3",
     "category": "Rooms",
     "type": "room"
   },
@@ -544,7 +544,7 @@ export const NODES = {
       59
     ],
     "floor": 4,
-    "label": "Room 1",
+    "label": "Lecture Hall - 4",
     "category": "Rooms",
     "type": "room"
   },
@@ -554,7 +554,7 @@ export const NODES = {
       59
     ],
     "floor": 4,
-    "label": "Room 2",
+    "label": "Seminar Room - 1",
     "category": "Rooms",
     "type": "room"
   },
@@ -564,7 +564,7 @@ export const NODES = {
       59
     ],
     "floor": 4,
-    "label": "Room 3",
+    "label": "Seminar Room - 2",
     "category": "Rooms",
     "type": "room"
   },
@@ -574,7 +574,7 @@ export const NODES = {
       43
     ],
     "floor": 4,
-    "label": "Room 4",
+    "label": "Lecture Hall - 5",
     "category": "Rooms",
     "type": "room"
   },
