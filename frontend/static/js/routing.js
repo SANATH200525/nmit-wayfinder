@@ -7,8 +7,8 @@
 // ---------------------------------------------------------------------------
 // Cost constants — mirror Python values exactly
 // ---------------------------------------------------------------------------
-const STAIRS_L_COST = 180;  // straight stairs per floor
-const STAIRS_R_COST = 150;  // curved stairs per floor
+const STAIRS_L_COST = 85;   // straight stairs per floor (7.67 units @ 0.51 m/unit + effort)
+const STAIRS_R_COST = 75;   // curved stairs per floor
 const LIFT_COST = 120;  // lift per floor
 
 // ---------------------------------------------------------------------------

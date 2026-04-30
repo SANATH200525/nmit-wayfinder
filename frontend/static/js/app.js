@@ -13,7 +13,7 @@ import { startSession, recordCheckpoint } from './metrics.js';
 const FLOOR_NAMES = { 1: 'Ground Floor', 2: 'First Floor', 3: 'Second Floor', 4: 'Third Floor' };
 const FLOOR_ORDER = ['Ground Floor', 'First Floor', 'Second Floor', 'Third Floor'];
 const TYPE_ORDER = ['Entrance', 'Offices', 'Rooms', 'Labs & Rooms', 'Restrooms', 'Lift & Stairs'];
-const COORD_TO_METERS = 0.5;
+const COORD_TO_METERS = 0.51;
 const WALK_SPEED = 1.2;
 const FAQ_EXPANDED_STORAGE_KEY = 'wayfinder-faq-expanded';
 
@@ -1560,7 +1560,7 @@ function toast(msg) {
 // Pin-to-navigate popup
 // ---------------------------------------------------------------------------
 (function initPinToNavigate() {
-  const SNAP_THRESHOLD = 8;
+  const SNAP_THRESHOLD = 6;
   const pointerState = new WeakMap();
   let popupState = null;
   let suppressNextMapClick = false;
@@ -2400,7 +2400,7 @@ window.requestAlternateRoute = async function requestAlternateRoute() {
   } catch (_) { /* non-fatal */ }
 
   const altPath = planAlternate({
-    startNode, endNode, stops: [],
+    startNode, endNode, stops: window.stopLabels ? window.stopLabels.map(s => s.id) : [],
     avoidStairs, avoidElevators,
     nodes: NODES, graph: GRAPH,
     learnedWeights,
