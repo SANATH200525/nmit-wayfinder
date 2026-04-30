@@ -416,7 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const ortho = makeOrthogonalPath(path);
     drawPath(ortho, path);
     switchFloor(path[0].floor);
-    preparePDRForRoute(startNode, sessionId);
+    preparePDRForRoute(startNode, sessionId, path);
 
     if (isMobile()) {
       closeRouteForm();
@@ -687,24 +687,37 @@ function setSensorPermissionMessage({ title, body, note, enableLabel = 'Enable S
   }
 }
 
-function preparePDRForRoute(startNode, sessionId) {
+function preparePDRForRoute(startNode, sessionId, path) {
   pdrEngine = new PDREngine({
     startNode,
     nodes: NODES,
     graph: GRAPH,
     sessionId,
+    path,
     onPositionUpdate: (update) => {
       pdrLiveState = update;
       renderPDRMarkers();
-      renderPDRStatus({
-        tone: 'live',
-        badge: 'Live',
-        title: 'Motion pointer active',
-        copy: `Tracking near ${NODES[update.nearestNode]?.label || 'your route'} on ${getFloorLabel(update.floor)}.`,
-        heading: formatHeading(update.heading),
-        steps: String(update.stepCount ?? 0),
-        confidence: formatConfidence(update.confidence),
-      });
+      if (update.isOffRoute) {
+        renderPDRStatus({
+          tone: 'warn',
+          badge: 'Off Route',
+          title: 'Looks like you went off route.',
+          copy: `Tracking near ${NODES[update.nearestNode]?.label || 'your route'} on ${getFloorLabel(update.floor)}.`,
+          heading: formatHeading(update.heading),
+          steps: String(update.stepCount ?? 0),
+          confidence: formatConfidence(update.confidence),
+        });
+      } else {
+        renderPDRStatus({
+          tone: 'live',
+          badge: 'Live',
+          title: 'Motion pointer active',
+          copy: `Tracking near ${NODES[update.nearestNode]?.label || 'your route'} on ${getFloorLabel(update.floor)}.`,
+          heading: formatHeading(update.heading),
+          steps: String(update.stepCount ?? 0),
+          confidence: formatConfidence(update.confidence),
+        });
+      }
     },
     onFloorChange: ({ toFloor }) => {
       window.switchFloor(toFloor);

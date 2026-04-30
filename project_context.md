@@ -1,19 +1,15 @@
 Project Tree:
+```text
 .
 |-- .gitignore
 |-- CHANGELOG.md
 |-- Makefile
+|-- changecommit.txt
 |-- package.json
 |-- readme.md
 |-- requirements.txt
-|-- .pytest_cache/
-|   |-- .gitignore
-|   |-- CACHEDIR.TAG
-|   |-- README.md
-|   |-- v/
-|   |   |-- cache/
-|   |   |   |-- lastfailed
-|   |   |   |-- nodeids
+|-- uvicorn.err.log
+|-- uvicorn.out.log
 |-- .qodo/
 |   |-- agents/
 |   |-- workflows/
@@ -45,6 +41,7 @@ Project Tree:
 |   |   |-- service-worker.js
 |   |   |-- css/
 |   |   |   |-- style.css
+|   |   |-- icons/
 |   |   |-- js/
 |   |   |   |-- app.js
 |   |   |   |-- db-helper.js
@@ -64,9 +61,10 @@ Project Tree:
 |   |-- test_routing_js/
 |   |   |-- graph_data.json
 |   |   |-- routing.test.js
+```
 
 File: .gitignore
-Code snippet
+```
 # Python virtual environment (Critical to ignore)
 venv/
 .venv/
@@ -86,9 +84,11 @@ Thumbs.db
 
 # Environment variables (If you add secrets later)
 .env_tmp_patch.py
+".pytest_cache/" 
+```
 
 File: CHANGELOG.md
-Code snippet
+```markdown
 ﻿# NMIT Wayfinder — Changelog
 
 ## v3 — Current Version
@@ -385,9 +385,10 @@ equirements.txt — unchanged
 - static/coord_picker.html — unchanged
 - static/floor1-4.png — unchanged
 - static/icon-192.png, icon-512.png — unchanged
+```
 
 File: Makefile
-Code snippet
+```
 .PHONY: generate-graph run install test
 
 generate-graph:
@@ -401,9 +402,22 @@ install:
 
 test:
 	venv/Scripts/pytest tests/
+```
+
+File: changecommit.txt
+```text
+commit name : ui changes and initial pdr implementation
+
+
+problems faced and detailed report : 
+
+1. pdr caliberation not done according to the checklist.
+2. css loading issue in local env also. 
+3. repository folder structure issue (pytest cache files issue) 
+```
 
 File: package.json
-Code snippet
+```json
 {
   "name": "nmit-wayfinder",
   "version": "9.0.0",
@@ -414,53 +428,53 @@ Code snippet
     "test": "pytest tests/"
   }
 }
+```
 
 File: readme.md
-Code snippet
+```markdown
 # NMIT Wayfinder
 
-An intelligent indoor navigation PWA for NITTE School of Management (NMIT), Bangalore. Uses the A* pathfinding algorithm with adaptive edge weights learned from user feedback (reinforcement learning).
+An intelligent indoor navigation PWA for NITTE School of Management (NMIT), Bangalore. Uses a Bidirectional A* pathfinding algorithm with adaptive edge weights learned from user feedback, and features a live Pedestrian Dead Reckoning (PDR) pointer.
 
 ## Features
-- A* pathfinding across 4 floors (Ground, First, Second, Third)
+- Bidirectional A* pathfinding across 4 floors (Ground, First, Second, Third)
+- Multi-stop routing with explicit turn-by-turn logic
+- Live Pedestrian Dead Reckoning (PDR) motion pointer via device sensors
 - Visual SVG path overlay on real floor plan images
-- Turn-by-turn natural language directions
+- Turn-by-turn natural language directions with contextual landmarks
 - Wheelchair / elevator-only routing mode
-- Stairs-only routing mode
 - Performance metrics (distance, estimated time, floor changes)
-- Post-navigation feedback with 1-5 star rating
+- Post-navigation feedback with 1-5 star rating & specific issue tagging
 - RL-based edge weight adaptation (routes improve over time with feedback)
 - PWA — installable, works offline for cached floor maps
-- Mobile responsive layout
+- Mobile responsive layout with interactive bottom-sheet navigation
 - FAQ chatbot backed by admin-managed Q&A pairs
-- PDR (Pedestrian Dead Reckoning) architecture stub for future implementation
 
 ## Project Structure
-- `app.py` — Flask backend, graph data, A* search, feedback/stats/FAQ/admin endpoints
+- `app.py` — FastAPI backend, graph data, A* search parity tests, feedback/stats/FAQ/admin endpoints
 - `templates/index.html` — Jinja2 frontend shell with mobility controls, metrics, directions, and PWA hooks
 - `templates/admin.html` — Admin dashboard (feedback stats, edge weights, FAQ management)
-- `static/script.js` — map rendering, directions, checkpoint navigation, FAQ chatbot
-- `static/style.css` — glassmorphic UI styling, markers, responsive layout, modals
-- `static/floor1.png` to `floor4.png` — floor plan images (Ground to Third)
-- `static/manifest.json`, `static/service-worker.js`, `static/icon-192-v2.png`, `static/icon-512-v2.png` — PWA assets
-- `requirements.txt` — Python dependencies
-- `test_app.py` — unit tests for routing, mobility modes, and A*
+- `static/js/routing.js` — Client-side bidirectional A* pathfinding and direction generation
+- `static/js/pdr.js` — Accelerometer and compass sensor integration for live step tracking
+- `static/js/graph-data.js` — Node coordinates, floor metadata, and edge connections
+- `static/style.css` — Modern UI styling, dark mode, glassmorphism, responsive layout, modals
+- `static/floor1.png` to `floor4.png` — Floor plan images (Ground to Third)
+- `static/manifest.json`, `static/service-worker.js` — PWA assets (v14 caching)
 
 ## Getting Started
-1) Create a virtual environment and install deps: `pip install -r requirements.txt`
-2) Run the app: `flask run` (or `python app.py`) and open http://127.0.0.1:5000
-3) Admin panel: visit `/admin` and enter the credentials defined in `app.py`
-4) Coord picker: visit `/coord-picker` with the same credentials
-5) For offline install, open in Chrome/Edge and "Install app"
-
-## Admin Credentials
-Set at the top of `app.py` in the `ADMIN_USER` and `ADMIN_PASS` constants. Change them there whenever needed.
+1. Create a virtual environment: `python -m venv venv`
+2. Activate it: `venv\Scripts\activate` (Windows) or `source venv/bin/activate` (Mac/Linux)
+3. Install deps: `pip install -r requirements.txt`
+4. Run the app: `python -m uvicorn backend.app:app --host 0.0.0.0 --port 8000 --reload`
+5. Open `http://localhost:8000` (or your local IP on a mobile device for PDR testing)
+6. Admin panel: visit `/admin` (Credentials: `admin` / `nmitwayfinder`)
 
 ## Testing
-Run `python -m pytest -q` (or `pytest`) to execute the backend route and A* tests in `test_app.py`.
+Run `pytest tests/` to execute the backend route and A* parity tests. Tests run on an isolated SQLite database to prevent corrupting local feedback data.
+```
 
 File: requirements.txt
-Code snippet
+```text
 annotated-doc==0.0.4
 annotated-types==0.7.0
 anyio==4.13.0
@@ -494,59 +508,22 @@ typing_extensions==4.15.0
 uvicorn==0.42.0
 Werkzeug==3.1.6
 WTForms==3.2.1
+```
 
-File: .pytest_cache/.gitignore
-Code snippet
-# Created by pytest automatically.
-*
+File: uvicorn.err.log
+```log
+```
 
-File: .pytest_cache/CACHEDIR.TAG
-Code snippet
-Signature: 8a477f597d28d172789f06886806bc55
-# This file is a cache directory tag created by pytest.
-# For information about cache directory tags, see:
-#	https://bford.info/cachedir/spec.html
-
-File: .pytest_cache/README.md
-Code snippet
-# pytest cache directory #
-
-This directory contains data from the pytest's cache plugin,
-which provides the `--lf` and `--ff` options, as well as the `cache` fixture.
-
-**Do not** commit this to version control.
-
-See [the docs](https://docs.pytest.org/en/stable/how-to/cache.html) for more information.
-
-File: .pytest_cache/v/cache/lastfailed
-Code snippet
-{
-  "tests/test_backend.py": true
-}
-
-File: .pytest_cache/v/cache/nodeids
-Code snippet
-[
-  "test_app.py::AppTestCase::test_a_star_direct_connectivity",
-  "test_app.py::AppTestCase::test_elevator_only_avoids_stairs",
-  "test_app.py::AppTestCase::test_feedback_accepts_valid_json_with_header",
-  "test_app.py::AppTestCase::test_feedback_requires_json_origin_header",
-  "test_app.py::AppTestCase::test_get_index_ok",
-  "test_app.py::AppTestCase::test_invalid_node_returns_empty_path",
-  "test_app.py::AppTestCase::test_multiple_stops",
-  "test_app.py::AppTestCase::test_node_degrees_exposed_not_full_graph",
-  "test_app.py::AppTestCase::test_path_nodes_have_segment_metadata",
-  "test_app.py::AppTestCase::test_simple_route_multi_floor",
-  "test_app.py::AppTestCase::test_simple_route_same_floor",
-  "test_app.py::AppTestCase::test_stairs_only_avoids_elevator"
-]
+File: uvicorn.out.log
+```log
+```
 
 File: backend/__init__.py
-Code snippet
-
+```python
+```
 
 File: backend/app.py
-Code snippet
+```python
 import os
 from pathlib import Path
 from fastapi import FastAPI
@@ -584,9 +561,10 @@ if __name__ == '__main__':
     # For production use:
     # uvicorn backend.app:app --host 0.0.0.0 --port 8000 --workers 2
     uvicorn.run('backend.app:app', host='127.0.0.1', port=8000, reload=os.environ.get('FASTAPI_RELOAD', 'false').lower() == 'true')
+```
 
 File: backend/auth.py
-Code snippet
+```python
 import os
 import secrets
 from typing import Annotated
@@ -597,6 +575,8 @@ security = HTTPBasic(auto_error=False)
 
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "nmitwayfinder"
+ADMIN_USER = ADMIN_USERNAME
+ADMIN_PASS = ADMIN_PASSWORD
 
 def require_admin(
     credentials: Annotated[HTTPBasicCredentials | None, Depends(security)],
@@ -616,14 +596,21 @@ def require_admin(
 def require_json_origin(request: Request):
     if request.headers.get('X-Requested-With') != 'XMLHttpRequest':
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Forbidden')
+```
 
 File: backend/db.py
-Code snippet
+```python
 import sqlite3
+import os
+import sys
+import tempfile
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DB_PATH = str(BASE_DIR / 'feedback.db')
+if 'pytest' in sys.modules:
+    DB_PATH = str(Path(tempfile.gettempdir()) / f'wayfinder-test-{os.getpid()}.db')
+else:
+    DB_PATH = os.environ.get('WAYFINDER_DB_PATH', str(BASE_DIR / 'feedback.db'))
 
 
 def get_db():
@@ -642,8 +629,12 @@ def init_db():
         conn.execute('''CREATE TABLE IF NOT EXISTS feedback (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             timestamp TEXT, start TEXT, end TEXT,
-            path TEXT, rating INTEGER, comment TEXT
+            path TEXT, rating INTEGER, comment TEXT,
+            tags TEXT DEFAULT '[]'
         )''')
+        feedback_cols = {row[1] for row in conn.execute("PRAGMA table_info(feedback)").fetchall()}
+        if 'tags' not in feedback_cols:
+            conn.execute("ALTER TABLE feedback ADD COLUMN tags TEXT DEFAULT '[]'")
         conn.execute('CREATE INDEX IF NOT EXISTS idx_feedback_route ON feedback (start, end);')
         conn.execute('''CREATE TABLE IF NOT EXISTS edge_weights (
             edge TEXT PRIMARY KEY, multiplier REAL DEFAULT 1.0
@@ -775,9 +766,10 @@ def init_db():
     finally:
         conn.close()
 
+```
 
 File: backend/middleware.py
-Code snippet
+```python
 import datetime
 from fastapi import Request
 
@@ -793,9 +785,10 @@ async def add_cache_headers(request: Request, call_next):
         elif any(request.url.path.endswith(ext) for ext in ('.js', '.css')):
             response.headers['Cache-Control'] = 'public, max-age=86400'
     return response
+```
 
 File: backend/models.py
-Code snippet
+```python
 from enum import Enum
 from pydantic import BaseModel, Field, field_validator
 
@@ -810,6 +803,7 @@ class FeedbackPayload(BaseModel):
     path: list[str]
     rating: int = Field(ge=1, le=5)
     comment: str = ''
+    tags: list[str] = Field(default_factory=list, max_length=6)
 
     @field_validator('start', 'end', 'comment', mode='before')
     @classmethod
@@ -822,6 +816,19 @@ class FeedbackPayload(BaseModel):
         if not value or any(not isinstance(node_id, str) or not node_id.strip() for node_id in value):
             raise ValueError('path must contain at least one node id')
         return value
+
+    @field_validator('tags')
+    @classmethod
+    def validate_tags(cls, value):
+        cleaned = []
+        for tag in value:
+            if not isinstance(tag, str):
+                raise ValueError('tags must be strings')
+            tag = tag.strip().lower()
+            if not tag:
+                continue
+            cleaned.append(tag)
+        return cleaned
 
 
 class FAQCreatePayload(BaseModel):
@@ -840,10 +847,10 @@ class FAQCreatePayload(BaseModel):
 
 class SessionStartPayload(BaseModel):
     session_id: str
-    start_node: str
-    end_node: str
-    mobility: MobilityMode
-    planned_path: list[str] = Field(max_length=500)
+    start_node: str = ''
+    end_node: str = ''
+    mobility: MobilityMode = MobilityMode.none
+    planned_path: list[str] = Field(default_factory=list, max_length=500)
     planned_distance_m: float | None = None
 
 
@@ -863,9 +870,10 @@ class PDRObservationPayload(BaseModel):
     distance_to_nearest_m: float
     confidence: float = 1.0
 
+```
 
 File: backend/utils.py
-Code snippet
+```python
 from pathlib import Path
 from fastapi.templating import Jinja2Templates
 from jinja2 import pass_context
@@ -881,15 +889,17 @@ def custom_url_for(context, name, **path_params):
     return request.url_for(name, **path_params)
 
 templates.env.globals['url_for'] = custom_url_for
+```
 
 File: backend/graph/__init__.py
-Code snippet
+```python
 from .nodes import nodes, FLOOR_DISPLAY, CATEGORY_ORDER
 from .edges import build_graph, add_edge, validate_graph
 from .weights import get_learned_weights, _weight_cache, _clamp_weight
+```
 
 File: backend/graph/edges.py
-Code snippet
+```python
 import math
 from backend.graph.nodes import nodes
 
@@ -958,11 +968,17 @@ def build_graph():
     #                   restrooms/stairsend (they connect only via end waypoint)
     passageway_only = {'STAFFROOM2-1F', 'ROOM3-1F'}
     end_only = {nid for nid in nodes if 'RESTROOMS' in nid or 'STAIRSEND' in nid}
+    corner_only = {
+        'OFFICE-GF': 'HALLWAY-TURNPOINT-4-GF',
+        'MEDIAUNIT-1F': 'HALLWAY-TURNPOINT-4-1F',
+        'ALUMNIRELATIONSOFFICE-2F': 'HALLWAY-TURNPOINT-4-2F',
+        'ROOM4-3F': 'HALLWAY-TURNPOINT-4-3F',
+    }
 
     for nid, data in nodes.items():
         if is_waypoint(nid) or is_vertical(nid) or is_dead_end(nid):
             continue
-        if nid in passageway_only or nid in end_only:
+        if nid in passageway_only or nid in end_only or nid in corner_only:
             continue
         floor = data['floor']
         wps = [(wid, wd) for wid, wd in nodes.items()
@@ -972,6 +988,10 @@ def build_graph():
         cx, cy = data['coords']
         sorted_wps = sorted(wps, key=lambda w: math.dist((cx, cy), w[1]['coords']))
         for wp_id, _ in sorted_wps[:2]:
+            add_edge(graph, nid, wp_id)
+
+    for nid, wp_id in corner_only.items():
+        if nid in nodes and wp_id in nodes:
             add_edge(graph, nid, wp_id)
 
     # STEP 4 - Connect each vertical connector to nearest waypoint on its floor.
@@ -1007,11 +1027,14 @@ def build_graph():
     # STEP 7 - Extra direct edges for physical adjacency the waypoint system misses.
     for pair in [
         ('MAINENTRANCE-GF', 'HALLWAY-TURNPOINT-1-GF'),
-        ('OFFICE-GF',       'HALLWAY-TURNPOINT-1-GF'),
         ('CURVEDSTAIRS-GF', 'HALLWAY-TURNPOINT-1-GF'),
         ('LIFT-GF',         'HALLWAY-TURNPOINT-1-GF'),
         ('ADMIN-GF',        'HALLWAY-TURNPOINT-1-GF'),
         ('BALCONY-1F',      'HALLWAY-TURNPOINT-1-1F'),
+        ('CURVEDSTAIRS-GF', 'HALLWAY-TURNPOINT-4-GF'),
+        ('CURVEDSTAIRS-1F', 'HALLWAY-TURNPOINT-4-1F'),
+        ('CURVEDSTAIRS-2F', 'HALLWAY-TURNPOINT-4-2F'),
+        ('CURVEDSTAIRS-3F', 'HALLWAY-TURNPOINT-4-3F'),
     ]:
         if pair[0] in nodes and pair[1] in nodes:
             add_edge(graph, pair[0], pair[1])
@@ -1048,9 +1071,10 @@ def validate_graph(graph):
         if not floors:
             print(f"[graph] Vertical connector {v} lacks cross-floor link")
 
+```
 
 File: backend/graph/nodes.py
-Code snippet
+```python
 nodes = {
 
     # -- GROUND FLOOR (floor: 1) -------------------------------------
@@ -1061,7 +1085,7 @@ nodes = {
     'CONFERENCEROOM1-GF':   {'coords': (49, 58), 'floor': 1, 'label': 'Conference Room 1',     'category': 'Rooms'},
     'CONFERENCEROOM2-GF':   {'coords': (53, 58), 'floor': 1, 'label': 'Conference Room 2',     'category': 'Rooms'},
     'COMPUTERLAB-GF':       {'coords': (44, 59), 'floor': 1, 'label': 'Computer Lab',          'category': 'Labs & Rooms'},
-    'CLASSROOM-GF':         {'coords': (34, 58), 'floor': 1, 'label': 'Classroom',             'category': 'Rooms'},
+    'CLASSROOM-GF':         {'coords': (34, 58), 'floor': 1, 'label': 'Lecture Hall - 1',      'category': 'Rooms'},
     'LIBRARY-GF':           {'coords': (24, 59), 'floor': 1, 'label': 'Library',               'category': 'Offices'},
     'PRINCIPALROOM-GF':     {'coords': (20, 59), 'floor': 1, 'label': "Principal's Room",      'category': 'Offices'},
     'RESTROOMS-GF':         {'coords': (14, 56), 'floor': 1, 'label': 'Restrooms',             'category': 'Restrooms'},
@@ -1072,19 +1096,20 @@ nodes = {
     'HALLWAY-TURNPOINT-1-GF': {'coords': (74, 58), 'floor': 1, 'label': 'GF Turn 1', 'is_waypoint': True},
     'HALLWAY-TURNPOINT-2-GF': {'coords': (39, 59), 'floor': 1, 'label': 'GF Turn 2', 'is_waypoint': True},
     'HALLWAY-TURNPOINT-3-GF': {'coords': (12, 60), 'floor': 1, 'label': 'GF Turn 3 (End)', 'is_waypoint': True},
+    'HALLWAY-TURNPOINT-4-GF': {'coords': (74, 43), 'floor': 1, 'label': 'GF Turn 4 (Curved Stairs)', 'is_waypoint': True},
 
     # -- FIRST FLOOR (floor: 2) --------------------------------------
     'MEDIAUNIT-1F':         {'coords': (71, 42), 'floor': 2, 'label': 'Media Unit',            'category': 'Rooms'},
-    'BALCONY-1F':           {'coords': (75, 60), 'floor': 2, 'label': 'Balcony',               'category': 'Rooms', 'dead_end': True},
-    'ROOM1-1F':             {'coords': (66, 64), 'floor': 2, 'label': 'Room 1',                'category': 'Rooms'},
+    'BALCONY-1F':           {'coords': (75, 60), 'floor': 2, 'label': 'Balcony - North Wing',  'category': 'Rooms', 'dead_end': True},
+    'ROOM1-1F':             {'coords': (66, 64), 'floor': 2, 'label': 'Lecture Hall - 2',      'category': 'Rooms'},
     'SEMINARHALL-1F':       {'coords': (55, 62), 'floor': 2, 'label': 'Seminar Hall',          'category': 'Labs & Rooms'},
     'DESIGNLAB-1F':         {'coords': (52, 58), 'floor': 2, 'label': 'Design Thinking Lab',   'category': 'Labs & Rooms'},
     'UPSROOM-1F':           {'coords': (47, 60), 'floor': 2, 'label': 'UPS Room',              'category': 'Rooms'},
     'STAFFROOM1-1F':        {'coords': (33, 60), 'floor': 2, 'label': 'Staff Room 1',          'category': 'Offices'},
     'STAFFROOM2-1F':        {'coords': (36, 30), 'floor': 2, 'label': 'Staff Room 2',          'category': 'Offices'},
-    'ROOM3-1F':             {'coords': (37, 27), 'floor': 2, 'label': 'Room 3',                'category': 'Rooms'},
+    'ROOM3-1F':             {'coords': (37, 27), 'floor': 2, 'label': 'Discussion Room - 1',   'category': 'Rooms'},
     'BOARDROOM-1F':         {'coords': (22, 61), 'floor': 2, 'label': 'Board Room',            'category': 'Rooms'},
-    'ROOM2-1F':             {'coords': (19, 61), 'floor': 2, 'label': 'Room 2',                'category': 'Rooms'},
+    'ROOM2-1F':             {'coords': (19, 61), 'floor': 2, 'label': 'Lecture Hall - 3',      'category': 'Rooms'},
     'RESTROOMS-1F':         {'coords': (13, 57), 'floor': 2, 'label': 'Restrooms',             'category': 'Restrooms'},
     'LIFT-1F':              {'coords': (69, 53), 'floor': 2, 'label': 'Lift (First Floor)',    'category': 'Lift & Stairs'},
     'CURVEDSTAIRS-1F':      {'coords': (74, 42), 'floor': 2, 'label': 'Curved Stairs (First Floor)', 'category': 'Lift & Stairs'},
@@ -1093,6 +1118,7 @@ nodes = {
     'HALLWAY-TURNPOINT-1-1F': {'coords': (72, 59), 'floor': 2, 'label': '1F Turn 1', 'is_waypoint': True},
     'HALLWAY-TURNPOINT-2-1F': {'coords': (36, 59), 'floor': 2, 'label': '1F Turn 2', 'is_waypoint': True},
     'HALLWAY-TURNPOINT-3-1F': {'coords': (11, 62), 'floor': 2, 'label': '1F Turn 3 (End)', 'is_waypoint': True},
+    'HALLWAY-TURNPOINT-4-1F': {'coords': (72, 42), 'floor': 2, 'label': '1F Turn 4 (Curved Stairs)', 'is_waypoint': True},
     # 1F passageway branch
     'PASSAGEWAY-1F':     {'coords': (36, 59), 'floor': 2, 'label': '1F Passageway Entry', 'is_waypoint': True},
     'PASSAGEWAY-1F-TOP': {'coords': (36, 43), 'floor': 2, 'label': '1F Passageway Top',   'is_waypoint': True},
@@ -1115,12 +1141,13 @@ nodes = {
     'HALLWAY-TURNPOINT-1-2F': {'coords': (69, 57), 'floor': 3, 'label': '2F Turn 1', 'is_waypoint': True},
     'HALLWAY-TURNPOINT-2-2F': {'coords': (11, 60), 'floor': 3, 'label': '2F Turn 2 (End)', 'is_waypoint': True},
     'HALLWAY-TURNPOINT-3-2F': {'coords': (40, 58), 'floor': 3, 'label': '2F Turn 3', 'is_waypoint': True},
+    'HALLWAY-TURNPOINT-4-2F': {'coords': (69, 43), 'floor': 3, 'label': '2F Turn 4 (Curved Stairs)', 'is_waypoint': True},
 
     # -- THIRD FLOOR (floor: 4) --------------------------------------
-    'ROOM1-3F':     {'coords': (33, 59), 'floor': 4, 'label': 'Room 1',                    'category': 'Rooms'},
-    'ROOM2-3F':     {'coords': (47, 59), 'floor': 4, 'label': 'Room 2',                    'category': 'Rooms'},
-    'ROOM3-3F':     {'coords': (52, 59), 'floor': 4, 'label': 'Room 3',                    'category': 'Rooms'},
-    'ROOM4-3F':     {'coords': (70, 43), 'floor': 4, 'label': 'Room 4',                    'category': 'Rooms'},
+    'ROOM1-3F':     {'coords': (33, 59), 'floor': 4, 'label': 'Lecture Hall - 4',          'category': 'Rooms'},
+    'ROOM2-3F':     {'coords': (47, 59), 'floor': 4, 'label': 'Seminar Room - 1',          'category': 'Rooms'},
+    'ROOM3-3F':     {'coords': (52, 59), 'floor': 4, 'label': 'Seminar Room - 2',          'category': 'Rooms'},
+    'ROOM4-3F':     {'coords': (70, 43), 'floor': 4, 'label': 'Lecture Hall - 5',          'category': 'Rooms'},
     'RESTROOMS-3F': {'coords': (13, 57), 'floor': 4, 'label': 'Restrooms',                 'category': 'Restrooms'},
     'LIFT-3F':      {'coords': (69, 53), 'floor': 4, 'label': 'Lift (Third Floor)',         'category': 'Lift & Stairs'},
     'CURVEDSTAIRS-3F': {'coords': (74, 43), 'floor': 4, 'label': 'Curved Stairs (Third Floor)', 'category': 'Lift & Stairs'},
@@ -1129,6 +1156,7 @@ nodes = {
     'HALLWAY-TURNPOINT-1-3F': {'coords': (72, 58), 'floor': 4, 'label': '3F Turn 1', 'is_waypoint': True},
     'HALLWAY-TURNPOINT-2-3F': {'coords': (12, 60), 'floor': 4, 'label': '3F Turn 2 (End)', 'is_waypoint': True},
     'HALLWAY-TURNPOINT-3-3F': {'coords': (41, 59), 'floor': 4, 'label': '3F Turn 3', 'is_waypoint': True},
+    'HALLWAY-TURNPOINT-4-3F': {'coords': (72, 43), 'floor': 4, 'label': '3F Turn 4 (Curved Stairs)', 'is_waypoint': True},
 }
 
 
@@ -1147,9 +1175,10 @@ for _nid, _data in nodes.items():
     else:
         _data['type'] = 'room'
 
+```
 
 File: backend/graph/weights.py
-Code snippet
+```python
 import time
 import sqlite3
 from backend.db import DB_PATH
@@ -1176,17 +1205,19 @@ def get_learned_weights():
         _weight_cache['loaded_at'] = now
     return _weight_cache['weights']
 
+```
 
 File: backend/routers/__init__.py
-Code snippet
+```python
 from .navigation import router as navigation_router
 from .feedback import router as feedback_router
 from .stats import router as stats_router
 from .admin import router as admin_router
 from .pwa import router as pwa_router
+```
 
 File: backend/routers/admin.py
-Code snippet
+```python
 import sqlite3
 from typing import Annotated
 from fastapi import APIRouter, Depends, Request
@@ -1289,9 +1320,10 @@ def reset_weights(
     conn.commit()
     _weight_cache['loaded_at'] = 0
     return {'status': 'ok', 'message': 'All edge weights reset to 1.0'}
+```
 
 File: backend/routers/feedback.py
-Code snippet
+```python
 import datetime
 import json
 import sqlite3
@@ -1311,7 +1343,7 @@ def save_feedback(
     conn: Annotated[sqlite3.Connection, Depends(get_db)],
 ):
     conn.execute(
-        'INSERT INTO feedback VALUES (NULL,?,?,?,?,?,?)',
+        'INSERT INTO feedback VALUES (NULL,?,?,?,?,?,?,?)',
         (
             datetime.datetime.now().isoformat(),
             payload.start,
@@ -1319,6 +1351,7 @@ def save_feedback(
             json.dumps(payload.path),
             payload.rating,
             payload.comment,
+            json.dumps(payload.tags),
         ),
     )
     conn.commit()
@@ -1337,9 +1370,10 @@ def save_feedback(
     _weight_cache['loaded_at'] = 0
     return {'status': 'ok'}
 
+```
 
 File: backend/routers/navigation.py
-Code snippet
+```python
 import math
 import heapq
 import sqlite3
@@ -1502,9 +1536,10 @@ def debug_astar(
                 heapq.heappush(open_set, (tentative_g + heuristic(nbr, end), tentative_g, nbr))
                 
     return {'path': []}
+```
 
 File: backend/routers/pwa.py
-Code snippet
+```python
 import os
 import sqlite3
 from typing import Annotated
@@ -1541,9 +1576,10 @@ def get_faqs(conn: Annotated[sqlite3.Connection, Depends(get_db)]):
         {'id': row[0], 'keywords': [kw.strip() for kw in row[1].split(',')], 'answer': row[2]}
         for row in rows
     ]
+```
 
 File: backend/routers/stats.py
-Code snippet
+```python
 import sqlite3
 from typing import Annotated
 from fastapi import APIRouter, Depends, Query
@@ -1627,6 +1663,7 @@ def metrics(conn: Annotated[sqlite3.Connection, Depends(get_db)]):
             rating_dist[str(r)] = count
 
         return {
+            "status": "ok",
             "routing": {
                 "total_sessions": tot_sess,
                 "avg_planned_distance_m": avg_dist,
@@ -1647,9 +1684,10 @@ def metrics(conn: Annotated[sqlite3.Connection, Depends(get_db)]):
         }
     except Exception as e:
         return {"error": str(e)}
+```
 
 File: frontend/static/coord_picker.html
-Code snippet
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2289,9 +2327,10 @@ Code snippet
 </script>
 </body>
 </html>
+```
 
 File: frontend/static/manifest.json
-Code snippet
+```json
 {
   "name": "NMIT Wayfinder",
   "short_name": "Wayfinder",
@@ -2306,9 +2345,10 @@ Code snippet
     { "src": "/static/icon-512-v2.png", "sizes": "512x512", "type": "image/png" }
   ]
 }
+```
 
 File: frontend/static/script.js
-Code snippet
+```javascript
 const FLOOR_NAMES = { 1: 'Ground Floor', 2: 'First Floor', 3: 'Second Floor', 4: 'Third Floor' };
 const COORD_TO_METERS = 0.5;
 const WALK_SPEED = 1.2; // m/s
@@ -2333,10 +2373,8 @@ const nodeType = (id) => (window.allNodes[id]?.type) || null;
 // ---------------------------------------------------------------------------
 function applyDarkMode(dark) {
     document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-    const moonIcon = document.getElementById('dark-icon');
-    const sunIcon = document.getElementById('light-icon');
-    if (moonIcon) moonIcon.style.display = dark ? 'none' : 'block';
-    if (sunIcon) sunIcon.style.display = dark ? 'block' : 'none';
+    const btn = document.getElementById('dark-mode-btn');
+    if (btn) btn.classList.toggle('active', dark);
 }
 
 function toggleDarkMode() {
@@ -2392,6 +2430,13 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', () => { fitSVGToImage(); fitNavSVGToImage(); });
     loadFAQs();
     fitSVGToImage();
+
+    
+
+    // ── TomSelect init ──
+    const tsStart = new TomSelect('#start_node', { maxOptions: 200 });
+    const tsEnd   = new TomSelect('#end_node',   { maxOptions: 200 });
+    window._registerTsEnd(tsEnd);   // bridge for pin-to-navigate
 
     document.querySelectorAll('.map-image').forEach(img => {
         if (!img.complete) {
@@ -2475,9 +2520,23 @@ function fitNavSVGToImage() {
 function switchFloor(floorNum) {
     document.querySelectorAll('.floor-tab').forEach(tab =>
         tab.classList.toggle('active', tab.dataset.floor == floorNum));
+    /* NEW */
     for (let i = 1; i <= 4; i++) {
         const container = document.getElementById(`f${i}-container`);
-        if (container) container.style.display = (i == floorNum) ? 'block' : 'none';
+        if (!container) continue;
+        if (i == floorNum) {
+            container.style.display = 'block';
+            container.classList.add('active-floor');       // Change 6 hook
+            requestAnimationFrame(() => {
+                container.style.opacity = '1';
+                container.style.transform = 'translateY(0)';
+            });
+        } else {
+            container.style.opacity = '0';
+            container.style.transform = 'translateY(6px)';
+            container.classList.remove('active-floor');
+            setTimeout(() => { container.style.display = 'none'; }, 350);
+        }
     }
     fitSVGToImage();
     // Keep nav screen floor in sync
@@ -2664,6 +2723,19 @@ function closeRouteForm() {
     if (sheet) sheet.classList.add('sheet-hidden');
     routeFormOpen = false;
     document.documentElement.style.overflow = 'hidden';
+}
+
+function addStopField() {
+    const template = document.getElementById('stop-template');
+    const container = document.getElementById('stops-container');
+    if (!template || !container) return;
+
+    const clone = template.content.cloneNode(true);
+    const select = clone.querySelector('.stop-select');
+    container.appendChild(clone);
+
+    // Initialize TomSelect on the new stop select
+    new TomSelect(select, { maxOptions: 200 });
 }
 
 function toggleMobileDirections() {
@@ -3906,8 +3978,15 @@ function toggleFAQChat() {
     const chat = document.getElementById('faq-chat');
     const bubble = document.getElementById('faq-bubble');
     if (!chat) return;
-    const isOpen = chat.style.display !== 'none';
-    chat.style.display = isOpen ? 'none' : 'flex';
+    const isOpen = chat.classList.contains('faq-chat-open');
+    if (isOpen) {
+        chat.classList.remove('faq-chat-open');
+        // Wait for exit animation before hiding from layout
+        setTimeout(() => { chat.style.display = 'none'; }, 300);
+    } else {
+        chat.style.display = 'flex';
+        requestAnimationFrame(() => chat.classList.add('faq-chat-open'));
+    }
     bubble.classList.toggle('faq-bubble-open', !isOpen);
 }
 
@@ -4131,10 +4210,11 @@ class PDRNavigator {
     // Call window._registerTsEnd(tsInstance) from app.js after creation.
     window._registerTsEnd = function (ts) { window._tsEnd = ts; };
 })();
+```
 
 File: frontend/static/service-worker.js
-Code snippet
-const CACHE_NAME = 'nmit-wayfinder-v9';
+```javascript
+const CACHE_NAME = 'nmit-wayfinder-v14';
 import { openOfflineDB } from './js/db-helper.js';
 
 const FLOOR_PLANS = [
@@ -4329,9 +4409,10 @@ async function flushOfflineSessions() {
     } catch { /* will retry on next sync */ }
   }
 }
+```
 
 File: frontend/static/css/style.css
-Code snippet
+```css
 /* ============================================================
    NMIT WAYFINDER â€” Blue Design System
    Light: white surfaces, #3B82F6 accent, #1a1f36 ink
@@ -4342,6 +4423,7 @@ Code snippet
 
 :root {
     --accent: #3B82F6;
+    --accent-brand: #0f766e;
     --accent-d: #1d4ed8;
     --accent-l: #EFF6FF;
     --accent-b: #bfdbfe;
@@ -4366,6 +4448,10 @@ Code snippet
     --shadow-sm: 0 2px 8px rgba(59, 130, 246, 0.08);
     --shadow-md: 0 4px 20px rgba(59, 130, 246, 0.1);
     --shadow-lg: 0 8px 40px rgba(59, 130, 246, 0.14);
+    --shadow-sidebar: 0 1px 0 rgba(255, 255, 255, 0.9) inset,
+        0 18px 0 -12px rgba(15, 23, 42, 0.12),
+        0 34px 0 -22px rgba(15, 118, 110, 0.10),
+        0 1px 2px rgba(15, 23, 42, 0.16);
 
     --radius-sm: 8px;
     --radius-md: 14px;
@@ -4380,6 +4466,7 @@ Code snippet
     --accent-l: #1e3a5f;
     --accent-b: #1e40af;
     --teal: #14b8a6;
+    --accent-brand: #0f766e;
 
     --bg-grad: linear-gradient(160deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
 
@@ -4397,6 +4484,10 @@ Code snippet
     --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
     --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
     --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
+    --shadow-sidebar: 0 1px 0 rgba(255, 255, 255, 0.06) inset,
+        0 18px 0 -12px rgba(0, 0, 0, 0.42),
+        0 34px 0 -22px rgba(15, 118, 110, 0.20),
+        0 1px 2px rgba(0, 0, 0, 0.52);
 
     /* Intro.js Overrides for Dark Mode */
     .introjs-tooltip {
@@ -4438,7 +4529,32 @@ body {
     background: var(--bg-grad);
     -webkit-font-smoothing: antialiased;
 }
-
+/* Replace body::before / body::after orb blocks with this */
+:root::before,
+:root::after {
+    content: '';
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+    z-index: -1;
+    animation: orbDrift 12s ease-in-out infinite alternate;
+}
+:root::before {
+    width: 520px; height: 520px;
+    top: -120px; left: -100px;
+    background: radial-gradient(circle, rgba(59,130,246,0.18) 0%, transparent 70%);
+}
+:root::after {
+    width: 400px; height: 400px;
+    bottom: -80px; right: -60px;
+    background: radial-gradient(circle, rgba(1,121,111,0.14) 0%, transparent 70%);
+    animation-delay: -6s;
+}
+@keyframes orbDrift {
+    from { transform: translate(0, 0) scale(1); }
+    to   { transform: translate(30px, 20px) scale(1.08); }
+}
 html {
     overscroll-behavior: none;
 }
@@ -4452,11 +4568,11 @@ body.has-route {
 /* â”€â”€ Desktop App Shell â”€â”€ */
 .app-container {
     display: flex;
-    width: 95%;
-    max-width: 1400px;
-    height: 90vh;
-    margin: 5vh auto 0;
-    gap: 18px;
+    width: calc(100vw - 36px);
+    max-width: 1580px;
+    height: calc(100vh - 34px);
+    margin: 17px auto 0;
+    gap: 20px;
     opacity: 0;
     transform: translateY(16px);
     animation: appAppear 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
@@ -4470,12 +4586,13 @@ body.has-route {
 }
 
 /* â”€â”€ Navigator Panel â”€â”€ */
+/* FIXED */
 .navigator-panel {
-    flex: 0 0 340px;
-    background: var(--surface);
+    flex: 0 0 384px;
+    background: #ffffff;
     border-radius: var(--radius-lg);
-    border: 1px solid var(--border-light);
-    box-shadow: var(--shadow-md);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    box-shadow: var(--shadow-sidebar);
     padding: 24px 20px;
     display: flex;
     flex-direction: column;
@@ -4496,10 +4613,10 @@ body.has-route {
 /* â”€â”€ Map Section â”€â”€ */
 .map-section {
     flex: 1;
-    background: var(--surface);
+    background: #ffffff;
     border-radius: var(--radius-lg);
     border: 1px solid var(--border-light);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-sidebar);
     padding: 16px;
     display: flex;
     flex-direction: column;
@@ -4519,8 +4636,11 @@ h1 {
     font-family: 'Orbitron', sans-serif;
     font-size: 22px;
     font-weight: 700;
-    color: var(--text-primary);
-    letter-spacing: 2px;
+    letter-spacing: 5px;
+    background: linear-gradient(135deg, var(--text-primary) 40%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .status-badge {
@@ -4545,6 +4665,20 @@ h1 {
     background: var(--accent);
     border-radius: 50%;
     animation: pulse 2s ease-in-out infinite;
+    position: relative;
+}
+.status-dot::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    animation: sonar 2s ease-out infinite;
+    opacity: 0;
+}
+@keyframes sonar {
+    0%   { transform: scale(0.8); opacity: 0.7; }
+    100% { transform: scale(2.4); opacity: 0; }
 }
 
 @keyframes pulse {
@@ -4575,12 +4709,22 @@ h1 {
 
 .field-label {
     display: block;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
-    color: var(--steel);
-    margin-bottom: 6px;
-    letter-spacing: 1.2px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
+    border-left: 3px solid transparent;
+    padding-left: 0;
+    transition: border-color 0.18s ease, color 0.18s ease, padding-left 0.18s ease;
+}
+
+.form-group:focus-within > .field-label,
+.stop-group:focus-within > .field-label {
+    border-left-color: var(--accent);
+    color: var(--accent);
+    padding-left: 8px;
 }
 
 /* â”€â”€ TomSelect â”€â”€ */
@@ -4591,19 +4735,34 @@ h1 {
 .ts-control {
     background: var(--surface-2) !important;
     border: 1px solid var(--border) !important;
-    border-radius: var(--radius-sm) !important;
+    border-radius: 12px !important;
     padding: 8px 12px !important;
     font-family: 'Inter', sans-serif !important;
     font-size: 13px !important;
     min-height: 42px !important;
     box-shadow: none !important;
     color: var(--text-primary) !important;
-    transition: border-color 0.2s !important;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s !important;
 }
 
+.ts-wrapper.single .ts-control {
+    display: flex !important;
+    align-items: center;
+    flex-wrap: nowrap !important;
+    gap: 6px;
+}
+
+.ts-wrapper.focus .ts-control,
+.ts-wrapper.input-active .ts-control,
 .ts-control:focus-within {
-    border-color: var(--teal) !important;
-    box-shadow: 0 0 0 3px rgba(1, 121, 111, 0.12) !important;
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18) !important;
+}
+
+.ts-wrapper.single.has-items .ts-control,
+.ts-wrapper.multi.has-items .ts-control {
+    border-color: rgba(59, 130, 246, 0.4) !important;
+    box-shadow: inset 4px 0 0 var(--accent) !important;
 }
 
 .ts-control input {
@@ -4613,17 +4772,41 @@ h1 {
 }
 
 .ts-control .item {
-    background: rgba(176, 196, 222, 0.3) !important;
-    color: var(--text-primary) !important;
+    background: var(--accent-l) !important;
+    color: var(--accent-d) !important;
+    border-left: 3px solid var(--accent) !important;
     border-radius: 4px !important;
-    padding: 2px 8px !important;
+    padding: 2px 8px 2px 10px !important;
     font-size: 12px !important;
     font-weight: 600 !important;
 }
 
+.ts-wrapper.single .ts-control .item {
+    flex: 0 1 auto;
+    max-width: calc(100% - 16px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ts-wrapper.single .ts-control input {
+    flex: 1 1 12px !important;
+    min-width: 8px !important;
+}
+
+.ts-wrapper.single.has-items:not(.input-active) .ts-control input {
+    width: 1px !important;
+    min-width: 1px !important;
+    max-width: 1px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    opacity: 0 !important;
+    caret-color: transparent !important;
+}
+
 .ts-dropdown {
     z-index: 9999 !important;
-    border-radius: var(--radius-sm) !important;
+    border-radius: 12px !important;
     border: 1px solid var(--border) !important;
     box-shadow: var(--shadow-lg) !important;
     font-family: 'Inter', sans-serif !important;
@@ -4644,8 +4827,9 @@ h1 {
 }
 
 .ts-dropdown .option.selected {
-    background: var(--accent) !important;
-    color: white !important;
+    background: var(--accent-l) !important;
+    color: var(--accent-d) !important;
+    box-shadow: inset 4px 0 0 var(--accent);
 }
 
 .ts-dropdown .optgroup-header {
@@ -4675,25 +4859,44 @@ h1 {
    Default: black text, white bg, black border
    Hover:   white text, black bg
    â”€â”€ */
+/* NEW */
 .start-btn {
     width: 100%;
     padding: 14px;
-    border: 2px solid var(--text-primary);
+    border: 2px solid var(--accent);
     border-radius: var(--radius-md);
-    background: var(--surface);
-    color: var(--text-primary);
+    background: var(--accent);
+    color: #ffffff;
     font-family: 'Orbitron', sans-serif;
     font-size: 12px;
     font-weight: 700;
     letter-spacing: 1.5px;
     cursor: pointer;
-    transition: background 0.18s, color 0.18s, border-color 0.18s;
+    transition: background 0.18s, color 0.18s, border-color 0.18s, transform 0.18s, box-shadow 0.18s;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 0 -6px rgba(59, 130, 246, 0.32), 0 1px 2px rgba(15, 23, 42, 0.18);
+}
+.start-btn::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 60%; height: 100%;
+    background: linear-gradient(120deg, transparent 20%, rgba(255,255,255,0.28) 50%, transparent 80%);
+    transition: left 0.45s ease;
+    pointer-events: none;
+    clip-path: inset(0);   /* ← clips the shimmer without affecting the button's stacking context */
+}
+.start-btn:hover::after {
+    left: 160%;
 }
 
 .start-btn:hover {
-    background: var(--accent);
-    border-color: var(--accent);
+    background: var(--accent-d);
+    border-color: var(--accent-d);
     color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 14px 0 -8px rgba(59, 130, 246, 0.38), 0 2px 4px rgba(15, 23, 42, 0.18);
 }
 
 /* Dark mode: hover uses accent blue so white text stays readable */
@@ -4709,11 +4912,11 @@ h1 {
     color: var(--text-primary);
     width: 100%;
     padding: 8px;
-    border-radius: var(--radius-sm);
+    border-radius: 12px;
     cursor: pointer;
     font-size: 12px;
     font-weight: 700;
-    margin-bottom: 10px;
+    margin-bottom: 0;
     transition: background 0.15s;
 }
 
@@ -4725,12 +4928,44 @@ h1 {
     background: #fee2e2;
     color: #b91c1c;
     border: none;
-    border-radius: var(--radius-sm);
-    min-width: 72px;
-    padding: 0 12px;
+    border-radius: 12px;
+    width: 42px;
+    min-width: 42px;
+    min-height: 42px;
+    padding: 0;
     cursor: pointer;
-    font-size: 12px;
-    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.16s, color 0.16s, transform 0.16s;
+}
+
+.remove-stop svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.remove-stop:hover,
+.remove-stop:focus-visible {
+    background: #fecaca;
+    color: #991b1b;
+    transform: translateY(-1px);
+}
+
+.stop-actions-row {
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.stop-actions-row .add-stop-btn {
+    flex: 1 1 80%;
 }
 
 .action-buttons {
@@ -4741,7 +4976,7 @@ h1 {
 .radio-group {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
     margin-top: 6px;
 }
 
@@ -4749,13 +4984,59 @@ h1 {
     font-size: 13px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     cursor: pointer;
     color: var(--text-primary);
+    padding: 0;
+    border: none;
+    background: transparent;
+    transition: color 0.18s ease, opacity 0.18s ease;
+}
+
+.radio-group label:hover,
+.radio-group label:focus-within {
+    color: var(--accent-brand);
+}
+
+.mobility-option-text {
+    flex: 1 1 auto;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.mobility-option-asset {
+    width: 26px;
+    height: 26px;
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: transparent;
+    border: none;
+    flex-shrink: 0;
+}
+
+.mobility-option-asset img {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.radio-group label:has(input:checked) {
+    color: var(--text-primary);
+}
+
+.radio-group label:has(input:checked) .mobility-option-asset {
+    opacity: 1;
 }
 
 input[type="radio"] {
     accent-color: var(--teal);
+    width: 16px;
+    height: 16px;
+    margin: 0;
 }
 
 /* â”€â”€ Map Header â”€â”€ */
@@ -4769,20 +5050,49 @@ input[type="radio"] {
 }
 
 .floor-tabs {
-    display: flex;
+    --active-floor-index: 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(44px, 1fr));
     gap: 6px;
+    position: relative;
+    isolation: isolate;
+    padding: 4px;
+    border: 1px solid var(--border-light);
+    border-radius: 999px;
+    background: var(--surface-2);
+    min-width: 240px;
+}
+
+.floor-tabs::before {
+    content: '';
+    position: absolute;
+    z-index: 0;
+    top: 4px;
+    bottom: 4px;
+    left: 4px;
+    width: calc((100% - 26px) / 4);
+    border-radius: 999px;
+    background: var(--accent);
+    box-shadow: 0 8px 0 -5px rgba(59, 130, 246, 0.34), 0 1px 2px rgba(15, 23, 42, 0.18);
+    transform: translateX(calc(var(--active-floor-index) * (100% + 6px)));
+    transition: transform 0.42s cubic-bezier(0.2, 0.9, 0.25, 1),
+                box-shadow 0.3s ease;
+    will-change: transform;
 }
 
 .floor-tab {
-    background: var(--surface-2);
+    position: relative;
+    z-index: 1;
+    background: transparent;
     padding: 6px 14px;
     min-height: 36px;
-    border-radius: var(--radius-sm);
+    border-radius: 999px;
+    font-family: 'Orbitron', sans-serif;
     font-weight: 700;
-    font-size: 12px;
+    font-size: 11px;
     cursor: pointer;
-    border: 1.5px solid var(--border);
-    transition: all 0.18s;
+    border: 0;
+    transition: color 0.24s ease, background 0.24s ease;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -4792,15 +5102,24 @@ input[type="radio"] {
 }
 
 .floor-tab:hover {
-    background: var(--accent);
-    color: white;
-    border-color: var(--accent);
+    background: var(--accent-l);
+    color: var(--accent);
 }
 
 .floor-tab.active {
-    background: var(--text-primary);
+    background: var(--accent);
     color: white;
-    border-color: var(--text-primary);
+}
+
+.floor-tab.active:hover,
+.floor-tab.active:focus-visible {
+    background: var(--accent);
+    color: #ffffff;
+}
+
+[data-theme="dark"] .floor-tab.active {
+    background: transparent;
+    color: #ffffff;
 }
 
 /* â”€â”€ Route Summary â”€â”€ */
@@ -4815,39 +5134,104 @@ input[type="radio"] {
     border: 1px solid var(--border-light);
     border-radius: var(--radius-sm);
     padding: 5px 10px;
-    overflow: hidden;
+    overflow: visible;
     flex-wrap: wrap;
+    justify-content: flex-end;
+    row-gap: 4px;
+    max-width: min(46vw, 640px);
+    text-align: right;
 }
 
 .route-summary-from {
-    color: #10b981;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 85px;
-    white-space: nowrap;
+    color: var(--accent);
 }
 
 .route-summary-to {
     color: #ef4444;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 85px;
-    white-space: nowrap;
 }
 
 .route-summary-stop {
     color: var(--text-secondary);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 70px;
-    white-space: nowrap;
-    flex-shrink: 0;
+}
+
+.route-summary-from,
+.route-summary-to,
+.route-summary-stop {
+    overflow: visible;
+    text-overflow: clip;
+    max-width: none;
+    white-space: normal;
+    word-break: break-word;
 }
 
 .route-summary-arrow {
     color: var(--text-muted);
     flex-shrink: 0;
     font-size: 13px;
+}
+
+.destination-preview {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(15, 118, 110, 0.08));
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+}
+
+.destination-preview-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.destination-preview-eyebrow {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.destination-preview h3 {
+    font-family: 'Inter', sans-serif;
+    font-size: 18px;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.destination-preview-floor {
+    flex-shrink: 0;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent-d);
+}
+
+.destination-preview-meta {
+    margin: 10px 0 12px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.destination-preview-landmarks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.destination-preview-chip {
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
 }
 
 /* â”€â”€ Map Display â”€â”€ */
@@ -4858,8 +5242,69 @@ input[type="radio"] {
     position: relative;
     border-radius: var(--radius-md);
     border: 1px solid var(--border-light);
-    background: var(--surface-3);
+    background: #ffffff;
     cursor: default;
+}
+
+.transition-banner {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 6;
+    max-width: min(340px, calc(100% - 24px));
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-md);
+    backdrop-filter: blur(10px);
+}
+
+.transition-banner-icon {
+    min-width: 92px;
+    width: 92px;
+    height: 48px;
+    border-radius: 14px;
+    background: var(--accent-l);
+    color: var(--accent-d);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.9px;
+    text-transform: uppercase;
+    text-align: center;
+    padding: 0 10px;
+}
+
+.transition-banner[data-method="stairs"] .transition-banner-icon {
+    background: rgba(245, 158, 11, 0.12);
+    color: #c2410c;
+}
+
+.transition-banner-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.transition-banner-body {
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text-secondary);
+}
+
+.map-container.active-floor {
+    box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.22),
+                0 0 28px rgba(59, 130, 246, 0.08);
+    border-radius: var(--radius-md);
 }
 
 .map-container {
@@ -4869,6 +5314,7 @@ input[type="radio"] {
     top: 0;
     left: 0;
     cursor: crosshair;
+    transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .map-image {
@@ -5003,7 +5449,7 @@ input[type="radio"] {
 }
 
 .marker-start {
-    fill: #10b981;
+    fill: var(--accent);
     stroke: #fff;
     stroke-width: 2;
 }
@@ -5024,6 +5470,49 @@ input[type="radio"] {
     fill: var(--teal);
     stroke: #fff;
     stroke-width: 2px;
+}
+
+.pdr-user-marker-root {
+    filter: drop-shadow(0 10px 12px rgba(15, 23, 42, 0.22));
+}
+
+.pdr-user-halo {
+    fill: rgba(59, 130, 246, 0.16);
+    stroke: rgba(59, 130, 246, 0.3);
+    stroke-width: 0.35;
+    animation: pdrPulse 1.5s ease-in-out infinite;
+    transform-box: fill-box;
+    transform-origin: center;
+}
+
+.pdr-user-body {
+    fill: #ffffff;
+    stroke: var(--accent);
+    stroke-width: 0.35;
+}
+
+.pdr-user-core {
+    fill: var(--accent);
+}
+
+.pdr-user-arrow {
+    fill: var(--teal);
+    stroke: #ffffff;
+    stroke-width: 0.22;
+    stroke-linejoin: round;
+}
+
+@keyframes pdrPulse {
+    0%,
+    100% {
+        opacity: 0.9;
+        transform: scale(0.92);
+    }
+
+    50% {
+        opacity: 0.4;
+        transform: scale(1.14);
+    }
 }
 
 /* â”€â”€ Map Legend â”€â”€ */
@@ -5051,10 +5540,15 @@ input[type="radio"] {
     display: inline-block;
 }
 
+.legend-dot-live {
+    background: linear-gradient(135deg, var(--accent), var(--teal));
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.14);
+}
+
 /* â”€â”€ CHECKPOINT BUTTON â€” outlined â”€â”€ */
 .checkpoint-btn {
     position: absolute;
-    bottom: 28px;
+    bottom: 12px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 1000;
@@ -5062,7 +5556,7 @@ input[type="radio"] {
     color: var(--accent);
     border: 2px solid var(--accent);
     border-radius: var(--radius-xl);
-    padding: 14px 36px;
+    padding: 14px 30px;
     font-family: 'Orbitron', sans-serif;
     font-size: 11px;
     font-weight: 700;
@@ -5074,7 +5568,7 @@ input[type="radio"] {
     justify-content: center;
     gap: 8px;
     width: max-content;
-    min-width: 200px;
+    min-width: 220px;
     transition: background 0.18s, color 0.18s, box-shadow 0.15s;
     white-space: nowrap;
 }
@@ -5116,22 +5610,142 @@ input[type="radio"] {
 }
 
 /* â”€â”€ Route Info Panel â”€â”€ */
+.pdr-status-panel {
+    margin-top: 12px;
+}
+
+.pdr-status-card {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(15, 118, 110, 0.08));
+    border: 1px solid var(--border-light);
+    border-radius: 14px;
+    padding: 14px;
+}
+
+.pdr-status-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.pdr-status-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.pdr-status-copy {
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--text-secondary);
+}
+
+.pdr-status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.pdr-status-badge[data-tone="live"] {
+    background: rgba(16, 185, 129, 0.14);
+    color: #047857;
+}
+
+.pdr-status-badge[data-tone="ready"] {
+    background: rgba(59, 130, 246, 0.14);
+    color: var(--accent-d);
+}
+
+.pdr-status-badge[data-tone="warn"] {
+    background: rgba(245, 158, 11, 0.16);
+    color: #b45309;
+}
+
+.pdr-status-badge[data-tone="off"] {
+    background: rgba(148, 163, 184, 0.18);
+    color: #475569;
+}
+
+.pdr-status-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.pdr-status-stat {
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(59, 130, 246, 0.1);
+    border-radius: 12px;
+    padding: 10px;
+}
+
+.pdr-status-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.9px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.pdr-status-value {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
 #route-info-panel {
     margin-top: 14px;
     border-top: 1px solid var(--border-light);
-    padding-top: 14px;
+    padding: 14px;
+    border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    max-height: calc(100vh - 190px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--mist) transparent;
+}
+
+#route-info-panel::-webkit-scrollbar {
+    width: 6px;
+}
+
+#route-info-panel::-webkit-scrollbar-thumb {
+    background: var(--mist);
+    border-radius: 999px;
 }
 
 /* â”€â”€ Directions Panel â”€â”€ */
 #directions-panel {
     margin-top: 10px;
     background: var(--surface-2);
-    border-radius: var(--radius-sm);
+    border-radius: 12px;
     border: 1px solid var(--border-light);
-    padding: 12px 14px;
+    padding: 12px;
     font-size: 13px;
-    max-height: 260px;
-    overflow-y: auto;
+    max-height: none;
+    min-height: 0;
+    overflow: visible;
+}
+
+#directions-panel[open] {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
 }
 
 #directions-panel summary {
@@ -5144,18 +5758,68 @@ input[type="radio"] {
 }
 
 #directions-list {
-    margin-top: 10px;
-    padding-left: 18px;
-    line-height: 2.1;
+    counter-reset: direction-step;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    list-style: none;
+    margin-top: 12px;
+    padding-left: 0;
+    line-height: 1.45;
+    flex: 0 0 auto;
+    min-height: auto;
+    overflow: visible;
+    padding-right: 4px;
 }
 
 #directions-list li {
+    counter-increment: direction-step;
     color: var(--text-primary);
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 10px 12px 10px 42px;
+    box-shadow: 0 8px 0 -6px rgba(15, 23, 42, 0.10), 0 1px 2px rgba(15, 23, 42, 0.08);
+    min-height: 42px;
+}
+
+#directions-list li::before {
+    content: counter(direction-step);
+    position: absolute;
+    left: 10px;
+    top: 10px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-l);
+    color: var(--accent-brand);
+    font-size: 11px;
+    font-weight: 800;
+}
+
+#directions-list li.direction-leg-header {
+    counter-increment: none;
+    padding: 8px 10px;
+    background: transparent;
+    border-style: dashed;
+    box-shadow: none;
+    color: var(--steel);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+#directions-list li.direction-leg-header::before {
+    content: none;
 }
 
 #directions-list li:first-child {
-    color: var(--steel);
-    font-weight: 600;
+    color: var(--text-primary);
+    font-weight: 500;
 }
 
 #directions-list li:last-child {
@@ -5164,9 +5828,9 @@ input[type="radio"] {
 }
 
 .directions-active {
-    background: rgba(1, 121, 111, 0.1);
-    border-radius: 5px;
-    padding: 2px 6px;
+    background: rgba(15, 118, 110, 0.10) !important;
+    border-color: rgba(15, 118, 110, 0.35) !important;
+    border-radius: 8px;
     font-weight: 600;
     color: var(--teal);
 }
@@ -5241,9 +5905,93 @@ input[type="radio"] {
     transition: background 0.18s, color 0.18s;
 }
 
-.modal-box button:first-of-type:hover {
-    background: var(--text-primary);
-    color: #fff;
+.modal-box button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.sensor-modal-box {
+    max-width: 420px;
+    text-align: left;
+}
+
+.sensor-modal-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 14px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.18);
+    color: var(--accent-d);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+.sensor-modal-copy,
+.sensor-modal-note {
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--text-secondary);
+}
+
+.sensor-modal-copy {
+    margin-bottom: 14px;
+}
+
+.sensor-modal-feature-list {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.sensor-modal-feature {
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-light);
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.sensor-modal-note {
+    margin-bottom: 16px;
+}
+
+.feedback-action-btn,
+.feedback-skip-btn {
+    width: 100%;
+}
+
+.feedback-action-btn {
+    background: var(--accent) !important;
+    border-color: var(--accent) !important;
+    color: #ffffff !important;
+}
+
+.feedback-action-btn:hover,
+.feedback-action-btn:focus-visible {
+    background: var(--accent-d) !important;
+    border-color: var(--accent-d) !important;
+    color: #ffffff !important;
+    outline: none;
+}
+
+.feedback-skip-btn {
+    background: var(--surface-2) !important;
+    border-color: rgba(15, 118, 110, 0.28) !important;
+    color: var(--accent-brand) !important;
+}
+
+.feedback-skip-btn:hover,
+.feedback-skip-btn:focus-visible {
+    background: rgba(15, 118, 110, 0.12) !important;
+    border-color: var(--accent-brand) !important;
+    color: var(--accent-brand) !important;
+    outline: none;
 }
 
 /* â”€â”€ Star Rating â”€â”€ */
@@ -5258,6 +6006,51 @@ input[type="radio"] {
     color: #f59e0b;
 }
 
+.feedback-tag-block {
+    margin-top: 14px;
+    text-align: left;
+    display: none;
+}
+
+.feedback-tag-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.9px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+}
+
+.feedback-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.feedback-tag {
+    padding: 8px 10px;
+    min-height: 38px;
+    border-radius: 999px;
+    border: 1px solid var(--border) !important;
+    background: var(--surface-2) !important;
+    color: var(--text-secondary) !important;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.feedback-tag.active,
+.feedback-tag:hover,
+.feedback-tag:focus-visible {
+    background: var(--accent-l) !important;
+    color: var(--accent-d) !important;
+    border-color: rgba(59, 130, 246, 0.32) !important;
+    transform: translateY(-1px);
+    outline: none;
+}
+
 /* â”€â”€ Floor Confirm Modal â”€â”€ */
 .floor-confirm-box {
     text-align: center;
@@ -5265,8 +6058,35 @@ input[type="radio"] {
 }
 
 .floor-confirm-icon {
-    font-size: 40px;
-    margin-bottom: 12px;
+    min-width: 92px;
+    width: 92px;
+    height: 48px;
+    margin: 0 auto 12px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(99, 102, 241, 0.12);
+    color: #4f46e5;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.9px;
+    text-transform: uppercase;
+    text-align: center;
+    padding: 0 10px;
+}
+
+.floor-confirm-icon svg {
+    width: 34px;
+    height: 34px;
+    stroke: currentColor;
+    fill: none;
+}
+
+.floor-confirm-icon[data-method="stairs"] {
+    background: rgba(245, 158, 11, 0.12);
+    color: #c2410c;
 }
 
 .floor-confirm-yes-btn {
@@ -5347,21 +6167,39 @@ input[type="radio"] {
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background: var(--text-primary);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+    border: 1px solid rgba(191, 219, 254, 0.95);
     color: white;
-    padding: 10px 18px;
-    border-radius: var(--radius-sm);
+    padding: 12px 18px 12px 14px;
+    border-radius: 8px;
     z-index: 10000;
     font-size: 13px;
     max-width: 90vw;
-    text-align: center;
+    text-align: left;
     pointer-events: none;
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 12px 0 -8px rgba(59, 130, 246, 0.36), 0 2px 4px rgba(15, 23, 42, 0.18);
+}
+
+.toast-icon {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.18);
+    font-size: 13px;
+    font-weight: 800;
 }
 
 .pin-popup {
     position: fixed;
-    min-width: 180px;
+    min-width: 240px;
+    max-width: 280px;
     display: none;
     padding: 8px;
     border-radius: 14px;
@@ -5370,6 +6208,29 @@ input[type="radio"] {
     box-shadow: 0 16px 40px rgba(15, 23, 42, 0.16);
     backdrop-filter: blur(10px);
     z-index: 10020;
+}
+
+.pin-popup-card {
+    padding: 8px;
+}
+
+.pin-popup-label {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.pin-popup-meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    margin-bottom: 8px;
+}
+
+.pin-popup-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .pin-popup-btn {
@@ -5427,42 +6288,160 @@ input[type="radio"] {
     background: var(--accent);
     border: 2px solid var(--accent);
     color: white;
-    font-size: 22px;
-    font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    box-shadow: var(--shadow-sm);
-    z-index: 8000;
-    transition: background 0.18s, color 0.18s;
+    box-shadow: 0 4px 20px rgba(59,130,246,0.4);
+    z-index: 10050;
+    transition: background 0.25s, box-shadow 0.25s, transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
     user-select: none;
+    appearance: none;
+}
+
+.faq-bubble svg {
+    width: 24px;
+    height: 24px;
+    stroke: currentColor;
+    fill: none;
+}
+
+/* Pulse ring that breathes when chat is closed */
+.faq-bubble::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 2px solid rgba(59,130,246,0.4);
+    animation: faqPulseRing 2.5s ease-out infinite;
+    pointer-events: none;
+}
+
+@keyframes faqPulseRing {
+    0%   { transform: scale(0.9); opacity: 0.7; }
+    70%  { transform: scale(1.5); opacity: 0; }
+    100% { transform: scale(1.5); opacity: 0; }
+}
+
+/* When open: ring stops, button rotates to × */
+.faq-bubble.faq-bubble-open::after {
+    animation: none;
+    opacity: 0;
 }
 
 .faq-bubble:hover {
     background: var(--accent-d);
-    color: #fff;
+    box-shadow: 0 6px 28px rgba(59,130,246,0.5);
+    transform: scale(1.08);
 }
 
-.faq-bubble-open {
+.faq-bubble.faq-bubble-open {
     background: var(--accent-d);
-    color: #fff;
+    transform: scale(1.05);
 }
 
 .faq-chat {
     position: fixed;
-    bottom: 88px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 88px);
     right: 24px;
-    width: 320px;
+    width: min(360px, calc(100vw - 24px));
     max-height: 440px;
-    background: var(--surface);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(248, 250, 255, 0.82));
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
-    z-index: 8001;
+    z-index: 10060;
     display: flex;
     flex-direction: column;
+    min-height: 0;
     overflow: hidden;
     border: 1px solid var(--border-light);
+    backdrop-filter: blur(24px) saturate(160%);
+
+    /* Entry animation state */
+    transform-origin: bottom right;
+    transform: translateY(22px) scale(0.94);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+        transform 0.36s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.28s ease,
+        top 0.36s cubic-bezier(0.22, 1, 0.36, 1),
+        right 0.36s cubic-bezier(0.22, 1, 0.36, 1),
+        bottom 0.36s cubic-bezier(0.22, 1, 0.36, 1),
+        left 0.36s cubic-bezier(0.22, 1, 0.36, 1),
+        width 0.36s cubic-bezier(0.22, 1, 0.36, 1),
+        max-height 0.36s cubic-bezier(0.22, 1, 0.36, 1),
+        border-radius 0.28s ease,
+        box-shadow 0.28s ease,
+        background 0.28s ease;
+}
+
+.faq-chat.faq-chat-expanded {
+    top: 17px;
+    bottom: 17px;
+    right: 17px;
+    width: 25vw;
+    max-width: none;
+    max-height: none;
+    border-radius: 22px;
+    transform-origin: right center;
+}
+
+@media (min-width: 769px) {
+    .faq-chat.faq-chat-expanded {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(241, 245, 249, 0.7));
+        border: 1px solid rgba(255, 255, 255, 0.45);
+        backdrop-filter: blur(24px) saturate(175%);
+        box-shadow: 0 28px 80px rgba(15, 23, 42, 0.2);
+    }
+
+    .faq-chat.faq-chat-expanded .faq-chat-messages,
+    .faq-chat.faq-chat-expanded .faq-suggestions,
+    .faq-chat.faq-chat-expanded .faq-chat-input-row {
+        background: rgba(255, 255, 255, 0.46);
+        backdrop-filter: blur(12px);
+    }
+}
+
+.faq-chat-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(226, 232, 240, 0.14);
+    backdrop-filter: blur(16px) saturate(130%);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 10040;
+    transition: opacity 0.28s ease, backdrop-filter 0.28s ease;
+}
+
+/* Open state — add this class via JS */
+.faq-chat.faq-chat-open {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.faq-chat-backdrop.faq-chat-backdrop-open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Content stagger on open */
+.faq-chat.faq-chat-open .faq-chat-header {
+    animation: faqSlideDown 0.3s cubic-bezier(0.22,1,0.36,1) 0.05s both;
+}
+.faq-chat.faq-chat-open .faq-chat-messages {
+    animation: faqSlideDown 0.3s cubic-bezier(0.22,1,0.36,1) 0.1s both;
+}
+.faq-chat.faq-chat-open .faq-chat-input-row {
+    animation: faqSlideDown 0.3s cubic-bezier(0.22,1,0.36,1) 0.15s both;
+}
+
+@keyframes faqSlideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 .faq-chat-header {
@@ -5479,8 +6458,63 @@ input[type="radio"] {
     flex-shrink: 0;
 }
 
+.faq-chat-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.faq-chat-title-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.16);
+    flex-shrink: 0;
+}
+
+.faq-chat-title-icon svg,
+.faq-chat-control-btn svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    fill: none;
+}
+
+.faq-chat-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.faq-chat-control-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.12);
+    color: white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
+}
+
+.faq-chat-control-btn:hover,
+.faq-chat-control-btn:focus-visible {
+    background: rgba(255, 255, 255, 0.22);
+    border-color: rgba(255, 255, 255, 0.34);
+    transform: translateY(-1px);
+    outline: none;
+}
+
 .faq-chat-messages {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     padding: 12px;
     display: flex;
@@ -5513,8 +6547,98 @@ input[type="radio"] {
     border-radius: 12px 4px 12px 12px;
 }
 
+.faq-action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.faq-action-btn,
+.faq-suggestion-chip {
+    position: relative;
+    overflow: hidden;
+    padding: 7px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.92));
+    color: var(--text-primary);
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        0 6px 16px rgba(15, 23, 42, 0.08);
+    transform-origin: center;
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        border-color 0.2s ease,
+        background 0.2s ease;
+}
+
+.faq-action-btn::before,
+.faq-suggestion-chip::before {
+    content: '';
+    position: absolute;
+    inset: 1px;
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.08));
+    opacity: 0.85;
+    pointer-events: none;
+}
+
+.faq-action-btn > *,
+.faq-suggestion-chip > * {
+    position: relative;
+    z-index: 1;
+}
+
+.faq-action-btn:hover,
+.faq-suggestion-chip:hover,
+.faq-action-btn:focus-visible,
+.faq-suggestion-chip:focus-visible {
+    border-color: rgba(59, 130, 246, 0.32);
+    transform: translateY(-2px) scale(1.02);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.94),
+        0 12px 24px rgba(59, 130, 246, 0.14);
+}
+
+.faq-suggestion-chip.faq-chip-pop {
+    animation: faqChipPop 0.38s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    border-color: rgba(59, 130, 246, 0.46);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.96),
+        0 18px 30px rgba(59, 130, 246, 0.2);
+}
+
+@keyframes faqChipPop {
+    0% {
+        transform: scale(1);
+    }
+    45% {
+        transform: scale(1.14);
+    }
+    100% {
+        transform: scale(1.02);
+    }
+}
+
+.faq-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 12px;
+    background: var(--surface);
+    border-top: 1px solid var(--border-light);
+    flex-shrink: 0;
+}
+
 .faq-chat-input-row {
     display: flex;
+    align-items: center;
     gap: 8px;
     padding: 10px 12px;
     border-top: 1px solid var(--border-light);
@@ -5529,6 +6653,7 @@ input[type="radio"] {
     padding: 8px 12px;
     font-family: 'Inter', sans-serif;
     font-size: 13px;
+    min-height: 42px;
     outline: none;
     background: var(--surface-2);
     color: var(--text-primary);
@@ -5545,6 +6670,7 @@ input[type="radio"] {
     border: 2px solid var(--accent);
     border-radius: var(--radius-sm);
     padding: 8px 14px;
+    min-height: 42px;
     font-size: 13px;
     font-weight: 700;
     cursor: pointer;
@@ -5652,17 +6778,32 @@ input[type="radio"] {
         margin: 0 auto 18px;
     }
 
+    h1 {
+        font-size: 28px;
+        letter-spacing: 6px;
+    }
+
     .floor-tab {
-        min-height: 44px;
-        min-width: 44px;
-        padding: 10px 14px;
-        font-size: 13px;
+        min-height: 34px;
+        min-width: 34px;
+        padding: 6px 8px;
+        font-size: 10px;
     }
 
     .add-stop-btn {
         min-height: 48px;
         font-size: 14px;
         padding: 12px;
+    }
+
+    .stop-actions-row {
+        gap: 8px;
+    }
+
+    .swap-route-btn {
+        width: 20%;
+        min-width: 52px;
+        max-width: 72px;
     }
 
     .remove-stop {
@@ -5715,36 +6856,58 @@ input[type="radio"] {
 
     body.has-route .map-header {
         display: flex !important;
+        right: 12px;
+        width: calc(100vw - 24px);
+        max-width: none;
+        padding: 6px 8px;
     }
 
     .floor-tabs {
-        gap: 6px;
-        overflow-x: auto;
+        gap: 4px;
+        overflow: hidden;
+        width: 100%;
+        min-width: 100%;
+        max-width: none;
+        padding: 3px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .floor-tabs::before {
+        top: 3px;
+        bottom: 3px;
+        left: 3px;
+        width: calc((100% - 21px) / 4);
+        transform: translateX(calc(var(--active-floor-index) * (100% + 4px)));
+    }
+
+    body.has-route .route-summary {
+        display: none !important;
     }
 
     .route-summary {
         max-width: none;
         font-size: 11px;
-        flex-wrap: nowrap;
-        overflow: hidden;
+        flex-wrap: wrap;
+        overflow: visible;
     }
 
     .route-summary-from,
-    .route-summary-to {
-        max-width: 60px;
+    .route-summary-to,
+    .route-summary-stop {
+        max-width: none;
     }
 
     .checkpoint-btn {
         position: fixed;
-        bottom: 148px;
+        bottom: 106px;
         left: 50%;
         transform: translateX(-50%);
-        min-height: 56px;
-        padding: 16px 34px;
+        min-height: 50px;
+        padding: 12px 24px;
         font-size: 12px;
         border-radius: var(--radius-xl);
         width: max-content;
-        min-width: 180px;
+        min-width: 168px;
     }
 
     #checkpoint-btn {
@@ -5765,12 +6928,14 @@ input[type="radio"] {
         margin: 0;
     }
 
-    #route-info-panel {
-        display: none !important;
+    .transition-banner {
+        left: 12px;
+        right: 12px;
+        max-width: none;
     }
 
-    body.has-route .faq-bubble {
-        bottom: 148px;
+    #route-info-panel {
+        display: none !important;
     }
 
     .faq-bubble {
@@ -5781,11 +6946,41 @@ input[type="radio"] {
         font-size: 20px;
     }
 
+    body.has-route .faq-bubble {
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+        right: 16px;
+        width: 52px;
+        height: 52px;
+        z-index: 130;
+    }
+
     .faq-chat {
+        left: 10px;
         right: 10px;
-        width: calc(100vw - 20px);
-        bottom: 76px;
-        max-height: 58vh;
+        width: auto;
+        max-width: none;
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 76px);
+        max-height: min(58vh, 460px);
+        border-radius: 22px;
+        transform-origin: bottom center;
+    }
+
+    .faq-chat.faq-chat-expanded {
+        top: auto;
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 76px);
+        left: 10px;
+        right: 10px;
+        width: auto;
+        height: auto;
+        max-height: min(58vh, 460px);
+    }
+
+    body.has-route .faq-chat {
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 94px);
+    }
+
+    body.has-route .faq-chat.faq-chat-expanded {
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 94px);
     }
 
     .mobile-safe-area-bottom {
@@ -5807,27 +7002,33 @@ input[type="radio"] {
         z-index: 60;
         background: rgba(255, 255, 255, 0.97);
         backdrop-filter: blur(14px);
-        padding: env(safe-area-inset-top, 0px) 16px 0;
-        display: flex;
+        padding: env(safe-area-inset-top, 0px) 12px 0 10px;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
         align-items: center;
-        justify-content: space-between;
-        height: calc(52px + env(safe-area-inset-top, 0px));
+        gap: 8px;
+        height: calc(50px + env(safe-area-inset-top, 0px));
         border-bottom: 1px solid var(--border-light);
         box-shadow: 0 1px 10px rgba(0, 0, 0, 0.08);
     }
 
     .mobile-new-route-btn {
-        background: none;
-        border: none;
+        background: var(--surface);
+        border: 2px solid var(--accent);
         color: var(--accent);
-        font-size: 14px;
+        font-size: 11px;
         font-weight: 700;
         cursor: pointer;
-        padding: 8px 0;
-        min-height: 44px;
+        padding: 0 8px;
+        min-height: 38px;
+        min-width: 84px;
         display: flex;
         align-items: center;
         gap: 6px;
+        justify-content: center;
+        border-radius: 10px;
+        line-height: 1.05;
+        text-align: center;
         touch-action: manipulation;
     }
 
@@ -5836,13 +7037,40 @@ input[type="radio"] {
     }
 
     .mobile-route-label {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 0;
+        height: 34px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: 1px solid var(--border-light);
+        background: rgba(255, 255, 255, 0.92);
         font-size: 12px;
-        font-weight: 600;
-        color: var(--text-secondary);
-        max-width: 60%;
+        font-weight: 700;
+        gap: 6px;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+    .mobile-route-label-from,
+    .mobile-route-label-to {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+    }
+
+    .mobile-route-label-from {
+        color: #16a34a;
+    }
+
+    .mobile-route-label-arrow {
+        color: var(--text-muted);
+        flex-shrink: 0;
+    }
+
+    .mobile-route-label-to {
+        color: #ef4444;
     }
 }
 
@@ -5903,29 +7131,18 @@ input[type="radio"] {
     }
 
     .nav-dest-pill {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: 20px;
-        padding: 5px 12px;
-        font-size: 10px;
-        font-weight: 700;
-        color: var(--text-secondary);
-        letter-spacing: 0.8px;
-        text-transform: uppercase;
-        max-width: 120px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        flex-shrink: 0;
+        display: none;
     }
 
     /* â”€â”€ Map area â”€â”€ */
     .nav-map-area {
         position: relative;
         height: 52vh;
+        min-height: 0;
         flex-shrink: 0;
         background: #e8e4de;
         overflow: hidden;
+        transition: height 0.28s ease, flex 0.28s ease;
     }
 
     .nav-map-viewport {
@@ -5973,6 +7190,15 @@ input[type="radio"] {
         border-radius: 20px 20px 0 0;
         padding: 0 18px calc(env(safe-area-inset-bottom, 0px) + 90px);
         margin-top: -16px;
+        transition: flex-basis 0.28s ease, margin-top 0.28s ease, padding 0.28s ease;
+    }
+
+    .nav-sheet-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding-top: 10px;
+        margin-bottom: 18px;
     }
 
     .nav-sheet-handle {
@@ -5980,7 +7206,7 @@ input[type="radio"] {
         height: 4px;
         background: #d0d0d0;
         border-radius: 2px;
-        margin: 10px auto 18px;
+        margin: 0;
     }
 
     /* â”€â”€ Stat row: Distance + Estimated Time â”€â”€ */
@@ -6022,6 +7248,10 @@ input[type="radio"] {
         grid-template-columns: 1fr 1fr;
         gap: 10px;
         margin-bottom: 20px;
+    }
+
+    .nav-metric-cards > .pdr-status-card {
+        grid-column: 1 / -1;
     }
 
     .nav-metric-card {
@@ -6095,6 +7325,7 @@ input[type="radio"] {
         gap: 14px;
         position: relative;
         padding-bottom: 20px;
+        min-width: 0;
     }
 
     .nav-directions-list li:last-child {
@@ -6121,10 +7352,26 @@ input[type="radio"] {
         background: #e8e8e8;
         border: none;
         font-size: 16px;
+        color: var(--text-primary);
     }
 
     .nav-step-icon.start {
         background: var(--text-primary);
+    }
+
+    .nav-step-icon[data-icon="lift"] {
+        background: rgba(99, 102, 241, 0.12);
+        color: #4f46e5;
+    }
+
+    .nav-step-icon[data-icon="stairs"] {
+        background: rgba(245, 158, 11, 0.14);
+        color: #c2410c;
+    }
+
+    .nav-step-icon[data-icon="arrived"] {
+        background: rgba(16, 185, 129, 0.14);
+        color: #047857;
     }
 
     .nav-step-icon.start svg {
@@ -6151,20 +7398,30 @@ input[type="radio"] {
     .nav-step-content {
         flex: 1;
         padding-top: 8px;
+        min-width: 0;
+        overflow: hidden;
     }
 
     .nav-step-title {
-        font-size: 15px;
+        font-size: 14px;
         font-weight: 700;
         color: var(--text-primary);
         margin-bottom: 3px;
-        line-height: 1.2;
+        line-height: 1.25;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        max-width: 100%;
     }
 
     .nav-step-sub {
-        font-size: 13px;
+        font-size: 12px;
         color: var(--text-secondary);
         line-height: 1.5;
+        word-break: break-word;
+    }
+
+    .transition-banner {
+        display: none !important;
     }
 
     /* Active step highlight */
@@ -6181,7 +7438,6 @@ input[type="radio"] {
         background: var(--accent);
         border: none;
     }
-
 
     /* â”€â”€ Bottom bar â€” checkpoint FAB only â”€â”€ */
     .nav-bottom-bar {
@@ -6204,9 +7460,10 @@ input[type="radio"] {
 
     /* Central FAB â€” checkpoint action */
     .nav-fab-btn {
-        width: 56px;
-        height: 56px;
-        border-radius: 50%;
+        min-width: 148px;
+        height: 52px;
+        padding: 0 26px;
+        border-radius: 999px;
         background: var(--accent);
         border: none;
         cursor: pointer;
@@ -6215,7 +7472,7 @@ input[type="radio"] {
         justify-content: center;
         box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
         touch-action: manipulation;
-        margin-top: -16px;
+        margin-top: 0;
         flex-shrink: 0;
         transition: background 0.15s, transform 0.1s;
     }
@@ -6226,6 +7483,15 @@ input[type="radio"] {
 
     .nav-fab-btn.finish-btn {
         background: var(--teal);
+    }
+
+    .nav-fab-btn-label {
+        color: white;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 1.3px;
+        text-transform: uppercase;
+        line-height: 1;
     }
 
     .nav-fab-btn svg {
@@ -6266,31 +7532,168 @@ input[type="radio"] {
 }
 
 .dark-mode-btn {
-    background: none;
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius-sm);
-    width: 34px;
-    height: 34px;
+    background: transparent;
+    border: none;
+    border-radius: 999px;
+    width: 76px;
+    height: 38px;
+    padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    color: var(--text-secondary);
     flex-shrink: 0;
-    transition: background 0.18s, color 0.18s;
+    transition: transform 0.2s ease;
 }
 
 .dark-mode-btn:hover {
-    background: var(--accent);
-    color: white;
-    border-color: var(--accent);
+    transform: translateY(-1px);
+}
+
+.dark-mode-btn:active {
+    transform: scale(0.98);
+}
+
+.dark-mode-track {
+    position: relative;
+    width: 76px;
+    height: 38px;
+    border-radius: 999px;
+    border: 1px solid rgba(59, 130, 246, 0.18);
+    background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 55%, #f8fafc 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 10px 18px rgba(59, 130, 246, 0.14);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 11px;
+    overflow: hidden;
+    transition: background 0.42s ease, border-color 0.42s ease, box-shadow 0.42s ease;
+}
+
+.dark-mode-track::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 24% 34%, rgba(255, 255, 255, 0.85) 0, rgba(255, 255, 255, 0.25) 18%, transparent 30%),
+        radial-gradient(circle at 76% 28%, rgba(255, 255, 255, 0.18) 0, transparent 18%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent 68%);
+    opacity: 1;
+    transition: opacity 0.38s ease;
+}
+
+.dark-mode-icon {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    color: var(--text-secondary);
+    transition: color 0.3s ease, opacity 0.3s ease;
+}
+
+.dark-mode-icon svg {
+    width: 16px;
+    height: 16px;
+    pointer-events: none;
+}
+
+.dark-mode-thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
+    transition: transform 0.42s cubic-bezier(0.2, 0.9, 0.25, 1),
+                background 0.35s ease,
+                box-shadow 0.35s ease;
+}
+
+.dark-mode-thumb::before {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.98), rgba(219, 234, 254, 0.96));
+    transition: background 0.35s ease, transform 0.35s ease;
+}
+
+.dark-mode-btn.active .dark-mode-track {
+    background: linear-gradient(135deg, #243b64 0%, #0f172a 58%, #020617 100%);
+    border-color: rgba(148, 163, 184, 0.22);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 12px 24px rgba(2, 6, 23, 0.24);
+}
+
+.dark-mode-btn.active .dark-mode-track::before {
+    opacity: 0.42;
+}
+
+.dark-mode-btn.active .dark-mode-thumb {
+    transform: translateX(38px);
+    background: linear-gradient(180deg, #dbeafe 0%, #cbd5e1 100%);
+    box-shadow: 0 8px 20px rgba(2, 6, 23, 0.4);
+}
+
+.dark-mode-btn.active .dark-mode-thumb::before {
+    background: radial-gradient(circle at 68% 34%, #e2e8f0 0, #dbeafe 58%, #bfdbfe 100%);
+    transform: scale(0.92);
+}
+
+.dark-mode-btn.active .dark-mode-icon-light {
+    color: rgba(219, 234, 254, 0.55);
+}
+
+.dark-mode-btn.active .dark-mode-icon-dark {
+    color: #ffffff;
+}
+
+.dark-mode-btn:not(.active) .dark-mode-icon-light {
+    color: var(--accent-d);
+}
+
+.dark-mode-btn:not(.active) .dark-mode-icon-dark {
+    color: rgba(75, 85, 99, 0.7);
+}
+
+.icon-tool-btn {
+    width: 34px;
+    height: 34px;
+    margin-left: 6px;
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.icon-tool-btn:hover,
+.icon-tool-btn:focus-visible {
+    background: var(--accent-l);
+    color: var(--accent-d);
+    border-color: rgba(59, 130, 246, 0.35);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.12);
+}
+
+.icon-tool-btn:active {
+    transform: scale(0.98);
 }
 
 /* â”€â”€ Dark mode surface overrides â”€â”€ */
 [data-theme="dark"] .navigator-panel,
 [data-theme="dark"] .map-section,
-[data-theme="dark"] .route-form-sheet,
-[data-theme="dark"] .navigator-panel {
+[data-theme="dark"] .route-form-sheet {
     background: var(--surface);
     border-color: var(--border);
 }
@@ -6318,16 +7721,66 @@ input[type="radio"] {
     background: var(--surface-3) !important;
 }
 
+[data-theme="dark"] .ts-dropdown .option.selected {
+    background: rgba(59, 130, 246, 0.16) !important;
+    color: #dbeafe !important;
+}
+
 [data-theme="dark"] .pin-popup {
     background: rgba(30, 41, 59, 0.96);
     border-color: var(--border);
     box-shadow: 0 20px 48px rgba(2, 6, 23, 0.45);
 }
 
+[data-theme="dark"] .transition-banner,
+[data-theme="dark"] .destination-preview,
+[data-theme="dark"] .faq-suggestions {
+    background: rgba(30, 41, 59, 0.96);
+    border-color: var(--border);
+}
+
 [data-theme="dark"] .pin-popup-btn:hover,
 [data-theme="dark"] .pin-popup-btn:focus-visible {
     background: rgba(59, 130, 246, 0.16);
     color: #bfdbfe;
+}
+
+[data-theme="dark"] .feedback-tag,
+[data-theme="dark"] .faq-action-btn,
+[data-theme="dark"] .faq-suggestion-chip,
+[data-theme="dark"] .destination-preview-floor,
+[data-theme="dark"] .destination-preview-chip {
+    background: var(--surface-2);
+    border-color: var(--border);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .pdr-status-card,
+[data-theme="dark"] .sensor-modal-feature {
+    background: rgba(15, 23, 42, 0.72);
+    border-color: var(--border);
+}
+
+[data-theme="dark"] .pdr-status-stat {
+    background: rgba(30, 41, 59, 0.84);
+    border-color: var(--border);
+}
+
+[data-theme="dark"] .radio-group label {
+    background: transparent;
+    border-color: transparent;
+}
+
+[data-theme="dark"] .radio-group label:hover,
+[data-theme="dark"] .radio-group label:focus-within,
+[data-theme="dark"] .radio-group label:has(input:checked) {
+    background: transparent;
+    border-color: transparent;
+}
+
+[data-theme="dark"] .mobility-option-asset {
+    background: transparent;
+    border-color: transparent;
 }
 
 [data-theme="dark"] .modal-box {
@@ -6341,8 +7794,21 @@ input[type="radio"] {
 }
 
 [data-theme="dark"] .faq-chat {
-    background: var(--surface);
+    background: linear-gradient(180deg, rgba(30, 41, 59, 0.88), rgba(15, 23, 42, 0.82));
     border-color: var(--border);
+}
+
+@media (min-width: 769px) {
+    [data-theme="dark"] .faq-chat.faq-chat-expanded {
+        background: linear-gradient(180deg, rgba(30, 41, 59, 0.78), rgba(15, 23, 42, 0.76));
+        border-color: rgba(148, 163, 184, 0.22);
+    }
+
+    [data-theme="dark"] .faq-chat.faq-chat-expanded .faq-chat-messages,
+    [data-theme="dark"] .faq-chat.faq-chat-expanded .faq-suggestions,
+    [data-theme="dark"] .faq-chat.faq-chat-expanded .faq-chat-input-row {
+        background: rgba(15, 23, 42, 0.46);
+    }
 }
 
 [data-theme="dark"] .faq-chat-messages {
@@ -6371,13 +7837,17 @@ input[type="radio"] {
 }
 
 [data-theme="dark"] .floor-tab {
-    background: var(--surface-2);
+    background: transparent;
     color: var(--text-secondary);
-    border-color: var(--border);
 }
 
 [data-theme="dark"] .mobile-top-bar {
     background: rgba(30, 41, 59, 0.97);
+    border-color: var(--border);
+}
+
+[data-theme="dark"] .mobile-route-label {
+    background: var(--surface-2);
     border-color: var(--border);
 }
 
@@ -6413,8 +7883,17 @@ input[type="radio"] {
     border-color: var(--border);
 }
 
+[data-theme="dark"] #directions-list li {
+    background: var(--surface);
+    border-color: var(--border);
+}
+
 [data-theme="dark"] .route-summary {
     background: rgba(30, 41, 59, 0.9);
+}
+
+[data-theme="dark"] .faq-chat-backdrop {
+    background: rgba(2, 6, 23, 0.3);
 }
 
 [data-theme="dark"] body {
@@ -6422,21 +7901,31 @@ input[type="radio"] {
 }
 
 /* â”€â”€ Route active panel â”€â”€ */
+.route-action-row {
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
 .new-route-btn {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     background: none;
     border: 1.5px solid var(--border);
     border-radius: var(--radius-sm);
-    padding: 8px 14px;
-    font-size: 12px;
+    padding: 10px 14px;
+    min-height: 46px;
+    font-size: 15px;
     font-weight: 700;
     color: var(--text-secondary);
     cursor: pointer;
-    margin-bottom: 16px;
+    margin-bottom: 0;
     transition: background 0.15s, color 0.15s;
     width: 100%;
+    flex: 1 1 0;
 }
 
 .new-route-btn:hover {
@@ -6512,7 +8001,7 @@ input[type="radio"] {
 }
 
 .floor-pick-btn:hover {
-    background: var(--surface-3);
+    background: #ffffff;
     border-color: var(--accent);
     color: var(--accent);
 }
@@ -6560,11 +8049,12 @@ input[type="radio"] {
 
 /* â”€â”€ Alternate Route Buttons â”€â”€ */
 .alt-route-btn {
-    flex: 0 0 auto !important;
-    width: auto !important;
+    flex: 1 1 0 !important;
+    width: 100% !important;
+    min-height: 46px;
     padding: 10px 14px !important;
     font-family: 'Orbitron', sans-serif !important;
-    font-size: 10px !important;
+    font-size: 14px !important;
     font-weight: 700 !important;
     border: 2px solid var(--accent) !important;
     color: var(--accent) !important;
@@ -6573,6 +8063,10 @@ input[type="radio"] {
     letter-spacing: 1px;
     cursor: pointer;
     transition: all 0.2s;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
 }
 
 .alt-route-btn:hover {
@@ -6585,11 +8079,50 @@ input[type="radio"] {
     color: #ffffff !important;
 }
 
+.swap-route-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-secondary);
+    border-radius: 12px;
+    padding: 0;
+    min-width: 58px;
+    width: 20%;
+    max-width: 84px;
+    flex: 0 0 20%;
+    cursor: pointer;
+    transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+}
+
+.swap-route-btn:hover,
+.swap-route-btn:focus-visible {
+    color: var(--accent);
+    border-color: rgba(59, 130, 246, 0.28);
+    background: rgba(59, 130, 246, 0.06);
+    transform: translateY(-1px);
+    outline: none;
+}
+
+.swap-route-btn-icon {
+    display: inline-flex;
+    width: 20px;
+    height: 20px;
+    transform: rotate(90deg);
+}
+
+.swap-route-btn-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
 .alt-route-btn-mobile {
     flex-shrink: 0;
     min-width: 44px;
     min-height: 36px;
-    padding: 0 12px;
+    width: 44px;
+    padding: 0 4px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -6598,9 +8131,12 @@ input[type="radio"] {
     background: transparent;
     color: var(--accent);
     font-family: 'Orbitron', sans-serif;
-    font-size: 10px;
+    font-size: 8px;
     font-weight: 700;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
+    line-height: 1.05;
+    white-space: normal;
+    text-align: center;
     cursor: pointer;
     transition: all 0.2s;
     margin-left: 8px;
@@ -6621,16 +8157,37 @@ input[type="radio"] {
     touch-action: none;
 }
 
+[data-theme="dark"] .floor-tabs .floor-tab:hover,
+[data-theme="dark"] .floor-tabs .floor-tab:focus-visible,
+.floor-tabs .floor-tab:hover,
+.floor-tabs .floor-tab:focus-visible {
+    background: var(--accent-l) !important;
+    color: var(--accent) !important;
+}
+
+[data-theme="dark"] .floor-tabs .floor-tab.active:hover,
+[data-theme="dark"] .floor-tabs .floor-tab.active:focus-visible,
+.floor-tabs .floor-tab.active:hover,
+.floor-tabs .floor-tab.active:focus-visible {
+    background: var(--accent) !important;
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .floor-tabs .floor-tab.active {
+    background: var(--accent) !important;
+    color: #ffffff !important;
+}
+```
 
 File: frontend/static/js/app.js
-Code snippet
+```javascript
 /**
  * app.js — Main UI module. Owned by: Person C (Frontend/UI)
  * Imports routing logic from routing.js and graph data from graph-data.js.
  */
 import { NODES, GRAPH } from './graph-data.js';
 import { planRoute, planAlternate, buildDirections } from './routing.js';
-import { PDREngine } from './pdr.js';
+import { PDREngine, getPDRSupportState } from './pdr.js';
 import { startSession, recordCheckpoint } from './metrics.js';
 
 // ---------------------------------------------------------------------------
@@ -6639,8 +8196,55 @@ import { startSession, recordCheckpoint } from './metrics.js';
 const FLOOR_NAMES = { 1: 'Ground Floor', 2: 'First Floor', 3: 'Second Floor', 4: 'Third Floor' };
 const FLOOR_ORDER = ['Ground Floor', 'First Floor', 'Second Floor', 'Third Floor'];
 const TYPE_ORDER = ['Entrance', 'Offices', 'Rooms', 'Labs & Rooms', 'Restrooms', 'Lift & Stairs'];
-const COORD_TO_METERS = 0.5;
+const COORD_TO_METERS = 0.51;
 const WALK_SPEED = 1.2;
+const FAQ_EXPANDED_STORAGE_KEY = 'wayfinder-faq-expanded';
+
+const ICON_SVG = {
+  expand: `
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M7 3.5H3.5V7M13 3.5h3.5V7M7 16.5H3.5V13M13 16.5h3.5V13" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`,
+  collapse: `
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M6 8.5 3.5 6V3.5M14 8.5 16.5 6V3.5M6 11.5 3.5 14V16.5M14 11.5 16.5 14V16.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`,
+  lift: `
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="6" y="3.5" width="12" height="17" rx="2.5" stroke="currentColor" stroke-width="1.8"/>
+      <path d="M9 9h6M9 12h6M10.5 16l1.5-1.8L13.5 16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`,
+  stairs: `
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M5 18h4v-4h4v-4h4V6h2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M15 6h4v4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`,
+  straight: `
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M4 10h10M11 6l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`,
+  walk: `
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <circle cx="10" cy="4.5" r="1.7" fill="currentColor"/>
+      <path d="M10 6.8v4.2m0 0-3 2.8m3-2.8 3 1.8M8.7 9 6.8 11.7m3.2 3.1 1.2 2.7m-3.9-1.1-1.8 1.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`,
+  'turn-left': `
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M15.5 5.5H9a3 3 0 0 0-3 3V14M9 10 5 14l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`,
+  'turn-right': `
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M4.5 5.5H11a3 3 0 0 1 3 3V14M11 10l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`,
+  start: `
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M6 10h8M11 6l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`,
+  arrived: `
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M5 10.5 8.5 14 15 7.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`,
+};
 
 // ---------------------------------------------------------------------------
 // State
@@ -6656,10 +8260,99 @@ let _floorConfirmCallback = null;
 let currentStartFloor = 'Ground Floor';
 let tsStart, tsEnd, tsStopInstances = [];
 let currentSessionId = null;
+let faqExpanded = false;
+let faqPendingNearest = null;
+let pdrEngine = null;
+let pdrLiveState = null;
+let pdrStatusState = null;
+let pdrPromptPending = false;
 window.allNodes = NODES;
 
+const FEEDBACK_TAG_PRESETS = {
+  1: [
+    { tag: 'very-confusing', label: 'Very confusing' },
+    { tag: 'wrong-route', label: 'Route felt wrong' },
+    { tag: 'wrong-floor', label: 'Wrong floor guidance' },
+    { tag: 'hard-to-follow', label: 'Hard to follow' },
+    { tag: 'destination-hard', label: 'Door was hard to find' },
+  ],
+  2: [
+    { tag: 'confusing-turn', label: 'Confusing turn' },
+    { tag: 'missing-landmark', label: 'Needed more landmarks' },
+    { tag: 'stairs-issue', label: 'Unexpected stairs' },
+    { tag: 'wrong-floor', label: 'Floor change unclear' },
+    { tag: 'destination-hard', label: 'Door was hard to find' },
+  ],
+  3: [
+    { tag: 'mostly-clear', label: 'Mostly clear' },
+    { tag: 'needed-more-detail', label: 'Needed more detail' },
+    { tag: 'map-helpful', label: 'Map was helpful' },
+    { tag: 'turns-could-improve', label: 'Turns could improve' },
+    { tag: 'destination-hard', label: 'Door was hard to find' },
+  ],
+  4: [
+    { tag: 'clear', label: 'Clear directions' },
+    { tag: 'map-helpful', label: 'Map was helpful' },
+    { tag: 'easy-to-follow', label: 'Easy to follow' },
+    { tag: 'good-landmarks', label: 'Helpful landmarks' },
+    { tag: 'smooth-route', label: 'Smooth route' },
+  ],
+  5: [
+    { tag: 'super-clear', label: 'Super clear' },
+    { tag: 'fast-route', label: 'Fast route' },
+    { tag: 'easy-to-follow', label: 'Very easy to follow' },
+    { tag: 'door-easy', label: 'Door was easy to spot' },
+    { tag: 'great-overall', label: 'Great overall experience' },
+  ],
+};
+
+const FEEDBACK_PROMPTS = {
+  1: 'What went wrong?',
+  2: 'What was difficult?',
+  3: 'What could be improved?',
+  4: 'What worked well?',
+  5: 'What stood out?',
+};
+
 const isMobile = () => window.innerWidth <= 768;
+const canDockFAQ = () => window.innerWidth > 768;
 const nodeType = (id) => NODES[id]?.type || null;
+const getFloorLabel = (floorNum) => FLOOR_NAMES[floorNum] || `Floor ${floorNum}`;
+
+function getIconSvg(name) {
+  return ICON_SVG[name] || ICON_SVG.straight;
+}
+
+function getNodeByLabel(label) {
+  if (!label) return null;
+  const normalized = label.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!normalized) return null;
+  let best = null;
+  for (const [id, data] of Object.entries(NODES)) {
+    if (data.is_waypoint) continue;
+    const candidate = `${data.label} ${id}`.toLowerCase();
+    if (candidate.includes(normalized) || normalized.includes(data.label.toLowerCase())) {
+      const score = Math.abs(candidate.length - normalized.length);
+      if (!best || score < best.score) best = { id, data, score };
+    }
+  }
+  return best;
+}
+
+function nearestLandmarks(nodeId, limit = 3) {
+  const node = NODES[nodeId];
+  if (!node) return [];
+  return Object.entries(NODES)
+    .filter(([id, data]) => id !== nodeId && !data.is_waypoint && data.floor === node.floor)
+    .map(([id, data]) => ({
+      id,
+      label: data.label,
+      category: data.category || 'Room',
+      distance: Math.hypot(data.coords[0] - node.coords[0], data.coords[1] - node.coords[1]),
+    }))
+    .sort((a, b) => a.distance - b.distance)
+    .slice(0, limit);
+}
 
 // ---------------------------------------------------------------------------
 // Build allOpts from NODES (replaces Jinja2 loop)
@@ -6732,6 +8425,15 @@ function makeTomSelect(el, groupBy, preselected, filterFloor) {
     create: false, sortField: false, dropdownParent: 'body',
     onInitialize() { if (!filterFloor) fixOptgroupOrder(this, groupBy); },
     onDropdownOpen() { if (!filterFloor) fixOptgroupOrder(this, groupBy); },
+    onItemAdd() {
+      window.requestAnimationFrame(() => {
+        this.close();
+        this.blur();
+      });
+    },
+    onDropdownClose() {
+      window.requestAnimationFrame(() => this.blur());
+    },
   });
   if (preselected) ts.setValue(preselected, true);
   return ts;
@@ -6819,13 +8521,27 @@ document.addEventListener('DOMContentLoaded', () => {
       const val = +star.dataset.val;
       document.querySelectorAll('#star-rating span')
         .forEach(s => s.classList.toggle('selected', +s.dataset.val <= val));
+      renderFeedbackTags(val);
     });
   });
+  document.getElementById('feedback-tags')?.addEventListener('click', event => {
+    const tag = event.target.closest('.feedback-tag');
+    if (!tag) return;
+    tag.classList.toggle('active');
+  });
+  renderFeedbackTags();
 
   regroupDropdowns('floor');
-  window.addEventListener('resize', () => { fitSVGToImage(); fitNavSVGToImage(); });
+  faqExpanded = localStorage.getItem(FAQ_EXPANDED_STORAGE_KEY) === 'true';
+  window.addEventListener('resize', () => {
+    fitSVGToImage();
+    fitNavSVGToImage();
+    syncFAQExpandedUI();
+  });
   loadFAQs();
+  renderFaqSuggestions();
   fitSVGToImage();
+  syncFAQExpandedUI();
 
   document.querySelectorAll('.map-image').forEach(img => {
     if (!img.complete) img.addEventListener('load', fitSVGToImage, { once: true });
@@ -6840,6 +8556,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (feedbackTimer) { clearTimeout(feedbackTimer); feedbackTimer = null; }
     checkpoints = []; currentCheckpointIdx = 0; navStartTime = null;
     hideCheckpointButton();
+    stopPDR();
 
     const startNode = tsStart ? tsStart.getValue() : '';
     const endNode = tsEnd ? tsEnd.getValue() : '';
@@ -6882,14 +8599,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const ortho = makeOrthogonalPath(path);
     drawPath(ortho, path);
     switchFloor(path[0].floor);
+    preparePDRForRoute(startNode, sessionId);
 
     if (isMobile()) {
       closeRouteForm();
       const topBar = document.getElementById('mobile-top-bar');
       if (topBar) topBar.style.display = 'flex';
     }
-    const summaryClear = document.getElementById('route-summary');
-    if (summaryClear) summaryClear.style.display = 'none';
 
     // Background analytics POST — fire-and-forget
     startSession({ sessionId, startNode, endNode, mobility, path });
@@ -6901,10 +8617,11 @@ document.addEventListener('DOMContentLoaded', () => {
 // ---------------------------------------------------------------------------
 function applyDarkMode(dark) {
   document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-  const moonIcon = document.getElementById('dark-icon');
-  const sunIcon = document.getElementById('light-icon');
-  if (moonIcon) moonIcon.style.display = dark ? 'none' : 'block';
-  if (sunIcon) sunIcon.style.display = dark ? 'block' : 'none';
+  const btn = document.getElementById('dark-mode-btn');
+  if (btn) {
+    btn.classList.toggle('active', dark);
+    btn.setAttribute('aria-pressed', String(dark));
+  }
 }
 window.toggleDarkMode = function () {
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -6954,6 +8671,9 @@ window.fitNavSVGToImage = fitNavSVGToImage;
 // Floor tabs
 // ---------------------------------------------------------------------------
 window.switchFloor = function switchFloor(floorNum) {
+  document.querySelectorAll('.floor-tabs').forEach(group => {
+    group.style.setProperty('--active-floor-index', Math.max(0, Number(floorNum) - 1));
+  });
   document.querySelectorAll('.floor-tab').forEach(tab =>
     tab.classList.toggle('active', tab.dataset.floor == floorNum));
   for (let i = 1; i <= 4; i++) {
@@ -6962,9 +8682,451 @@ window.switchFloor = function switchFloor(floorNum) {
   }
   fitSVGToImage();
   syncNavFloor(floorNum);
+  updateTransitionBanner();
+  renderPDRMarkers();
 };
 
 function makeOrthogonalPath(path) { return Array.isArray(path) ? [...path] : []; }
+
+function renderDestinationPreview(nodeId) {
+  const node = NODES[nodeId];
+  const panel = document.getElementById('destination-preview');
+  const mobilePanel = document.getElementById('mobile-destination-preview');
+  if (!node || !panel || !mobilePanel) return;
+
+  const landmarks = nearestLandmarks(nodeId);
+  const meta = getFloorLabel(node.floor);
+  const landmarksHtml = landmarks.map(item =>
+    `<span class="destination-preview-chip">${item.label}</span>`
+  ).join('');
+
+  document.getElementById('destination-preview-title').textContent = node.label;
+  document.getElementById('destination-preview-floor').textContent = getFloorLabel(node.floor);
+  document.getElementById('destination-preview-meta').textContent = meta;
+  document.getElementById('destination-preview-landmarks').innerHTML = landmarksHtml;
+  panel.style.display = 'block';
+
+  mobilePanel.innerHTML = `
+    <div class="destination-preview-head">
+      <div>
+        <div class="destination-preview-eyebrow">Destination Preview</div>
+        <h3>${node.label}</h3>
+      </div>
+      <div class="destination-preview-floor">${getFloorLabel(node.floor)}</div>
+    </div>
+    <p class="destination-preview-meta">${meta}</p>
+    <div class="destination-preview-landmarks">${landmarksHtml}</div>
+  `;
+  mobilePanel.style.display = 'block';
+}
+
+function hideDestinationPreview() {
+  const panel = document.getElementById('destination-preview');
+  const mobilePanel = document.getElementById('mobile-destination-preview');
+  if (panel) panel.style.display = 'none';
+  if (mobilePanel) mobilePanel.style.display = 'none';
+}
+
+// ---------------------------------------------------------------------------
+// PDR UI + sensor lifecycle
+// ---------------------------------------------------------------------------
+function formatHeading(heading) {
+  return Number.isFinite(heading) ? `${Math.round(heading)}°` : '--';
+}
+
+function formatConfidence(confidence) {
+  return Number.isFinite(confidence) ? `${Math.round(confidence * 100)}%` : '--';
+}
+
+function buildPDRStatusMarkup(state) {
+  const safeState = state || {
+    tone: 'off',
+    badge: 'Sensors Off',
+    title: 'Motion pointer inactive',
+    copy: 'Enable sensors to move the pointer as you walk.',
+    heading: '--',
+    steps: '0',
+    confidence: '--',
+  };
+
+  return `
+    <div class="pdr-status-card">
+      <div class="pdr-status-head">
+        <div>
+          <div class="pdr-status-title">${safeState.title}</div>
+          <div class="pdr-status-copy">${safeState.copy}</div>
+        </div>
+        <div class="pdr-status-badge" data-tone="${safeState.tone}">${safeState.badge}</div>
+      </div>
+      <div class="pdr-status-grid">
+        <div class="pdr-status-stat">
+          <div class="pdr-status-label">Heading</div>
+          <div class="pdr-status-value">${safeState.heading}</div>
+        </div>
+        <div class="pdr-status-stat">
+          <div class="pdr-status-label">Steps</div>
+          <div class="pdr-status-value">${safeState.steps}</div>
+        </div>
+        <div class="pdr-status-stat">
+          <div class="pdr-status-label">Confidence</div>
+          <div class="pdr-status-value">${safeState.confidence}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderPDRStatus(state = null) {
+  pdrStatusState = state;
+  const desktopPanel = document.getElementById('pdr-status-panel');
+  const mobilePanel = document.getElementById('mobile-metrics-cards');
+  const hasRoute = Array.isArray(pathData) && pathData.length > 0;
+
+  if (!hasRoute) {
+    if (desktopPanel) {
+      desktopPanel.style.display = 'none';
+      desktopPanel.innerHTML = '';
+    }
+    if (mobilePanel) mobilePanel.innerHTML = '';
+    return;
+  }
+
+  const markup = buildPDRStatusMarkup(state);
+  if (desktopPanel) {
+    desktopPanel.innerHTML = markup;
+    desktopPanel.style.display = 'block';
+  }
+  if (mobilePanel) mobilePanel.innerHTML = markup;
+}
+
+function clearPDRMarkers() {
+  document.querySelectorAll('.pdr-user-marker-root').forEach(node => node.remove());
+}
+
+function createPDRMarkerGroup(update) {
+  const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  group.setAttribute('class', 'pdr-user-marker-root');
+  group.setAttribute('transform', `translate(${update.x},${update.y}) rotate(${Number.isFinite(update.heading) ? update.heading : 0})`);
+
+  const scaleGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  scaleGroup.setAttribute('class', 'pdr-user-marker-scale');
+
+  const halo = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  halo.setAttribute('class', 'pdr-user-halo');
+  halo.setAttribute('cx', '0');
+  halo.setAttribute('cy', '0');
+  halo.setAttribute('r', '2.6');
+
+  const body = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  body.setAttribute('class', 'pdr-user-body');
+  body.setAttribute('cx', '0');
+  body.setAttribute('cy', '0');
+  body.setAttribute('r', '1.35');
+
+  const core = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  core.setAttribute('class', 'pdr-user-core');
+  core.setAttribute('cx', '0');
+  core.setAttribute('cy', '0');
+  core.setAttribute('r', '0.45');
+
+  const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  arrow.setAttribute('class', 'pdr-user-arrow');
+  arrow.setAttribute('d', 'M0 -2.25 L1.05 -0.15 L0.38 -0.46 L0 1.6 L-0.38 -0.46 L-1.05 -0.15 Z');
+
+  scaleGroup.appendChild(halo);
+  scaleGroup.appendChild(body);
+  scaleGroup.appendChild(core);
+  scaleGroup.appendChild(arrow);
+  group.appendChild(scaleGroup);
+  return group;
+}
+
+function renderPDRMarkers() {
+  clearPDRMarkers();
+  if (!pdrLiveState) return;
+
+  [`svg-f${pdrLiveState.floor}`, `svg-nav-f${pdrLiveState.floor}`].forEach(svgId => {
+    const svg = document.getElementById(svgId);
+    if (svg) svg.appendChild(createPDRMarkerGroup(pdrLiveState));
+  });
+}
+
+function hideSensorPermissionModal() {
+  const modal = document.getElementById('sensor-permission-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function setSensorPermissionMessage({ title, body, note, enableLabel = 'Enable Sensors', disableEnable = false }) {
+  const titleEl = document.getElementById('sensor-permission-title');
+  const bodyEl = document.getElementById('sensor-permission-body');
+  const noteEl = document.getElementById('sensor-permission-note');
+  const enableBtn = document.getElementById('sensor-permission-enable');
+  if (titleEl) titleEl.textContent = title;
+  if (bodyEl) bodyEl.textContent = body;
+  if (noteEl) noteEl.textContent = note;
+  if (enableBtn) {
+    enableBtn.textContent = enableLabel;
+    enableBtn.disabled = disableEnable;
+  }
+}
+
+function preparePDRForRoute(startNode, sessionId) {
+  pdrEngine = new PDREngine({
+    startNode,
+    nodes: NODES,
+    graph: GRAPH,
+    sessionId,
+    onPositionUpdate: (update) => {
+      pdrLiveState = update;
+      renderPDRMarkers();
+      renderPDRStatus({
+        tone: 'live',
+        badge: 'Live',
+        title: 'Motion pointer active',
+        copy: `Tracking near ${NODES[update.nearestNode]?.label || 'your route'} on ${getFloorLabel(update.floor)}.`,
+        heading: formatHeading(update.heading),
+        steps: String(update.stepCount ?? 0),
+        confidence: formatConfidence(update.confidence),
+      });
+    },
+    onFloorChange: ({ toFloor }) => {
+      window.switchFloor(toFloor);
+      syncNavFloor(toFloor);
+    },
+  });
+  pdrLiveState = null;
+  clearPDRMarkers();
+
+  const support = getPDRSupportState();
+  if (!support.motionSupported || !support.orientationSupported) {
+    pdrPromptPending = false;
+    clearPDRMarkers();
+    renderPDRStatus({
+      tone: 'warn',
+      badge: 'Unavailable',
+      title: 'Live pointer not available here',
+      copy: 'This device does not expose the motion sensors needed for PDR. The route will still work normally.',
+      heading: '--',
+      steps: '0',
+      confidence: '--',
+    });
+    return;
+  }
+
+  pdrPromptPending = true;
+  renderPDRStatus({
+    tone: 'ready',
+    badge: 'Ready',
+    title: 'Enable live motion pointer',
+    copy: 'Grant sensor access to move the on-screen pointer as you walk through the building.',
+    heading: '--',
+    steps: '0',
+    confidence: '100%',
+  });
+  setSensorPermissionMessage({
+    title: 'Enable motion-based navigation?',
+    body: 'Allow motion and orientation access so Wayfinder can move your on-screen pointer as you walk.',
+    note: support.permissionRequired
+      ? 'Your browser will ask for sensor permission on the next tap.'
+      : 'Your device can start the live pointer immediately.',
+    enableLabel: 'Enable Sensors',
+    disableEnable: false,
+  });
+  const modal = document.getElementById('sensor-permission-modal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function stopPDR({ clearStatus = true } = {}) {
+  if (pdrEngine) pdrEngine.stop();
+  pdrEngine = null;
+  pdrLiveState = null;
+  pdrPromptPending = false;
+  clearPDRMarkers();
+  hideSensorPermissionModal();
+  if (clearStatus) renderPDRStatus(null);
+}
+
+window.enableRouteSensors = async function enableRouteSensors() {
+  if (!pdrEngine) return;
+
+  setSensorPermissionMessage({
+    title: 'Starting live pointer',
+    body: 'Hold your phone naturally while we start reading heading and motion updates.',
+    note: 'You can continue with normal navigation if the browser declines sensor access.',
+    enableLabel: 'Starting...',
+    disableEnable: true,
+  });
+
+  const result = await pdrEngine.start();
+  if (result.started) {
+    pdrPromptPending = false;
+    hideSensorPermissionModal();
+    toast('Live motion pointer enabled.');
+    return;
+  }
+
+  pdrPromptPending = false;
+  pdrLiveState = null;
+  clearPDRMarkers();
+  const denied = result.reason?.includes('denied');
+  renderPDRStatus({
+    tone: denied ? 'warn' : 'off',
+    badge: denied ? 'Denied' : 'Unavailable',
+    title: denied ? 'Sensor access was declined' : 'Could not start live pointer',
+    copy: denied
+      ? 'You can keep following the route manually, or try enabling motion permissions in your browser settings.'
+      : 'Wayfinder could not read motion sensors on this device. Navigation is still available without the live pointer.',
+    heading: '--',
+    steps: '0',
+    confidence: '--',
+  });
+  setSensorPermissionMessage({
+    title: denied ? 'Sensor permission was denied' : 'Live pointer unavailable',
+    body: denied
+      ? 'Wayfinder needs motion and orientation access to move the pointer on the map.'
+      : 'Your browser did not expose the required motion data for this route.',
+    note: 'You can continue navigating with checkpoints and turn-by-turn guidance.',
+    enableLabel: 'Try Again',
+    disableEnable: Boolean(!denied && !result.support?.motionSupported),
+  });
+}
+
+window.dismissSensorPermissionModal = function dismissSensorPermissionModal() {
+  hideSensorPermissionModal();
+  pdrPromptPending = false;
+  if (!pdrEngine?.active) {
+    pdrLiveState = null;
+    clearPDRMarkers();
+    renderPDRStatus({
+      tone: 'off',
+      badge: 'Off',
+      title: 'Motion pointer skipped',
+      copy: 'You can still follow the route using the map, checkpoints, and turn-by-turn instructions.',
+      heading: '--',
+      steps: '0',
+      confidence: '--',
+    });
+  }
+}
+
+function getUpcomingTransition() {
+  if (!Array.isArray(checkpoints) || checkpoints.length < 2) return null;
+  const current = checkpoints[currentCheckpointIdx];
+  const next = checkpoints[currentCheckpointIdx + 1];
+  if (!current || !next || current.floor === next.floor) return null;
+  const method = nodeType(current.id) === 'lift' || current.id.includes('LIFT') ? 'lift' : 'stairs';
+  return { current, next, method };
+}
+
+function updateTransitionBanner() {
+  const banner = document.getElementById('transition-banner');
+  if (!banner) return;
+  const transition = getUpcomingTransition();
+  if (!transition) {
+    banner.style.display = 'none';
+    return;
+  }
+  const { current, next, method } = transition;
+  const currentFloor = parseInt(document.querySelector('.floor-tab.active')?.dataset.floor || '1', 10);
+  const icon = document.getElementById('transition-banner-icon');
+  const title = document.getElementById('transition-banner-title');
+  const body = document.getElementById('transition-banner-body');
+  if (icon) icon.textContent = method === 'lift' ? 'ELEVATOR' : 'STAIRS';
+  banner.dataset.method = method;
+  if (currentFloor === current.floor) {
+    title.textContent = method === 'lift' ? `Head to the lift on ${getFloorLabel(current.floor)}` : `Head to the stairs on ${getFloorLabel(current.floor)}`;
+    body.textContent = `Next stop is ${getFloorLabel(next.floor)}. Follow the highlighted route to the ${method}.`;
+  } else if (currentFloor === next.floor) {
+    title.textContent = `You are now on ${getFloorLabel(next.floor)}`;
+    body.textContent = `Confirm your position and continue from the ${NODES[next.id]?.label || 'transition point'}.`;
+  } else {
+    title.textContent = `Upcoming floor change to ${getFloorLabel(next.floor)}`;
+    body.textContent = `This route uses the ${method} between ${getFloorLabel(current.floor)} and ${getFloorLabel(next.floor)}.`;
+  }
+  banner.style.display = 'flex';
+}
+
+function getSelectedFeedbackTags() {
+  return Array.from(document.querySelectorAll('.feedback-tag.active')).map(tag => tag.dataset.tag);
+}
+
+function renderFeedbackTags(rating = null) {
+  const block = document.querySelector('.feedback-tag-block');
+  const container = document.getElementById('feedback-tags');
+  const label = document.querySelector('.feedback-tag-label');
+  if (!block || !container) return;
+
+  const selectedRating = rating || document.querySelectorAll('#star-rating span.selected').length || 0;
+  if (!selectedRating) {
+    block.style.display = 'none';
+    container.innerHTML = '';
+    if (label) label.textContent = 'What stood out?';
+    return;
+  }
+
+  block.style.display = 'block';
+  const options = FEEDBACK_TAG_PRESETS[selectedRating] || [
+    { tag: 'clear', label: 'Clear directions' },
+    { tag: 'map-helpful', label: 'Map was helpful' },
+    { tag: 'confusing-turn', label: 'Confusing turn' },
+    { tag: 'wrong-floor', label: 'Wrong floor transition' },
+    { tag: 'stairs-issue', label: 'Unexpected stairs' },
+    { tag: 'destination-hard', label: 'Door was hard to find' },
+  ];
+
+  if (label) {
+    label.textContent = FEEDBACK_PROMPTS[selectedRating] || 'What stood out?';
+  }
+
+  container.innerHTML = options.map(option =>
+    `<button type="button" class="feedback-tag" data-tag="${option.tag}">${option.label}</button>`
+  ).join('');
+}
+
+function clearFeedbackState() {
+  document.querySelectorAll('#star-rating span').forEach(s => s.classList.remove('selected'));
+  renderFeedbackTags();
+  const comment = document.getElementById('feedback-comment');
+  if (comment) comment.value = '';
+}
+
+function setStartFromNodeGlobal(nodeId) {
+  const node = NODES[nodeId];
+  if (!node) return false;
+  const floorLabel = getFloorLabel(node.floor);
+  const floorBtn = Array.from(document.querySelectorAll('.floor-pick-btn'))
+    .find(btn => btn.dataset.floorLabel === floorLabel);
+  if (floorBtn) floorBtn.click();
+  if (tsStart) {
+    tsStart.setValue(nodeId, false);
+    return true;
+  }
+  return false;
+}
+
+function setDestinationFromNodeGlobal(nodeId) {
+  if (!NODES[nodeId] || !tsEnd) return false;
+  tsEnd.setValue(nodeId, false);
+  return true;
+}
+
+window.swapRouteEndpoints = function () {
+  const startValue = tsStart ? tsStart.getValue() : '';
+  const endValue = tsEnd ? tsEnd.getValue() : '';
+
+  if (!startValue && !endValue) {
+    toast('Select a current location or destination first.');
+    return;
+  }
+
+  if (endValue) setStartFromNodeGlobal(endValue);
+  else if (tsStart) tsStart.clear(false);
+
+  if (tsEnd) {
+    if (startValue) tsEnd.setValue(startValue, false);
+    else tsEnd.clear(false);
+  }
+};
 
 // ---------------------------------------------------------------------------
 // Checkpoints
@@ -7017,7 +9179,7 @@ function showRouteActivePanel() {
   const form = document.getElementById('nav-form');
   if (form) form.classList.add('form-hidden');
   const rip = document.getElementById('route-info-panel');
-  if (rip) rip.style.display = 'block';
+  if (rip) rip.style.display = 'flex';
   setAltBtnsVisible(true);
 }
 
@@ -7029,7 +9191,32 @@ function setAltBtnsVisible(visible) {
   });
 }
 
+function updateMobileRoutePreview(startId, endId) {
+  const label = document.getElementById('mobile-route-label');
+  if (!label) return;
+  const startText = startId ? (NODES[startId]?.label || startId) : 'Start';
+  const endText = endId ? (NODES[endId]?.label || endId) : 'Destination';
+  label.innerHTML = '';
+  const startSpan = document.createElement('span');
+  startSpan.className = 'mobile-route-label-from';
+  startSpan.title = startText;
+  startSpan.textContent = startText;
+
+  const arrowSpan = document.createElement('span');
+  arrowSpan.className = 'mobile-route-label-arrow';
+  arrowSpan.setAttribute('aria-hidden', 'true');
+  arrowSpan.textContent = '→';
+
+  const endSpan = document.createElement('span');
+  endSpan.className = 'mobile-route-label-to';
+  endSpan.title = endText;
+  endSpan.textContent = endText;
+
+  label.append(startSpan, arrowSpan, endSpan);
+}
+
 window.resetToForm = function () {
+  stopPDR({ clearStatus: false });
   const form = document.getElementById('nav-form');
   if (form) form.classList.remove('form-hidden');
   const rip = document.getElementById('route-info-panel');
@@ -7050,13 +9237,19 @@ window.resetToForm = function () {
   if (legend) legend.style.display = 'none';
   if (summary) summary.style.display = 'none';
   hideCheckpointButton();
+  hideDestinationPreview();
+  updateTransitionBanner();
   pathData = []; checkpoints = []; currentCheckpointIdx = 0;
+  renderPDRStatus(null);
   const topBar = document.getElementById('mobile-top-bar');
   if (topBar) topBar.style.display = 'none';
   const strip = document.getElementById('mobile-directions-strip');
   if (strip) strip.style.display = 'none';
+  updateMobileRoutePreview('', '');
   document.body.classList.remove('has-route');
   document.documentElement.style.overflow = '';
+  const mobileMetricsCards = document.getElementById('mobile-metrics-cards');
+  if (mobileMetricsCards) mobileMetricsCards.innerHTML = '';
 };
 
 function showCheckpointButton() {
@@ -7079,6 +9272,12 @@ window.openRouteForm = function () {
   const topBar = document.getElementById('mobile-top-bar');
   if (topBar && isMobile()) topBar.style.display = 'none';
 };
+
+window.exitNavigationToForm = function exitNavigationToForm() {
+  window.resetToForm();
+  if (isMobile()) window.openRouteForm();
+};
+
 function closeRouteForm() {
   if (!isMobile()) return;
   const sheet = document.getElementById('route-form-sheet');
@@ -7097,8 +9296,8 @@ function showFloorConfirmModal(floorNum, method, onResponse) {
   const body = document.getElementById('floor-confirm-body');
   if (!modal) { onResponse(true); return; }
   const floorName = FLOOR_NAMES[floorNum] || `Floor ${floorNum}`;
-  icon.textContent = method === 'lift' ? 'LIFT' : 'STAIRS';
-  icon.style.color = method === 'lift' ? '#6366f1' : '#f59e0b';
+  icon.textContent = method === 'lift' ? 'ELEVATOR' : 'STAIRS';
+  icon.dataset.method = method;
   title.textContent = method === 'lift'
     ? `Take the lift to the ${floorName}`
     : `Take the stairs to the ${floorName}`;
@@ -7127,6 +9326,7 @@ window.onCheckpointReached = function () {
   const isLast = currentCheckpointIdx >= checkpoints.length - 1;
   if (isLast) {
     hideCheckpointButton();
+    stopPDR({ clearStatus: false });
     for (let f = 1; f <= 4; f++) {
       const svg = document.getElementById(`svg-f${f}`);
       if (svg) svg.innerHTML = '';
@@ -7135,9 +9335,11 @@ window.onCheckpointReached = function () {
     const summary = document.getElementById('route-summary');
     if (legend) legend.style.display = 'none';
     if (summary) summary.style.display = 'none';
+    updateTransitionBanner();
     const navScreen = document.getElementById('mobile-directions-strip');
     if (navScreen) navScreen.style.display = 'none';
     pathData = []; checkpoints = [];
+    renderPDRStatus(null);
     const elapsed = navStartTime ? Math.round((Date.now() - navStartTime) / 1000) : 0;
     const mins = Math.floor(elapsed / 60), secs = elapsed % 60;
     showSuccessOverlay(mins > 0 ? `${mins} min ${secs} sec` : `${secs} sec`);
@@ -7151,12 +9353,15 @@ window.onCheckpointReached = function () {
   const floorChanging = nextCp && reachedCp.floor !== nextCp.floor;
 
   function advanceCheckpoint() {
+    if (pdrEngine) pdrEngine.resetToCheckpoint(reachedCp.id);
     currentCheckpointIdx++;
     const activeCp = checkpoints[currentCheckpointIdx];
     if (!activeCp) return;
     window.switchFloor(activeCp.floor);
     highlightRemainingPath(currentCheckpointIdx);
+    syncDirectionsActiveStep(currentCheckpointIdx);
     showCheckpointButton();
+    updateTransitionBanner();
     if (isMobile()) { updateMobileCurrentStep(currentCheckpointIdx); syncNavSVGs(); }
     recordCheckpoint({ sessionId: currentSessionId, checkpointIndex: currentCheckpointIdx, checkpointNodeId: activeCp.id });
   }
@@ -7241,6 +9446,7 @@ function highlightRemainingPath(checkpointIdx) {
     const nextIdx = currentCheckpointIdx + 1, nextCp = nextIdx < checkpoints.length ? checkpoints[nextIdx] : null;
     if (nextCp && nextCp.floor === f && remaining.some(p => p.id === nextCp.id)) drawCheckpointDot(svg, nextCp.x, nextCp.y);
   }
+  renderPDRMarkers();
 }
 
 // ---------------------------------------------------------------------------
@@ -7252,11 +9458,16 @@ window.drawPath = function drawPath(path, logicalPath = path) {
   const globalStart = logicalPath[0], globalEnd = logicalPath[logicalPath.length - 1];
   const routeCheckpoints = computeCheckpoints(logicalPath);
   const nextCheckpoint = routeCheckpoints.length > 0 ? routeCheckpoints[0] : null;
+  checkpoints = routeCheckpoints;
+  currentCheckpointIdx = 0;
+  navStartTime = Date.now();
   for (let i = 1; i <= 4; i++) {
     renderSVG(`svg-f${i}`, path, i, globalStart, globalEnd, nextCheckpoint);
   }
   generateDirections(logicalPath);
+  syncDirectionsActiveStep(0);
   calculateMetrics(logicalPath);
+  hideDestinationPreview();
   if (!isMobile()) showRouteActivePanel();
   const legend = document.getElementById('map-legend');
   if (legend) legend.style.display = 'flex';
@@ -7285,14 +9496,13 @@ window.drawPath = function drawPath(path, logicalPath = path) {
     });
     summary.style.display = 'flex'; summary.style.flexWrap = 'wrap'; summary.style.maxWidth = 'none';
   }
-  checkpoints = routeCheckpoints; currentCheckpointIdx = 0; navStartTime = Date.now();
+  updateTransitionBanner();
   if (isMobile()) {
     document.body.classList.add('has-route');
     closeRouteForm();
     populateMobileStrip(logicalPath);
     syncNavSVGs();
-    const mobileLabel = document.getElementById('mobile-route-label');
-    if (mobileLabel) mobileLabel.textContent = `${NODES[globalStart.id]?.label || globalStart.id} → ${NODES[globalEnd.id]?.label || globalEnd.id}`;
+    updateMobileRoutePreview(globalStart.id, globalEnd.id);
     const topBar = document.getElementById('mobile-top-bar');
     if (topBar) topBar.style.display = 'flex';
     const strip = document.getElementById('mobile-directions-strip');
@@ -7301,6 +9511,8 @@ window.drawPath = function drawPath(path, logicalPath = path) {
     syncMobileCheckpointBtn();
     setAltBtnsVisible(true);
   }
+  if (pdrStatusState) renderPDRStatus(pdrStatusState);
+  renderPDRMarkers();
   if (feedbackTimer) clearTimeout(feedbackTimer); feedbackTimer = null;
   if (!isMobile()) {
     if (checkpoints.length > 0) showCheckpointButton();
@@ -7385,6 +9597,9 @@ function generateDirections(path) {
   list.innerHTML = '';
   steps.forEach(step => {
     const li = document.createElement('li');
+    const type = (step.text.match(/^\[(\w+)\]/)?.[1] || 'STEP').toLowerCase();
+    li.className = `direction-step-card direction-step-${type}`;
+    li.dataset.stepType = type;
     li.textContent = step.text.replace(/^\[\w+\]\s*/, '');
     li._rawText = step.text;
     list.appendChild(li);
@@ -7409,8 +9624,22 @@ function generateDirections(path) {
     });
   }
   const dp = document.getElementById('directions-panel');
-  if (dp) { dp.style.display = 'block'; dp.open = true; }
+  if (dp) { dp.style.display = 'flex'; dp.open = true; }
   return steps;
+}
+
+function syncDirectionsActiveStep(checkpointIdx) {
+  const list = document.getElementById('directions-list');
+  if (!list) return;
+  const items = Array.from(list.querySelectorAll('li[data-checkpoint]'));
+  if (!items.length) return;
+
+  items.forEach(li => li.classList.remove('directions-active'));
+  const activeItem = items.find(li => li.getAttribute('data-checkpoint') == checkpointIdx) || items[0];
+  if (!activeItem) return;
+
+  activeItem.classList.add('directions-active');
+  activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 // ---------------------------------------------------------------------------
@@ -7427,12 +9656,16 @@ function calculateMetrics(path) {
   const totalMeters = distance * COORD_TO_METERS;
   const seconds = totalMeters / WALK_SPEED;
   const mins = Math.floor(seconds / 60), secs = Math.round(seconds % 60);
-  document.getElementById('m-distance').textContent = totalMeters.toFixed(1);
-  document.getElementById('m-time').textContent = `${mins} min ${secs} sec`;
-  document.getElementById('m-floors').textContent = floorChanges;
-  document.getElementById('metrics-bar').style.display = 'flex';
+  const distanceEl = document.getElementById('m-distance');
+  const timeEl = document.getElementById('m-time');
+  const floorsEl = document.getElementById('m-floors');
+  const metricsBar = document.getElementById('metrics-bar');
+  if (distanceEl) distanceEl.textContent = totalMeters.toFixed(1);
+  if (timeEl) timeEl.textContent = `${mins} min ${secs} sec`;
+  if (floorsEl) floorsEl.textContent = floorChanges;
+  if (metricsBar) metricsBar.style.display = 'flex';
   const rip = document.getElementById('route-info-panel');
-  if (rip) rip.style.display = 'block';
+  if (rip) rip.style.display = 'flex';
   fetch(`/stats?route=${path[0].id}+${path[path.length - 1].id}`)
     .then(r => r.json())
     .then(data => {
@@ -7458,11 +9691,14 @@ function showSuccessOverlay(elapsedTimeStr) {
 // ---------------------------------------------------------------------------
 // Feedback
 // ---------------------------------------------------------------------------
-function showFeedbackModal() { const m = document.getElementById('feedback-modal'); if (m) m.style.display = 'flex'; }
+function showFeedbackModal() {
+  clearFeedbackState();
+  const m = document.getElementById('feedback-modal');
+  if (m) m.style.display = 'flex';
+}
 window.closeFeedback = function () {
   const m = document.getElementById('feedback-modal'); if (m) m.style.display = 'none';
-  document.querySelectorAll('#star-rating span').forEach(s => s.classList.remove('selected'));
-  const c = document.getElementById('feedback-comment'); if (c) c.value = '';
+  clearFeedbackState();
   window.resetToForm(); if (isMobile()) window.openRouteForm();
 };
 window.submitFeedback = function () {
@@ -7472,7 +9708,14 @@ window.submitFeedback = function () {
   if (!rating) { toast('Please select a star rating before submitting.'); return; }
   if (!pathData || pathData.length === 0) { window.closeFeedback(); return; }
   const comment = document.getElementById('feedback-comment').value || '';
-  const payload = { start: pathData[0]?.id || '', end: pathData[pathData.length - 1]?.id || '', path: pathData.map(p => p.id), rating, comment };
+  const payload = {
+    start: pathData[0]?.id || '',
+    end: pathData[pathData.length - 1]?.id || '',
+    path: pathData.map(p => p.id),
+    rating,
+    comment,
+    tags: getSelectedFeedbackTags(),
+  };
   fetch('/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify(payload) })
     .then(() => { window.closeFeedback(); toast('Thanks for your feedback!'); })
     .catch(() => { window.closeFeedback(); toast('Could not send feedback right now.'); });
@@ -7483,15 +9726,24 @@ window.submitFeedback = function () {
 // ---------------------------------------------------------------------------
 function toast(msg) {
   const el = document.createElement('div');
-  el.className = 'toast-msg'; el.textContent = msg;
-  document.body.appendChild(el); setTimeout(() => el.remove(), 3000);
+  el.className = 'toast-msg';
+  const icon = document.createElement('span');
+  icon.className = 'toast-icon';
+  icon.setAttribute('aria-hidden', 'true');
+  icon.textContent = '!';
+  const text = document.createElement('span');
+  text.className = 'toast-text';
+  text.textContent = msg;
+  el.append(icon, text);
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
 }
 
 // ---------------------------------------------------------------------------
 // Pin-to-navigate popup
 // ---------------------------------------------------------------------------
 (function initPinToNavigate() {
-  const SNAP_THRESHOLD = 8;
+  const SNAP_THRESHOLD = 6;
   const pointerState = new WeakMap();
   let popupState = null;
   let suppressNextMapClick = false;
@@ -7502,10 +9754,6 @@ function toast(msg) {
 
   function getPopup() {
     return document.getElementById('pin-popup');
-  }
-
-  function getFloorLabel(floorNum) {
-    return FLOOR_NAMES[floorNum] || `Floor ${floorNum}`;
   }
 
   function getDropdownPulseTarget(selectOrTs) {
@@ -7651,6 +9899,10 @@ function toast(msg) {
       floorNum: nodeMatch.data.floor,
       coords: nodeMatch.coords,
     };
+    const popupLabel = document.getElementById('pin-popup-label');
+    const popupMeta = document.getElementById('pin-popup-meta');
+    if (popupLabel) popupLabel.textContent = nodeMatch.data.label;
+    if (popupMeta) popupMeta.textContent = getFloorLabel(nodeMatch.data.floor);
     showSnapPulse(nodeMatch.data.floor, nodeMatch.coords);
     positionPopup(clickEvent.clientX, clickEvent.clientY);
   }
@@ -7674,14 +9926,14 @@ function toast(msg) {
     const coords = percentCoordsFromImageEvent(event, event.currentTarget);
     if (!coords) {
       hidePopup();
-      toast('Tap closer to a room');
+      toast('Tap closer to a room door');
       return;
     }
 
     const nearest = findNearestNode(coords, floorNum);
     if (!nearest || nearest.dist >= SNAP_THRESHOLD) {
       hidePopup();
-      toast('Tap closer to a room');
+      toast('Tap closer to a room door');
       return;
     }
 
@@ -7758,23 +10010,349 @@ function toast(msg) {
 // FAQ Chatbot
 // ---------------------------------------------------------------------------
 let faqData = [];
+const DEFAULT_FAQ_SUGGESTIONS = [
+  'Where is the library?',
+  'How do I get to the seminar hall?',
+  'Where is the nearest restroom?',
+];
 window.loadFAQs = async function () {
   try { faqData = await (await fetch('/faq')).json(); } catch { faqData = []; }
 };
-function faqMatch(input) {
-  const lower = input.toLowerCase().trim();
-  for (const faq of faqData)
-    for (const kw of faq.keywords)
-      if (lower.includes(kw.toLowerCase())) return faq.answer;
+function renderFaqSuggestions(items = DEFAULT_FAQ_SUGGESTIONS) {
+  const el = document.getElementById('faq-suggestions');
+  if (!el) return;
+  el.innerHTML = items
+    .slice(0, 3)
+    .map(item => `<button type="button" class="faq-suggestion-chip">${item}</button>`)
+    .join('');
+}
+
+function formatFaqResponse(text, actions = []) {
+  return { text, actions };
+}
+
+function buildLocationActions(nodeId) {
+  if (!NODES[nodeId]) return [];
+  return [
+    { label: 'Set as Start', type: 'set-start', nodeId },
+    { label: 'Set as Destination', type: 'set-destination', nodeId },
+  ];
+}
+
+function ensureLocationActions(payload) {
+  if (!payload) return { text: '', actions: [] };
+  const normalized = typeof payload === 'string'
+    ? { text: payload, actions: [] }
+    : { ...payload, actions: Array.isArray(payload.actions) ? [...payload.actions] : [] };
+
+  const dedupeActions = (actions) => {
+    const seen = new Set();
+    return actions.filter(action => {
+      if (!action) return false;
+      const key = [
+        action.type || '',
+        action.nodeId || '',
+        action.startId || '',
+        action.endId || '',
+        action.text || '',
+        action.label || '',
+      ].join('|');
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
+
+  normalized.actions = dedupeActions(normalized.actions);
+  const actionNodeId = normalized.nodeId
+    || normalized.actions.find(action =>
+      action?.nodeId && (action.type === 'set-start' || action.type === 'set-destination'))?.nodeId;
+  const nodeId = actionNodeId || findNodeFromQuestion(normalized.text || '')?.id;
+  if (!nodeId) return normalized;
+
+  const retainedActions = normalized.actions.filter(action =>
+    action.type !== 'set-start' && action.type !== 'set-destination');
+  normalized.actions = dedupeActions([
+    ...buildLocationActions(nodeId),
+    ...retainedActions,
+  ]);
+  normalized.nodeId = nodeId;
+  return normalized;
+}
+
+function matchFacility(term) {
+  const candidates = ['restroom', 'lift', 'stairs', 'office', 'library'];
+  return candidates.find(candidate => term.includes(candidate));
+}
+
+function detectNearestFacilityType(term) {
+  if (term.includes('nearest restroom') || term.includes('nearest washroom') || term.includes('nearest toilet')) {
+    return 'restroom';
+  }
+  if (term.includes('nearest elevator') || term.includes('nearest lift')) {
+    return 'lift';
+  }
+  if (term.includes('nearest stairs') || term.includes('where are the stairs') || term.includes('where is the stairs')) {
+    return 'stairs';
+  }
   return null;
 }
-window.toggleFAQChat = function () {
+
+function parseFloorReply(input) {
+  const lower = input.toLowerCase();
+  if (/\b(gf|ground|ground floor|floor 0|0f)\b/.test(lower)) return 1;
+  if (/\b(1f|first|first floor|1st floor|floor 1)\b/.test(lower)) return 2;
+  if (/\b(2f|second|second floor|2nd floor|floor 2)\b/.test(lower)) return 3;
+  if (/\b(3f|third|third floor|3rd floor|floor 3)\b/.test(lower)) return 4;
+  return null;
+}
+
+function buildFloorPromptActions() {
+  return [
+    { label: 'GF', type: 'ask', text: 'GF' },
+    { label: '1F', type: 'ask', text: '1F' },
+    { label: '2F', type: 'ask', text: '2F' },
+    { label: '3F', type: 'ask', text: '3F' },
+  ];
+}
+
+function facilityMatchesType(data, facilityType) {
+  const label = data.label.toLowerCase();
+  if (facilityType === 'restroom') {
+    return label.includes('restroom') || label.includes('washroom') || label.includes('toilet');
+  }
+  if (facilityType === 'lift') {
+    return label.includes('lift') || label.includes('elevator') || data.type === 'lift';
+  }
+  if (facilityType === 'stairs') {
+    return label.includes('stairs') || data.type === 'stairs';
+  }
+  return false;
+}
+
+function findNearestFacilityNode(facilityType, floorNum) {
+  return Object.entries(NODES)
+    .filter(([, data]) => !data.is_waypoint && facilityMatchesType(data, facilityType))
+    .sort(([, a], [, b]) => {
+      const floorDelta = Math.abs(a.floor - floorNum) - Math.abs(b.floor - floorNum);
+      if (floorDelta !== 0) return floorDelta;
+      return a.label.localeCompare(b.label);
+    })[0] || null;
+}
+
+function buildNearestFacilityAnswer(facilityType, floorNum) {
+  const match = findNearestFacilityNode(facilityType, floorNum);
+  const facilityLabel = facilityType === 'lift' ? 'lift' : facilityType;
+  if (!match) {
+    return formatFaqResponse(`I couldn't find a ${facilityLabel} in the building data right now.`);
+  }
+
+  const [nodeId, node] = match;
+  const landmarks = nearestLandmarks(nodeId, 2).map(item => item.label).join(', ');
+  const sourceFloor = getFloorLabel(floorNum);
+  const targetFloor = getFloorLabel(node.floor);
+  const sameFloor = node.floor === floorNum;
+  const base = sameFloor
+    ? `The nearest ${facilityLabel} from ${sourceFloor} is ${node.label} on the same floor.`
+    : `The nearest ${facilityLabel} from ${sourceFloor} is ${node.label} on ${targetFloor}.`;
+  const landmarkText = landmarks ? ` It's near ${landmarks}.` : '';
+  return formatFaqResponse(base + landmarkText, buildLocationActions(nodeId));
+}
+
+function findNodeFromQuestion(lower) {
+  const cleaned = lower.replace(/[^a-z0-9 ]/g, ' ');
+  let best = null;
+  for (const [id, data] of Object.entries(NODES)) {
+    if (data.is_waypoint) continue;
+    const label = data.label.toLowerCase();
+    if (cleaned.includes(label)) return { id, data };
+    if (cleaned.includes(id.toLowerCase().replace(/-/g, ' '))) return { id, data };
+    const words = label.split(' ').filter(word => word.length > 2);
+    const score = words.reduce((sum, word) => sum + (cleaned.includes(word) ? 1 : 0), 0);
+    if (score > 0 && (!best || score > best.score)) best = { id, data, score };
+  }
+  return best;
+}
+
+function buildNodeAnswer(nodeId, opts = {}) {
+  const node = NODES[nodeId];
+  if (!node) return null;
+  const landmarks = nearestLandmarks(nodeId, 2).map(item => item.label).join(', ');
+  const base = `${node.label} is on ${getFloorLabel(node.floor)}${node.category ? ` in ${node.category}` : ''}.`;
+  const landmarkText = landmarks ? ` Nearby: ${landmarks}.` : '';
+  const actions = buildLocationActions(nodeId);
+  return formatFaqResponse(base + landmarkText, actions);
+}
+
+function faqMatch(input) {
+  const lower = input.toLowerCase().trim();
+
+  if (faqPendingNearest) {
+    const replyFloor = parseFloorReply(lower);
+    if (replyFloor) {
+      const pending = faqPendingNearest;
+      faqPendingNearest = null;
+      return buildNearestFacilityAnswer(pending.facilityType, replyFloor);
+    }
+    if (!/\b(where|what|how|nearest|take me|route|help)\b/.test(lower)) {
+      return formatFaqResponse(
+        'Please tell me Ground Floor/GF, 1F, 2F, or 3F.',
+        buildFloorPromptActions(),
+      );
+    }
+    faqPendingNearest = null;
+  }
+
+  const nearestFacilityType = detectNearestFacilityType(lower);
+  if (nearestFacilityType) {
+    const explicitFloor = parseFloorReply(lower);
+    if (explicitFloor) {
+      return buildNearestFacilityAnswer(nearestFacilityType, explicitFloor);
+    }
+    faqPendingNearest = { facilityType: nearestFacilityType };
+    return formatFaqResponse('Which floor are you on?', buildFloorPromptActions());
+  }
+
+  const routeMatch = lower.match(/(?:from)\s+(.+?)\s+(?:to)\s+(.+)/);
+  if (routeMatch) {
+    const fromNode = getNodeByLabel(routeMatch[1]);
+    const toNode = getNodeByLabel(routeMatch[2]);
+    if (fromNode && toNode) {
+      return formatFaqResponse(
+        `I found ${fromNode.data.label} and ${toNode.data.label}. I can place them into the route form for you.`,
+        [
+          { label: 'Use This Route', type: 'set-route', startId: fromNode.id, endId: toNode.id },
+          { label: 'Set as Destination', type: 'set-destination', nodeId: toNode.id },
+        ],
+      );
+    }
+  }
+
+  if (lower.includes('where is') || lower.includes('what floor') || lower.includes('take me to')) {
+    const facility = matchFacility(lower);
+    if (facility && !lower.includes('how do i get')) {
+      const facilityNode = Object.entries(NODES).find(([, data]) =>
+        !data.is_waypoint && data.label.toLowerCase().includes(facility)
+      );
+      if (facilityNode) return buildNodeAnswer(facilityNode[0], { allowStart: true });
+    }
+    const node = findNodeFromQuestion(lower);
+    if (node) return buildNodeAnswer(node.id, { allowStart: true });
+  }
+
+  for (const faq of faqData) {
+    for (const kw of faq.keywords) {
+      if (lower.includes(kw.toLowerCase())) {
+        return formatFaqResponse(faq.answer);
+      }
+    }
+  }
+
+  const directNode = findNodeFromQuestion(lower);
+  if (directNode) return buildNodeAnswer(directNode.id, { allowStart: true });
+
+  return formatFaqResponse(
+    "I can help with room locations, what floor something is on, or setting a route from one place to another.",
+    [
+      { label: 'Library', type: 'ask', text: 'Where is the library?' },
+      { label: 'Seminar Hall', type: 'ask', text: 'How do I get to the seminar hall?' },
+      { label: 'Restroom', type: 'ask', text: 'Where is the nearest restroom?' },
+      { label: 'Nearest Lift', type: 'ask', text: 'Where is the nearest elevator?' },
+      { label: 'Route Help', type: 'ask', text: 'How do I get from the library to the seminar hall?' },
+    ],
+  );
+}
+function getFAQElements() {
+  return {
+    chat: document.getElementById('faq-chat'),
+    bubble: document.getElementById('faq-bubble'),
+    backdrop: document.getElementById('faq-chat-backdrop'),
+  };
+}
+
+function ensureFAQMount() {
+  const { chat, bubble, backdrop } = getFAQElements();
+  if (!chat || !bubble || !document.body) return;
+  if (bubble.parentElement !== document.body) document.body.appendChild(bubble);
+  if (backdrop && backdrop.parentElement !== document.body) document.body.appendChild(backdrop);
+  if (chat.parentElement !== document.body) document.body.appendChild(chat);
+}
+
+function shouldShowFAQBackdrop() {
+  return true;
+}
+
+function syncFAQBackdrop() {
+  const { chat, backdrop } = getFAQElements();
+  if (!chat || !backdrop || !chat.classList.contains('faq-chat-open')) return;
+  if (shouldShowFAQBackdrop()) {
+    backdrop.style.display = 'block';
+    backdrop.setAttribute('aria-hidden', 'false');
+    backdrop.classList.add('faq-chat-backdrop-open');
+  } else {
+    backdrop.classList.remove('faq-chat-backdrop-open');
+    backdrop.setAttribute('aria-hidden', 'true');
+    backdrop.style.display = 'none';
+  }
+}
+
+function syncFAQExpandedUI() {
+  const { chat } = getFAQElements();
+  const expandBtn = document.getElementById('faq-expand-btn');
+  const expandedOnDesktop = faqExpanded && canDockFAQ();
+  if (chat) chat.classList.toggle('faq-chat-expanded', expandedOnDesktop);
+  if (expandBtn) {
+    expandBtn.style.display = canDockFAQ() ? 'inline-flex' : 'none';
+    expandBtn.setAttribute('aria-pressed', expandedOnDesktop ? 'true' : 'false');
+    expandBtn.setAttribute('aria-label', expandedOnDesktop ? 'Collapse assistant' : 'Expand assistant');
+    expandBtn.setAttribute('title', expandedOnDesktop ? 'Collapse assistant' : 'Expand assistant');
+    expandBtn.innerHTML = getIconSvg(expandedOnDesktop ? 'collapse' : 'expand');
+  }
+  syncFAQBackdrop();
+}
+
+window.toggleFAQChatExpanded = function (forceState) {
+  faqExpanded = typeof forceState === 'boolean' ? forceState : !faqExpanded;
+  localStorage.setItem(FAQ_EXPANDED_STORAGE_KEY, String(faqExpanded));
+  syncFAQExpandedUI();
+};
+
+window.toggleFAQChat = function (forceState) {
+  ensureFAQMount();
   const chat = document.getElementById('faq-chat');
   const bubble = document.getElementById('faq-bubble');
-  if (!chat) return;
-  const isOpen = chat.style.display !== 'none';
-  chat.style.display = isOpen ? 'none' : 'flex';
-  bubble.classList.toggle('faq-bubble-open', !isOpen);
+  const backdrop = document.getElementById('faq-chat-backdrop');
+  if (!chat || !bubble) return;
+  const currentlyOpen = chat.classList.contains('faq-chat-open');
+  const shouldOpen = typeof forceState === 'boolean' ? forceState : !currentlyOpen;
+
+  if (!shouldOpen) {
+    chat.classList.remove('faq-chat-open');
+    chat.setAttribute('aria-hidden', 'true');
+    backdrop?.classList.remove('faq-chat-backdrop-open');
+    backdrop?.setAttribute('aria-hidden', 'true');
+    window.setTimeout(() => {
+      if (!chat.classList.contains('faq-chat-open')) chat.style.display = 'none';
+      if (backdrop && !chat.classList.contains('faq-chat-open')) backdrop.style.display = 'none';
+    }, 300);
+  } else {
+    chat.style.display = 'flex';
+    chat.setAttribute('aria-hidden', 'false');
+    requestAnimationFrame(() => {
+      chat.classList.add('faq-chat-open');
+      syncFAQBackdrop();
+    });
+  }
+  bubble.classList.remove('faq-bubble-ripple');
+  void bubble.offsetWidth;
+  bubble.classList.add('faq-bubble-ripple');
+  window.setTimeout(() => bubble.classList.remove('faq-bubble-ripple'), 520);
+  bubble.classList.toggle('faq-bubble-open', shouldOpen);
+  bubble.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+
+  if (shouldOpen) {
+    document.getElementById('faq-input')?.focus();
+  }
 };
 window.sendFAQ = function () {
   const input = document.getElementById('faq-input');
@@ -7782,15 +10360,89 @@ window.sendFAQ = function () {
   const text = input.value.trim();
   if (!text) return;
   appendFAQMessage(text, 'user'); input.value = '';
-  setTimeout(() => appendFAQMessage(faqMatch(text) || "I'm not sure about that. Try using the navigation form to find your destination.", 'bot'), 280);
+  setTimeout(() => appendFAQMessage(faqMatch(text), 'bot'), 280);
 };
-function appendFAQMessage(text, sender) {
+window.applyFaqAction = function (action) {
+  if (!action) return;
+  if (action.type === 'ask' && action.text) {
+    const input = document.getElementById('faq-input');
+    if (input) {
+      input.value = action.text;
+      window.sendFAQ();
+    }
+    return;
+  }
+  if (action.type === 'set-start' && action.nodeId) {
+    setStartFromNodeGlobal(action.nodeId);
+    toast(`Start set to ${NODES[action.nodeId]?.label || 'selected room'}`);
+    return;
+  }
+  if (action.type === 'set-destination' && action.nodeId) {
+    setDestinationFromNodeGlobal(action.nodeId);
+    toast(`Destination set to ${NODES[action.nodeId]?.label || 'selected room'}`);
+    return;
+  }
+  if (action.type === 'set-route' && action.startId && action.endId) {
+    setStartFromNodeGlobal(action.startId);
+    setDestinationFromNodeGlobal(action.endId);
+    toast(`Route prepared from ${NODES[action.startId]?.label} to ${NODES[action.endId]?.label}`);
+  }
+};
+
+function appendFAQMessage(payload, sender) {
   const messages = document.getElementById('faq-messages');
   if (!messages) return;
   const div = document.createElement('div');
-  div.className = `faq-msg faq-msg-${sender}`; div.textContent = text;
+  div.className = `faq-msg faq-msg-${sender}`;
+  if (sender === 'bot') payload = ensureLocationActions(payload);
+  if (typeof payload === 'string') {
+    div.textContent = payload;
+  } else {
+    div.textContent = payload?.text || '';
+    if (sender === 'bot' && Array.isArray(payload?.actions) && payload.actions.length) {
+      const row = document.createElement('div');
+      row.className = 'faq-action-row';
+      payload.actions.forEach((action, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'faq-action-btn';
+        btn.textContent = action.label || `Action ${idx + 1}`;
+        btn.addEventListener('click', () => window.applyFaqAction(action));
+        row.appendChild(btn);
+      });
+      div.appendChild(row);
+    }
+  }
   messages.appendChild(div); messages.scrollTop = messages.scrollHeight;
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  ensureFAQMount();
+  document.getElementById('faq-chat')?.addEventListener('click', event => event.stopPropagation());
+  document.getElementById('faq-suggestions')?.addEventListener('click', event => {
+    const btn = event.target.closest('.faq-suggestion-chip');
+    if (!btn) return;
+    const input = document.getElementById('faq-input');
+    if (!input) return;
+    btn.classList.remove('faq-chip-pop');
+    void btn.offsetWidth;
+    btn.classList.add('faq-chip-pop');
+    input.value = btn.textContent || '';
+    window.setTimeout(() => {
+      btn.classList.remove('faq-chip-pop');
+      window.sendFAQ();
+    }, 170);
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') window.toggleFAQChat(false);
+  });
+  document.addEventListener('click', event => {
+    const { chat, bubble } = getFAQElements();
+    if (!chat || !bubble || !chat.classList.contains('faq-chat-open')) return;
+    if (chat.contains(event.target) || bubble.contains(event.target)) return;
+    window.toggleFAQChat(false);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Mobile nav screen helpers
@@ -7826,7 +10478,8 @@ function populateMobileStrip(logicalPath) {
       if (cp !== null) li.setAttribute('data-checkpoint', cp);
       const left = document.createElement('div'); left.className = 'nav-step-left';
       const iconWrap = document.createElement('div'); iconWrap.className = `nav-step-icon${type === 'start' ? ' start' : ''}`;
-      iconWrap.innerHTML = `<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 9h8M14 9l-3-3M14 9l-3 3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+      iconWrap.dataset.icon = type;
+      iconWrap.innerHTML = getIconSvg(type);
       left.appendChild(iconWrap);
       if (!isLast) { const line = document.createElement('div'); line.className = 'nav-step-line'; left.appendChild(line); }
       const content = document.createElement('div'); content.className = 'nav-step-content';
@@ -7843,12 +10496,17 @@ function syncNavSVGs() {
     const src = document.getElementById(`svg-f${f}`), dest = document.getElementById(`svg-nav-f${f}`);
     if (src && dest) dest.innerHTML = src.innerHTML;
   }
+  renderPDRMarkers();
   requestAnimationFrame(() => fitNavSVGToImage());
 }
 
 function syncNavFloor(floorNum) {
+  document.querySelectorAll('.floor-tabs').forEach(group => {
+    group.style.setProperty('--active-floor-index', Math.max(0, Number(floorNum) - 1));
+  });
   document.querySelectorAll('.floor-tab').forEach(tab => tab.classList.toggle('active', tab.dataset.floor == floorNum));
   for (let i = 1; i <= 4; i++) { const el = document.getElementById(`nav-f${i}`); if (el) el.style.display = (i == floorNum) ? 'block' : 'none'; }
+  renderPDRMarkers();
   requestAnimationFrame(() => fitNavSVGToImage());
 }
 
@@ -7857,10 +10515,10 @@ function syncMobileCheckpointBtn() {
   if (!btn) return;
   if (!checkpoints || checkpoints.length === 0) { btn.style.display = 'none'; return; }
   const isLast = currentCheckpointIdx >= checkpoints.length - 1;
-  btn.innerHTML = isLast
-    ? `<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M5 11l5 5 7-8" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
-    : `<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 18V5M6 10l5-5 5 5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  btn.innerHTML = `<span class="nav-fab-btn-label">${isLast ? 'FINISH' : 'NEXT'}</span>`;
   btn.className = isLast ? 'nav-fab-btn finish-btn' : 'nav-fab-btn';
+  btn.setAttribute('aria-label', isLast ? 'Finish navigation' : 'Next checkpoint');
+  btn.onclick = window.onCheckpointReached;
   btn.style.display = 'flex';
 }
 
@@ -7925,7 +10583,7 @@ window.requestAlternateRoute = async function requestAlternateRoute() {
   } catch (_) { /* non-fatal */ }
 
   const altPath = planAlternate({
-    startNode, endNode, stops: [],
+    startNode, endNode, stops: window.stopLabels ? window.stopLabels.map(s => s.id) : [],
     avoidStairs, avoidElevators,
     nodes: NODES, graph: GRAPH,
     learnedWeights,
@@ -8015,6 +10673,12 @@ window.requestAlternateRoute = async function requestAlternateRoute() {
         el.setAttribute('transform', `scale(${base.toFixed(3)})`);
       });
 
+    svg.querySelectorAll('.pdr-user-marker-scale')
+      .forEach(el => {
+        const base = 1 / scale;
+        el.setAttribute('transform', `scale(${base.toFixed(3)})`);
+      });
+
     svg.querySelectorAll('.bounce-anim').forEach(el => {
       const baseBounce = -1.2;
       const scaledBounce = baseBounce / scale;
@@ -8060,11 +10724,17 @@ window.requestAlternateRoute = async function requestAlternateRoute() {
       rescaleSVGStrokes(`f${f}-container`, `svg-f${f}`);
       rescaleSVGStrokes(`nav-f${f}`, `svg-nav-f${f}`);
     }
+    renderPDRMarkers();
+    for (let f = 1; f <= 4; f++) {
+      rescaleSVGStrokes(`f${f}-container`, `svg-f${f}`);
+      rescaleSVGStrokes(`nav-f${f}`, `svg-nav-f${f}`);
+    }
   };
 })();
+```
 
 File: frontend/static/js/db-helper.js
-Code snippet
+```javascript
 const DB_NAME    = 'wayfinder-offline';
 const DB_VERSION = 1;
 
@@ -8106,9 +10776,10 @@ function wrapDB(db) {
     delete: (store, key)      => tx(store, 'readwrite', s => s.delete(key)),
   };
 }
+```
 
 File: frontend/static/js/graph-data.js
-Code snippet
+```javascript
 // AUTO-GENERATED — run scripts/generate_graph_js.py to update
 // Do not edit manually.
 export const NODES = {
@@ -8188,7 +10859,7 @@ export const NODES = {
       58
     ],
     "floor": 1,
-    "label": "Classroom",
+    "label": "Lecture Hall - 1",
     "category": "Rooms",
     "type": "room"
   },
@@ -8284,6 +10955,16 @@ export const NODES = {
     "is_waypoint": true,
     "type": "hallway"
   },
+  "HALLWAY-TURNPOINT-4-GF": {
+    "coords": [
+      74,
+      43
+    ],
+    "floor": 1,
+    "label": "GF Turn 4 (Curved Stairs)",
+    "is_waypoint": true,
+    "type": "hallway"
+  },
   "MEDIAUNIT-1F": {
     "coords": [
       71,
@@ -8300,7 +10981,7 @@ export const NODES = {
       60
     ],
     "floor": 2,
-    "label": "Balcony",
+    "label": "Balcony - North Wing",
     "category": "Rooms",
     "dead_end": true,
     "type": "room"
@@ -8311,7 +10992,7 @@ export const NODES = {
       64
     ],
     "floor": 2,
-    "label": "Room 1",
+    "label": "Lecture Hall - 2",
     "category": "Rooms",
     "type": "room"
   },
@@ -8371,7 +11052,7 @@ export const NODES = {
       27
     ],
     "floor": 2,
-    "label": "Room 3",
+    "label": "Discussion Room - 1",
     "category": "Rooms",
     "type": "room"
   },
@@ -8391,7 +11072,7 @@ export const NODES = {
       61
     ],
     "floor": 2,
-    "label": "Room 2",
+    "label": "Lecture Hall - 3",
     "category": "Rooms",
     "type": "room"
   },
@@ -8464,6 +11145,16 @@ export const NODES = {
     ],
     "floor": 2,
     "label": "1F Turn 3 (End)",
+    "is_waypoint": true,
+    "type": "hallway"
+  },
+  "HALLWAY-TURNPOINT-4-1F": {
+    "coords": [
+      72,
+      42
+    ],
+    "floor": 2,
+    "label": "1F Turn 4 (Curved Stairs)",
     "is_waypoint": true,
     "type": "hallway"
   },
@@ -8649,13 +11340,23 @@ export const NODES = {
     "is_waypoint": true,
     "type": "hallway"
   },
+  "HALLWAY-TURNPOINT-4-2F": {
+    "coords": [
+      69,
+      43
+    ],
+    "floor": 3,
+    "label": "2F Turn 4 (Curved Stairs)",
+    "is_waypoint": true,
+    "type": "hallway"
+  },
   "ROOM1-3F": {
     "coords": [
       33,
       59
     ],
     "floor": 4,
-    "label": "Room 1",
+    "label": "Lecture Hall - 4",
     "category": "Rooms",
     "type": "room"
   },
@@ -8665,7 +11366,7 @@ export const NODES = {
       59
     ],
     "floor": 4,
-    "label": "Room 2",
+    "label": "Seminar Room - 1",
     "category": "Rooms",
     "type": "room"
   },
@@ -8675,7 +11376,7 @@ export const NODES = {
       59
     ],
     "floor": 4,
-    "label": "Room 3",
+    "label": "Seminar Room - 2",
     "category": "Rooms",
     "type": "room"
   },
@@ -8685,7 +11386,7 @@ export const NODES = {
       43
     ],
     "floor": 4,
-    "label": "Room 4",
+    "label": "Lecture Hall - 5",
     "category": "Rooms",
     "type": "room"
   },
@@ -8760,6 +11461,16 @@ export const NODES = {
     "label": "3F Turn 3",
     "is_waypoint": true,
     "type": "hallway"
+  },
+  "HALLWAY-TURNPOINT-4-3F": {
+    "coords": [
+      72,
+      43
+    ],
+    "floor": 4,
+    "label": "3F Turn 4 (Curved Stairs)",
+    "is_waypoint": true,
+    "type": "hallway"
   }
 };
 export const GRAPH = {
@@ -8768,8 +11479,7 @@ export const GRAPH = {
     "HALLWAY-TURNPOINT-2-GF"
   ],
   "OFFICE-GF": [
-    "HALLWAY-TURNPOINT-1-GF",
-    "HALLWAY-TURNPOINT-2-GF"
+    "HALLWAY-TURNPOINT-4-GF"
   ],
   "ADMIN-GF": [
     "HALLWAY-TURNPOINT-1-GF",
@@ -8814,6 +11524,7 @@ export const GRAPH = {
   ],
   "CURVEDSTAIRS-GF": [
     "HALLWAY-TURNPOINT-1-GF",
+    "HALLWAY-TURNPOINT-4-GF",
     "CURVEDSTAIRS-1F"
   ],
   "STAIRSEND-GF": [
@@ -8822,8 +11533,8 @@ export const GRAPH = {
   ],
   "HALLWAY-TURNPOINT-1-GF": [
     "HALLWAY-TURNPOINT-2-GF",
+    "HALLWAY-TURNPOINT-4-GF",
     "MAINENTRANCE-GF",
-    "OFFICE-GF",
     "ADMIN-GF",
     "TUTORIAL-GF",
     "CONFERENCEROOM1-GF",
@@ -8836,7 +11547,6 @@ export const GRAPH = {
     "HALLWAY-TURNPOINT-3-GF",
     "HALLWAY-TURNPOINT-1-GF",
     "MAINENTRANCE-GF",
-    "OFFICE-GF",
     "ADMIN-GF",
     "TUTORIAL-GF",
     "CONFERENCEROOM1-GF",
@@ -8854,9 +11564,13 @@ export const GRAPH = {
     "LIBRARY-GF",
     "PRINCIPALROOM-GF"
   ],
+  "HALLWAY-TURNPOINT-4-GF": [
+    "HALLWAY-TURNPOINT-1-GF",
+    "OFFICE-GF",
+    "CURVEDSTAIRS-GF"
+  ],
   "MEDIAUNIT-1F": [
-    "HALLWAY-TURNPOINT-1-1F",
-    "HALLWAY-TURNPOINT-2-1F"
+    "HALLWAY-TURNPOINT-4-1F"
   ],
   "BALCONY-1F": [
     "LIFT-1F",
@@ -8907,6 +11621,7 @@ export const GRAPH = {
   ],
   "CURVEDSTAIRS-1F": [
     "HALLWAY-TURNPOINT-1-1F",
+    "HALLWAY-TURNPOINT-4-1F",
     "CURVEDSTAIRS-GF",
     "CURVEDSTAIRS-2F"
   ],
@@ -8917,7 +11632,7 @@ export const GRAPH = {
   ],
   "HALLWAY-TURNPOINT-1-1F": [
     "HALLWAY-TURNPOINT-2-1F",
-    "MEDIAUNIT-1F",
+    "HALLWAY-TURNPOINT-4-1F",
     "ROOM1-1F",
     "SEMINARHALL-1F",
     "DESIGNLAB-1F",
@@ -8930,7 +11645,6 @@ export const GRAPH = {
     "HALLWAY-TURNPOINT-3-1F",
     "HALLWAY-TURNPOINT-1-1F",
     "PASSAGEWAY-1F",
-    "MEDIAUNIT-1F",
     "ROOM1-1F",
     "SEMINARHALL-1F",
     "DESIGNLAB-1F",
@@ -8947,6 +11661,11 @@ export const GRAPH = {
     "BOARDROOM-1F",
     "ROOM2-1F"
   ],
+  "HALLWAY-TURNPOINT-4-1F": [
+    "HALLWAY-TURNPOINT-1-1F",
+    "MEDIAUNIT-1F",
+    "CURVEDSTAIRS-1F"
+  ],
   "PASSAGEWAY-1F": [
     "HALLWAY-TURNPOINT-2-1F",
     "PASSAGEWAY-1F-TOP"
@@ -8957,8 +11676,7 @@ export const GRAPH = {
     "ROOM3-1F"
   ],
   "ALUMNIRELATIONSOFFICE-2F": [
-    "HALLWAY-TURNPOINT-1-2F",
-    "HALLWAY-TURNPOINT-3-2F"
+    "HALLWAY-TURNPOINT-4-2F"
   ],
   "STUDENTCOUNCILROOM-2F": [
     "HALLWAY-TURNPOINT-1-2F",
@@ -9002,6 +11720,7 @@ export const GRAPH = {
   ],
   "CURVEDSTAIRS-2F": [
     "HALLWAY-TURNPOINT-1-2F",
+    "HALLWAY-TURNPOINT-4-2F",
     "CURVEDSTAIRS-1F",
     "CURVEDSTAIRS-3F"
   ],
@@ -9012,7 +11731,7 @@ export const GRAPH = {
   ],
   "HALLWAY-TURNPOINT-1-2F": [
     "HALLWAY-TURNPOINT-3-2F",
-    "ALUMNIRELATIONSOFFICE-2F",
+    "HALLWAY-TURNPOINT-4-2F",
     "STUDENTCOUNCILROOM-2F",
     "CORPORATERELATIONSDEPT-2F",
     "CASESTUDYLAB1-2F",
@@ -9032,7 +11751,6 @@ export const GRAPH = {
   "HALLWAY-TURNPOINT-3-2F": [
     "HALLWAY-TURNPOINT-2-2F",
     "HALLWAY-TURNPOINT-1-2F",
-    "ALUMNIRELATIONSOFFICE-2F",
     "STUDENTCOUNCILROOM-2F",
     "CORPORATERELATIONSDEPT-2F",
     "CASESTUDYLAB1-2F",
@@ -9041,6 +11759,11 @@ export const GRAPH = {
     "FACULTYLOUNGE-2F",
     "ENTREPRENEURSHIPCELL-2F",
     "PLACEMENTCELL-2F"
+  ],
+  "HALLWAY-TURNPOINT-4-2F": [
+    "HALLWAY-TURNPOINT-1-2F",
+    "ALUMNIRELATIONSOFFICE-2F",
+    "CURVEDSTAIRS-2F"
   ],
   "ROOM1-3F": [
     "HALLWAY-TURNPOINT-3-3F",
@@ -9055,8 +11778,7 @@ export const GRAPH = {
     "HALLWAY-TURNPOINT-1-3F"
   ],
   "ROOM4-3F": [
-    "HALLWAY-TURNPOINT-1-3F",
-    "HALLWAY-TURNPOINT-3-3F"
+    "HALLWAY-TURNPOINT-4-3F"
   ],
   "RESTROOMS-3F": [
     "HALLWAY-TURNPOINT-2-3F"
@@ -9067,6 +11789,7 @@ export const GRAPH = {
   ],
   "CURVEDSTAIRS-3F": [
     "HALLWAY-TURNPOINT-1-3F",
+    "HALLWAY-TURNPOINT-4-3F",
     "CURVEDSTAIRS-2F"
   ],
   "STAIRSEND-3F": [
@@ -9075,9 +11798,9 @@ export const GRAPH = {
   ],
   "HALLWAY-TURNPOINT-1-3F": [
     "HALLWAY-TURNPOINT-3-3F",
+    "HALLWAY-TURNPOINT-4-3F",
     "ROOM2-3F",
     "ROOM3-3F",
-    "ROOM4-3F",
     "LIFT-3F",
     "CURVEDSTAIRS-3F"
   ],
@@ -9092,13 +11815,18 @@ export const GRAPH = {
     "HALLWAY-TURNPOINT-1-3F",
     "ROOM1-3F",
     "ROOM2-3F",
-    "ROOM3-3F",
-    "ROOM4-3F"
+    "ROOM3-3F"
+  ],
+  "HALLWAY-TURNPOINT-4-3F": [
+    "HALLWAY-TURNPOINT-1-3F",
+    "ROOM4-3F",
+    "CURVEDSTAIRS-3F"
   ]
 };
+```
 
 File: frontend/static/js/metrics.js
-Code snippet
+```javascript
 /**
  * metrics.js — Session analytics. Fire-and-forget POSTs.
  * Uses IndexedDB to queue data when offline; Background Sync flushes it.
@@ -9196,143 +11924,216 @@ function computePathDistance(path) {
   }
   return Math.round(total);
 }
+```
 
 File: frontend/static/js/pdr.js
-Code snippet
-/**
- * PDREngine — Pedestrian Dead Reckoning
- *
- * How it will work (next sprint):
- *   DeviceOrientationEvent → heading (magnetic north)
- *   DeviceMotionEvent      → accelerometer → step detection → stepLength estimate
- *   Each step: new position = old position + stepLength * [sin(heading), -cos(heading)]
- *   Coordinates: % space (0-100) matching the NODES coordinate system
- *   1 coordinate unit = COORD_TO_METERS (0.5m)
- *
- * This sprint: class skeleton + integration hooks only.
- */
+```javascript
+const COORD_TO_METERS = 0.51;
+const DEFAULT_STEP_LENGTH_M = 0.74;
+const MIN_STEP_INTERVAL_MS = 380;
+const STEP_ACCEL_THRESHOLD = 1.18;
+const HEADING_SMOOTHING = 0.22;
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function normalizeHeading(value) {
+  const normalized = value % 360;
+  return normalized < 0 ? normalized + 360 : normalized;
+}
+
+function shortestHeadingDelta(from, to) {
+  return ((to - from + 540) % 360) - 180;
+}
+
+function extractHeading(event) {
+  if (typeof event.webkitCompassHeading === 'number' && Number.isFinite(event.webkitCompassHeading)) {
+    return normalizeHeading(event.webkitCompassHeading);
+  }
+  if (typeof event.alpha === 'number' && Number.isFinite(event.alpha)) {
+    return normalizeHeading(360 - event.alpha);
+  }
+  return null;
+}
+
+async function requestSensorPermission(sensorEvent) {
+  if (typeof sensorEvent?.requestPermission !== 'function') {
+    return { granted: true, required: false };
+  }
+  try {
+    const result = await sensorEvent.requestPermission();
+    return { granted: result === 'granted', required: true };
+  } catch (error) {
+    return { granted: false, required: true, error };
+  }
+}
+
+export function getPDRSupportState() {
+  const hasWindow = typeof window !== 'undefined';
+  const motionEvent = hasWindow ? window.DeviceMotionEvent : undefined;
+  const orientationEvent = hasWindow ? window.DeviceOrientationEvent : undefined;
+
+  return {
+    motionSupported: typeof motionEvent !== 'undefined',
+    orientationSupported: typeof orientationEvent !== 'undefined',
+    permissionRequired:
+      typeof motionEvent?.requestPermission === 'function' ||
+      typeof orientationEvent?.requestPermission === 'function',
+  };
+}
 
 export class PDREngine {
-  // ─── Constructor ───────────────────────────────────────────────
-  constructor({ startNode, nodes, graph, onPositionUpdate, 
-                onFloorChange, sessionId }) {
-    /**
-     * @param startNode       string — node ID of confirmed start position
-     * @param nodes           object — NODES from graph-data.js
-     * @param graph           object — GRAPH adjacency list
-     * @param onPositionUpdate fn({ x, y, floor, nearestNode, distanceM, confidence })
-     * @param onFloorChange   fn({ fromFloor, toFloor, transitionNode })
-     * @param sessionId       string — for /session/pdr POST
-     */
+  constructor({ startNode, nodes, graph, onPositionUpdate, onFloorChange, sessionId }) {
     this._nodes = nodes;
     this._graph = graph;
     this._onUpdate = onPositionUpdate;
     this._onFloorChange = onFloorChange;
     this._sessionId = sessionId;
     this._lastPostTime = 0;
+    this._lastHeadingReportTime = 0;
 
     const startData = nodes[startNode];
     this.position = { x: startData.coords[0], y: startData.coords[1] };
     this.floor = startData.floor;
-    this.heading = 0;         // degrees clockwise from north
-    this.stepLengthM = 0.75;  // default 75cm per step
-    this.confidence = 1.0;    // 1.0 = certain (just confirmed checkpoint)
+    this.heading = 0;
+    this.stepLengthM = DEFAULT_STEP_LENGTH_M;
+    this.confidence = 1.0;
     this.stepCount = 0;
     this.active = false;
 
-    // Sensor listener references (stored so stop() can removeEventListener)
-    this._motionHandler    = this._onMotionEvent.bind(this);
-    this._orientHandler    = this._onOrientEvent.bind(this);
+    this._gravity = { x: 0, y: 0, z: 0 };
+    this._smoothedMagnitude = 0;
+    this._previousMagnitude = 0;
+    this._lastStepTime = 0;
+    this._headingInitialized = false;
+
+    this._motionHandler = this._onMotionEvent.bind(this);
+    this._orientHandler = this._onOrientEvent.bind(this);
   }
 
-  // ─── Lifecycle ─────────────────────────────────────────────────
   async start() {
-    if (this.active) return;
+    if (this.active) return { started: true, reason: 'already_active' };
 
-    // iOS 13+ requires explicit permission for motion/orientation
-    if (typeof DeviceMotionEvent?.requestPermission === 'function') {
-      const perm = await DeviceMotionEvent.requestPermission();
-      if (perm !== 'granted') {
-        console.warn('[PDR] Motion permission denied — PDR inactive');
-        return;
-      }
+    const support = getPDRSupportState();
+    if (!support.motionSupported || !support.orientationSupported) {
+      return { started: false, reason: 'unsupported', support };
     }
 
-    // TODO Sprint PDR-1: wire DeviceMotionEvent for step detection
-    // window.addEventListener('devicemotion', this._motionHandler);
+    const motionPerm = await requestSensorPermission(window.DeviceMotionEvent);
+    if (!motionPerm.granted) {
+      return { started: false, reason: 'motion_permission_denied', support, error: motionPerm.error };
+    }
 
-    // TODO Sprint PDR-1: wire DeviceOrientationEvent for heading
-    // window.addEventListener('deviceorientation', this._orientHandler);
+    const orientationPerm = await requestSensorPermission(window.DeviceOrientationEvent);
+    if (!orientationPerm.granted) {
+      return { started: false, reason: 'orientation_permission_denied', support, error: orientationPerm.error };
+    }
+
+    window.addEventListener('devicemotion', this._motionHandler, { passive: true });
+    window.addEventListener('deviceorientation', this._orientHandler, { passive: true });
 
     this.active = true;
-    console.log('[PDR] Engine started — sensors stubbed, awaiting Sprint PDR-1');
-    this._report(); // Report initial known position immediately
+    this._report();
+    return { started: true, support };
   }
 
   stop() {
     window.removeEventListener('devicemotion', this._motionHandler);
     window.removeEventListener('deviceorientation', this._orientHandler);
     this.active = false;
-    console.log('[PDR] Engine stopped');
   }
 
-  // ─── Checkpoint reset (called by onCheckpointReached in app.js) ─
   resetToCheckpoint(nodeId) {
     const node = this._nodes[nodeId];
-    if (!node) { console.warn(`[PDR] Unknown checkpoint node: ${nodeId}`); return; }
-    const prevFloor = this.floor;
-    this.position   = { x: node.coords[0], y: node.coords[1] };
-    this.floor      = node.floor;
-    this.confidence = 1.0;  // full reset — we know exactly where we are
-    this.stepCount  = 0;
-    if (prevFloor !== this.floor && this._onFloorChange) {
-      this._onFloorChange({ fromFloor: prevFloor, toFloor: this.floor, transitionNode: nodeId });
+    if (!node) return;
+    const previousFloor = this.floor;
+    this.position = { x: node.coords[0], y: node.coords[1] };
+    this.floor = node.floor;
+    this.confidence = 1.0;
+    if (previousFloor !== this.floor && this._onFloorChange) {
+      this._onFloorChange({ fromFloor: previousFloor, toFloor: this.floor, transitionNode: nodeId });
     }
-    console.log(`[PDR] Position snapped to ${nodeId} — confidence reset to 1.0`);
     this._report();
   }
 
-  // ─── Internal: sensor handlers (stubs) ─────────────────────────
   _onMotionEvent(event) {
-    // TODO Sprint PDR-1: 
-    //   1. Extract event.accelerationIncludingGravity.{x,y,z}
-    //   2. Detect step peaks via threshold on vertical acceleration
-    //   3. Estimate step length via Weinberg formula or fixed average
-    //   4. Call this._step(estimatedStepLengthM)
+    const source = event.accelerationIncludingGravity || event.acceleration;
+    if (!source) return;
+
+    const x = Number.isFinite(source.x) ? source.x : 0;
+    const y = Number.isFinite(source.y) ? source.y : 0;
+    const z = Number.isFinite(source.z) ? source.z : 0;
+
+    this._gravity.x = (this._gravity.x * 0.82) + (x * 0.18);
+    this._gravity.y = (this._gravity.y * 0.82) + (y * 0.18);
+    this._gravity.z = (this._gravity.z * 0.82) + (z * 0.18);
+
+    const linearX = x - this._gravity.x;
+    const linearY = y - this._gravity.y;
+    const linearZ = z - this._gravity.z;
+    const magnitude = Math.sqrt((linearX ** 2) + (linearY ** 2) + (linearZ ** 2));
+    this._smoothedMagnitude = (this._smoothedMagnitude * 0.68) + (magnitude * 0.32);
+
+    const now = Date.now();
+    const crossedThreshold =
+      this._smoothedMagnitude >= STEP_ACCEL_THRESHOLD &&
+      this._previousMagnitude < STEP_ACCEL_THRESHOLD;
+
+    if (crossedThreshold && (now - this._lastStepTime) >= MIN_STEP_INTERVAL_MS) {
+      const intensityBoost = clamp((this._smoothedMagnitude - STEP_ACCEL_THRESHOLD) * 0.08, 0, 0.18);
+      this._lastStepTime = now;
+      this._step(clamp(this.stepLengthM + intensityBoost, 0.55, 0.9));
+    }
+
+    this._previousMagnitude = this._smoothedMagnitude;
   }
 
   _onOrientEvent(event) {
-    // TODO Sprint PDR-1:
-    //   1. event.webkitCompassHeading (iOS) or 360 - event.alpha (Android)
-    //   2. Apply low-pass filter to smooth jitter
-    //   3. this.heading = filteredHeading
+    const rawHeading = extractHeading(event);
+    if (rawHeading === null) return;
+
+    if (!this._headingInitialized) {
+      this.heading = rawHeading;
+      this._headingInitialized = true;
+      this._report();
+      return;
+    }
+
+    const delta = shortestHeadingDelta(this.heading, rawHeading);
+    this.heading = normalizeHeading(this.heading + (delta * HEADING_SMOOTHING));
+
+    const now = Date.now();
+    if (Math.abs(delta) >= 1.5 || (now - this._lastHeadingReportTime) > 160) {
+      this._lastHeadingReportTime = now;
+      this._report();
+    }
   }
 
-  // ─── Internal: position update ─────────────────────────────────
   _step(stepLengthM = this.stepLengthM) {
-    const rad = (this.heading * Math.PI) / 180;
-    // 1 metre = 1/0.5 = 2 coordinate units (COORD_TO_METERS = 0.5)
-    const delta = stepLengthM / 0.5;
-    this.position.x +=  delta * Math.sin(rad);
-    this.position.y += -delta * Math.cos(rad); // y increases downward in image space
-    this.stepCount++;
-    // Confidence decays with each unconfirmed step
-    this.confidence = Math.max(0.05, this.confidence * 0.99);
+    const radians = (this.heading * Math.PI) / 180;
+    const delta = stepLengthM / COORD_TO_METERS;
+    this.position.x = clamp(this.position.x + (delta * Math.sin(radians)), 0, 100);
+    this.position.y = clamp(this.position.y - (delta * Math.cos(radians)), 0, 100);
+    this.stepCount += 1;
+    this.confidence = Math.max(0.08, this.confidence * 0.988);
     this._report();
   }
 
   _report() {
     const nearest = this._nearestNode();
     const update = {
-      x:           this.position.x,
-      y:           this.position.y,
-      floor:       this.floor,
+      x: this.position.x,
+      y: this.position.y,
+      floor: this.floor,
       nearestNode: nearest.id,
-      distanceM:   nearest.distM,
-      confidence:  this.confidence,
+      distanceM: nearest.distM,
+      confidence: this.confidence,
+      heading: this.heading,
+      stepCount: this.stepCount,
+      active: this.active,
     };
     if (this._onUpdate) this._onUpdate(update);
-    // Background-report to backend (fire and forget)
     this._postObservation(update);
   }
 
@@ -9340,76 +12141,44 @@ export class PDREngine {
     let best = { id: null, distM: Infinity };
     for (const [id, data] of Object.entries(this._nodes)) {
       if (data.floor !== this.floor) continue;
-      const dx = (data.coords[0] - this.position.x) * 0.5;
-      const dy = (data.coords[1] - this.position.y) * 0.5;
-      const d  = Math.sqrt(dx*dx + dy*dy);
-      if (d < best.distM) best = { id, distM: d };
+      const dx = (data.coords[0] - this.position.x) * COORD_TO_METERS;
+      const dy = (data.coords[1] - this.position.y) * COORD_TO_METERS;
+      const distance = Math.sqrt((dx ** 2) + (dy ** 2));
+      if (distance < best.distM) best = { id, distM: distance };
     }
     return best;
   }
 
   async _postObservation(update) {
+    if (!this._sessionId) return;
     const now = Date.now();
-    if (now - this._lastPostTime < 2000) return;
+    if ((now - this._lastPostTime) < 2000) return;
     this._lastPostTime = now;
-    // Don't await — fire and forget
+
     try {
       fetch('/session/pdr', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          session_id:            this._sessionId,
-          timestamp:             new Date().toISOString(),
-          estimated_x:           update.x,
-          estimated_y:           update.y,
-          floor:                 update.floor,
-          nearest_node:          update.nearestNode,
+          session_id: this._sessionId,
+          timestamp: new Date().toISOString(),
+          estimated_x: update.x,
+          estimated_y: update.y,
+          floor: update.floor,
+          nearest_node: update.nearestNode,
           distance_to_nearest_m: update.distanceM,
-          confidence:            update.confidence,
+          confidence: update.confidence,
         }),
       });
-    } catch { /* offline — PDR observations are not queued, they are lossy */ }
+    } catch {
+      // Best-effort telemetry only.
+    }
   }
 }
-
-// ─── PDR UI overlay (confidence indicator) ────────────────────────────────
-// Called from app.js when PDR is active
-export function renderPDRConfidence(confidence) {
-  let bar = document.getElementById('pdr-confidence-bar');
-  if (!bar) return; // element added to index.html by Person C
-  bar.style.width = `${Math.round(confidence * 100)}%`;
-  bar.style.background = confidence > 0.7 ? '#10b981'
-                       : confidence > 0.4 ? '#f59e0b'
-                       : '#ef4444';
-  const label = document.getElementById('pdr-confidence-label');
-  if (label) label.textContent = `PDR: ${Math.round(confidence * 100)}%`;
-}
-
-// ─── Integration point for app.js ─────────────────────────────────────────
-// In app.js, after planRoute() returns a path:
-//
-//   import { PDREngine, renderPDRConfidence } from './pdr.js';
-//
-//   window._pdrEngine = new PDREngine({
-//     startNode: formStartNode,
-//     nodes: NODES,
-//     graph: GRAPH,
-//     sessionId,
-//     onPositionUpdate: (update) => {
-//       renderPDRConfidence(update.confidence);
-//       // TODO Sprint PDR-2: draw live position dot on map SVG
-//     },
-//     onFloorChange: ({ toFloor }) => switchFloor(toFloor),
-//   });
-//   await window._pdrEngine.start();
-//
-// In onCheckpointReached() in app.js, add:
-//   if (window._pdrEngine) {
-//     window._pdrEngine.resetToCheckpoint(currentCheckpointNodeId);
-//   }
+```
 
 File: frontend/static/js/routing.js
-Code snippet
+```javascript
 /**
  * routing.js — Pure ES module, zero DOM, zero fetch, no side effects.
  * Owned by: Person B (Algorithm)
@@ -9419,8 +12188,8 @@ Code snippet
 // ---------------------------------------------------------------------------
 // Cost constants — mirror Python values exactly
 // ---------------------------------------------------------------------------
-const STAIRS_L_COST = 180;  // straight stairs per floor
-const STAIRS_R_COST = 150;  // curved stairs per floor
+const STAIRS_L_COST = 85;   // straight stairs per floor (7.67 units @ 0.51 m/unit + effort)
+const STAIRS_R_COST = 75;   // curved stairs per floor
 const LIFT_COST = 120;  // lift per floor
 
 // ---------------------------------------------------------------------------
@@ -9698,6 +12467,7 @@ export function buildDirections(path, nodes) {
   const nodeLabel = (id) => nodes[id]?.label || id;
   const isWaypoint = (id) => nodes[id]?.is_waypoint || id.includes('HALLWAY') || id.includes('PASSAGEWAY');
   const isTransit = (id) => nodes[id]?.type === 'stairs' || nodes[id]?.type === 'lift';
+  const lastSegment = Math.max(...path.map(node => node.segment ?? 0));
 
   function heading(a, b) {
     return (Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI + 360) % 360;
@@ -9720,6 +12490,29 @@ export function buildDirections(path, nodes) {
 
   let i = 1;
   let prevHeading = null;
+  let arrivedAtDestination = false;
+
+  function pushBoundaryArrival(node) {
+    if (!node || (node.segment ?? 0) === 0) return false;
+    const isFinalStop = (node.segment ?? 0) >= lastSegment;
+    const floorLabel = FLOOR_NAMES[node.floor];
+    if (isFinalStop) {
+      directions.push({
+        text: `[ARRIVED] You have arrived at your destination: ${nodeLabel(node.id)} on the ${floorLabel}.`,
+        floor: node.floor,
+        type: 'arrived'
+      });
+      arrivedAtDestination = true;
+    } else {
+      directions.push({
+        text: `[STOP] You have reached stop ${node.segment}: ${nodeLabel(node.id)} on the ${floorLabel}.`,
+        floor: node.floor,
+        type: 'stop'
+      });
+    }
+    prevHeading = null;
+    return true;
+  }
 
   while (i < path.length) {
     const prev = path[i - 1];
@@ -9773,6 +12566,9 @@ export function buildDirections(path, nodes) {
         : `${turnText}Walk ${distStr} along the corridor${floorCtx}.`;
       directions.push({ text: `[WALK] ${instruction}`, floor: prev.floor, type: 'walk' });
       prevHeading = corridorH;
+      if (nodeAtEnd && !isTransit(nodeAtEnd.id)) {
+        pushBoundaryArrival(nodeAtEnd);
+      }
       i = endLabel ? j + 1 : j;
       continue;
     }
@@ -9789,23 +12585,27 @@ export function buildDirections(path, nodes) {
       else instruction = `Go straight ahead to ${nodeLabel(curr.id)}${distLabel}.`;
       directions.push({ text: `[GO] ${instruction}`, floor: curr.floor, type: 'go' });
       prevHeading = h;
+      pushBoundaryArrival(curr);
       i++;
       continue;
     }
     i++;
   }
 
-  directions.push({
-    text: `[ARRIVED] You have arrived at your destination: ${nodeLabel(path[path.length - 1].id)} on the ${FLOOR_NAMES[path[path.length - 1].floor]}.`,
-    floor: path[path.length - 1].floor,
-    type: 'arrived'
-  });
+  if (!arrivedAtDestination) {
+    directions.push({
+      text: `[ARRIVED] You have arrived at your destination: ${nodeLabel(path[path.length - 1].id)} on the ${FLOOR_NAMES[path[path.length - 1].floor]}.`,
+      floor: path[path.length - 1].floor,
+      type: 'arrived'
+    });
+  }
 
   return directions;
 }
+```
 
 File: frontend/templates/admin.html
-Code snippet
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9852,9 +12652,9 @@ Code snippet
         }
 
         .page {
-            max-width: 1200px;
+            width: min(1600px, calc(100vw - 48px));
             margin: 0 auto;
-            padding: 32px 20px 56px;
+            padding: 32px 0 56px;
         }
 
         .hero {
@@ -9928,7 +12728,7 @@ Code snippet
 
         .secondary-grid {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-columns: 1fr;
             gap: 20px;
             align-items: start;
         }
@@ -9944,6 +12744,16 @@ Code snippet
 
         .table-wrap {
             overflow-x: auto;
+        }
+
+        .panel-footer {
+            margin-top: 14px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .panel-expand-toggle[hidden] {
+            display: none;
         }
 
         table {
@@ -10073,6 +12883,12 @@ Code snippet
 
         .compact {
             font-size: 14px;
+        }
+
+        @media (max-width: 1280px) {
+            .secondary-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         @media (max-width: 900px) {
@@ -10207,7 +13023,7 @@ Code snippet
                                 <th>Comment</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="recent-feedback-tbody">
                             {% if recent_feedback %}
                                 {% for item in recent_feedback %}
                                 <tr>
@@ -10223,6 +13039,9 @@ Code snippet
                         </tbody>
                     </table>
                 </div>
+                <div class="panel-footer">
+                    <button type="button" class="secondary panel-expand-toggle" data-target="recent-feedback-tbody" hidden>Expand</button>
+                </div>
             </section>
 
             <section class="panel">
@@ -10237,7 +13056,7 @@ Code snippet
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="faq-entries-tbody">
                             {% if all_faqs %}
                                 {% for faq in all_faqs %}
                                 <tr>
@@ -10267,6 +13086,9 @@ Code snippet
                         </tbody>
                     </table>
                 </div>
+                <div class="panel-footer">
+                    <button type="button" class="secondary panel-expand-toggle" data-target="faq-entries-tbody" hidden>Expand</button>
+                </div>
             </section>
 
             <section class="panel">
@@ -10279,7 +13101,7 @@ Code snippet
                                 <th>Multiplier</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="adaptive-weights-tbody">
                             {% if modified_weights %}
                                 {% for weight in modified_weights %}
                                 <tr>
@@ -10292,6 +13114,9 @@ Code snippet
                             {% endif %}
                         </tbody>
                     </table>
+                </div>
+                <div class="panel-footer">
+                    <button type="button" class="secondary panel-expand-toggle" data-target="adaptive-weights-tbody" hidden>Expand</button>
                 </div>
             </section>
         </section>
@@ -10329,6 +13154,35 @@ Code snippet
         
         fetchMetrics();
         setInterval(fetchMetrics, 30000);
+
+        function setupExpandableTable(tbodyId) {
+            const tbody = document.getElementById(tbodyId);
+            const toggle = document.querySelector(`.panel-expand-toggle[data-target="${tbodyId}"]`);
+            if (!tbody || !toggle) return;
+
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            if (rows.length <= 5) {
+                toggle.hidden = true;
+                return;
+            }
+
+            let expanded = false;
+            const syncRows = () => {
+                rows.forEach((row, index) => {
+                    row.hidden = !expanded && index >= 5;
+                });
+                toggle.hidden = false;
+                toggle.textContent = expanded ? 'Collapse' : 'Expand';
+                toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+            };
+
+            toggle.addEventListener('click', () => {
+                expanded = !expanded;
+                syncRows();
+            });
+
+            syncRows();
+        }
 
         async function adminPost(url, body) {
             const response = await fetch(url, {
@@ -10402,13 +13256,18 @@ Code snippet
                 setStatus(error.message, true);
             }
         }
+
+        setupExpandableTable('recent-feedback-tbody');
+        setupExpandableTable('faq-entries-tbody');
+        setupExpandableTable('adaptive-weights-tbody');
     </script>
 </body>
 </html>
+```
 
 File: frontend/templates/index.html
-Code snippet
-﻿<!DOCTYPE html>
+```html
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -10427,19 +13286,18 @@ Code snippet
     <meta name="theme-color" content="#4f46e5">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <link rel="stylesheet" href="/static/css/style.css?v=9">
+    <link rel="stylesheet" href="/static/css/style.css?v=18">
 </head>
 
 <body id="app-body">
-
     <main class="app-container">
-        <!-- Mobile-only top bar: shown when a route is active -->
         <div id="mobile-top-bar" class="mobile-top-bar" style="display:none;">
-            <button class="mobile-new-route-btn" onclick="openRouteForm()" aria-label="New route">
-                <span class="mobile-back-arrow">&#8592;</span> New Route
+            <button class="mobile-new-route-btn" onclick="exitNavigationToForm()" aria-label="Start a new route">
+                <span class="mobile-back-arrow">&#8592;</span><span>New Route</span>
             </button>
             <div id="mobile-route-label" class="mobile-route-label"></div>
-            <button type="button" id="alt-route-btn-mobile-top" class="alt-route-btn-mobile" title="Alternate route" onclick="requestAlternateRoute()" style="display:none;">ALT</button>
+            <button type="button" id="alt-route-btn-mobile-top" class="alt-route-btn-mobile" title="Alternate route"
+                onclick="requestAlternateRoute()" style="display:none;">ALT ROUTE</button>
         </div>
 
         <div id="route-form-sheet" class="route-form-sheet">
@@ -10448,21 +13306,27 @@ Code snippet
                     <div class="header-top-row">
                         <div class="status-badge"><span class="status-dot"></span> 4-FLOOR SYSTEM READY</div>
                         <button id="dark-mode-btn" class="dark-mode-btn" onclick="toggleDarkMode()"
-                            aria-label="Toggle dark mode" title="Toggle dark mode">
-                            <svg id="dark-icon" width="16" height="16" viewBox="0 0 20 20" fill="none">
-                                <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"
-                                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-                            </svg>
-                            <svg id="light-icon" width="16" height="16" viewBox="0 0 20 20" fill="none"
-                                style="display:none">
-                                <circle cx="10" cy="10" r="4" stroke="currentColor" stroke-width="1.5" />
-                                <path
-                                    d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42"
-                                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-                            </svg>
+                            aria-label="Toggle dark mode" title="Toggle dark mode" aria-pressed="false">
+                            <span class="dark-mode-track" aria-hidden="true">
+                                <span class="dark-mode-icon dark-mode-icon-light">
+                                    <svg id="light-icon" width="16" height="16" viewBox="0 0 20 20" fill="none">
+                                        <circle cx="10" cy="10" r="4" stroke="currentColor" stroke-width="1.5" />
+                                        <path
+                                            d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42"
+                                            stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                                    </svg>
+                                </span>
+                                <span class="dark-mode-icon dark-mode-icon-dark">
+                                    <svg id="dark-icon" width="16" height="16" viewBox="0 0 20 20" fill="none">
+                                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"
+                                            stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                                    </svg>
+                                </span>
+                                <span class="dark-mode-thumb"></span>
+                            </span>
                         </button>
-                        <button id="tour-btn" class="dark-mode-btn" onclick="startTour()" aria-label="Help tour"
-                            title="Start guided tour" style="margin-left:4px;font-size:14px;">?</button>
+                        <button id="tour-btn" class="icon-tool-btn" onclick="startTour()" aria-label="Help tour"
+                            title="Start guided tour">?</button>
                     </div>
                     <div class="title-wrapper">
                         <h1>WAYFINDER</h1>
@@ -10495,7 +13359,19 @@ Code snippet
 
                     <div id="stops-container"></div>
 
-                    <button type="button" class="add-stop-btn" onclick="addStopField()">+ ADD STOP</button>
+                    <div class="stop-actions-row">
+                        <button type="button" class="add-stop-btn" onclick="addStopField()">+ ADD STOP</button>
+                        <button type="button" class="swap-route-btn" onclick="swapRouteEndpoints()"
+                            aria-label="Swap current location and destination" title="Swap current location and destination">
+                            <span class="swap-route-btn-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none">
+                                    <path d="M8 5h8m0 0-2.5-2.5M16 5l-2.5 2.5M16 19H8m0 0 2.5-2.5M8 19l2.5 2.5"
+                                        stroke="currentColor" stroke-width="1.9" stroke-linecap="round"
+                                        stroke-linejoin="round" />
+                                </svg>
+                            </span>
+                        </button>
+                    </div>
 
                     <div class="form-group" style="margin-top: 15px;"
                         data-intro="Choose your final destination from the list. You can search by room name or number."
@@ -10509,9 +13385,24 @@ Code snippet
                     <div class="form-group">
                         <label class="field-label">MOBILITY MODE</label>
                         <div class="radio-group">
-                            <label><input type="radio" name="mobility" value="none" checked> No Preference</label>
-                            <label><input type="radio" name="mobility" value="elevator_only"> Elevator Only</label>
-                            <label><input type="radio" name="mobility" value="stairs_only"> Stairs Only</label>
+                            <label>
+                                <input type="radio" name="mobility" value="none" checked>
+                                <span class="mobility-option-text">No Preference</span>
+                            </label>
+                            <label>
+                                <input type="radio" name="mobility" value="elevator_only">
+                                <span class="mobility-option-text">Elevator Only</span>
+                                <span class="mobility-option-asset" aria-hidden="true">
+                                    <img src="/static/icons/elevator.svg" alt="">
+                                </span>
+                            </label>
+                            <label>
+                                <input type="radio" name="mobility" value="stairs_only">
+                                <span class="mobility-option-text">Stairs Only</span>
+                                <span class="mobility-option-asset" aria-hidden="true">
+                                    <img src="/static/icons/stairs.png" alt="">
+                                </span>
+                            </label>
                         </div>
                     </div>
 
@@ -10522,7 +13413,6 @@ Code snippet
                     </div>
                 </form>
 
-
                 <template id="stop-template">
                     <div class="form-group stop-group">
                         <label class="field-label">VIA (STOP)</label>
@@ -10530,16 +13420,34 @@ Code snippet
                             <div style="flex: 1; min-width: 0;">
                                 <select name="stops[]" class="stop-select" required></select>
                             </div>
-                            <button type="button" class="remove-stop"
-                                onclick="removeStopField(this)">Remove</button>
+                            <button type="button" class="remove-stop" onclick="removeStopField(this)"
+                                aria-label="Remove stop" title="Remove stop">
+                                <svg viewBox="0 0 20 20" aria-hidden="true">
+                                    <path d="M5 5l10 10M15 5L5 15" />
+                                </svg>
+                            </button>
                         </div>
                     </div>
                 </template>
+
                 <div id="route-info-panel" style="display:none;">
-                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                    <div class="route-action-row">
                         <button class="new-route-btn" onclick="resetToForm()">&#8592; New Route</button>
-                        <button type="button" id="alt-route-btn-desktop" class="start-btn alt-route-btn" title="Show an alternate route" onclick="requestAlternateRoute()" style="display:none;">ALT ROUTE</button>
+                        <button type="button" id="alt-route-btn-desktop" class="start-btn alt-route-btn"
+                            title="Show an alternate route" onclick="requestAlternateRoute()"
+                            style="display:none;">ALT ROUTE</button>
                     </div>
+                    <section id="destination-preview" class="destination-preview" style="display:none;">
+                        <div class="destination-preview-head">
+                            <div>
+                                <div class="destination-preview-eyebrow">Destination Preview</div>
+                                <h3 id="destination-preview-title">--</h3>
+                            </div>
+                            <div id="destination-preview-floor" class="destination-preview-floor">--</div>
+                        </div>
+                        <p id="destination-preview-meta" class="destination-preview-meta"></p>
+                        <div id="destination-preview-landmarks" class="destination-preview-landmarks"></div>
+                    </section>
                     <div id="metrics-bar" class="metrics-bar" style="display:none;">
                         <div class="metric-item"><span class="metric-label">Distance</span><strong
                                 id="m-distance">--</strong> m</div>
@@ -10550,13 +13458,14 @@ Code snippet
                         <div class="metric-item"><span class="metric-label">Route rating</span><strong
                                 id="m-rating">--</strong></div>
                     </div>
+                    <section id="pdr-status-panel" class="pdr-status-panel" style="display:none;"></section>
                     <details id="directions-panel" open style="display:none;">
                         <summary>Turn-by-Turn Directions</summary>
                         <ol id="directions-list"></ol>
                     </details>
                 </div>
             </section>
-        </div><!-- end route-form-sheet -->
+        </div>
 
         <section class="map-section">
             <div class="map-header">
@@ -10574,6 +13483,13 @@ Code snippet
             </div>
 
             <div class="map-display" id="map-viewport">
+                <div id="transition-banner" class="transition-banner" style="display:none;">
+                    <div class="transition-banner-icon" id="transition-banner-icon">LIFT</div>
+                    <div class="transition-banner-copy">
+                        <div class="transition-banner-title" id="transition-banner-title">Head to the lift</div>
+                        <div class="transition-banner-body" id="transition-banner-body"></div>
+                    </div>
+                </div>
                 <div id="f1-container" class="map-container" style="display:block;">
                     <img src="{{ url_for('static', filename='floor1.png') }}" class="map-image">
                     <svg id="svg-f1" class="map-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
@@ -10592,7 +13508,7 @@ Code snippet
                         onerror="this.style.display='none'">
                     <svg id="svg-f4" class="map-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
                 </div>
-            </div><!-- end map-viewport -->
+            </div>
 
             <button id="checkpoint-btn" class="checkpoint-btn" style="display:none;" onclick="onCheckpointReached()"
                 data-intro="Tap this button every time you physically arrive at a checkpoint or floor transition on your route."
@@ -10600,19 +13516,16 @@ Code snippet
                 Reached Checkpoint
             </button>
 
-            <!-- Mobile: full active navigation screen (shown when route is active) -->
             <div id="mobile-directions-strip" class="mobile-nav-screen" style="display:none;">
-
-                <!-- Top bar: back + title + destination pill -->
                 <div class="nav-topbar">
-                    <button class="nav-back-btn" onclick="openRouteForm()"
-                        aria-label="Back to route form">&#8592;</button>
+                    <button class="nav-back-btn" onclick="exitNavigationToForm()"
+                        aria-label="Exit navigation and start a new route">&#8592;</button>
                     <span class="nav-topbar-title">Wayfinder</span>
                     <div id="nav-dest-pill" class="nav-dest-pill"></div>
-                    <button type="button" id="alt-route-btn-mobile" class="alt-route-btn-mobile" title="Alternate route" onclick="requestAlternateRoute()" style="display:none;">ALT</button>
+                    <button type="button" id="alt-route-btn-mobile" class="alt-route-btn-mobile"
+                        title="Alternate route" onclick="requestAlternateRoute()" style="display:none;">ALT ROUTE</button>
                 </div>
 
-                <!-- Map area with floating pill floor switcher -->
                 <div class="nav-map-area">
                     <div class="nav-map-viewport">
                         <div id="nav-f1" class="nav-floor-img" style="display:block;">
@@ -10641,39 +13554,31 @@ Code snippet
                     </div>
                 </div>
 
-                <!-- Scrollable sheet below map -->
                 <div class="nav-sheet">
-                    <div class="nav-sheet-handle"></div>
-
-                    <!-- Stat blocks: distance + time -->
+                    <div class="nav-sheet-header">
+                        <div class="nav-sheet-handle"></div>
+                    </div>
                     <div id="mobile-metrics-row" class="nav-stat-row"></div>
-
-                    <!-- Icon metric cards: floor changes + rating -->
                     <div id="mobile-metrics-cards" class="nav-metric-cards"></div>
-
-                    <!-- Journey label -->
+                    <section id="mobile-destination-preview" class="destination-preview mobile-destination-preview" style="display:none;"></section>
                     <div class="nav-journey-label">Current Journey</div>
-
-                    <!-- Timeline directions list -->
                     <ol id="mobile-directions-list" class="nav-directions-list"></ol>
                 </div>
 
-                <!-- Bottom tab bar -->
                 <div class="nav-bottom-bar">
                     <button id="mobile-checkpoint-btn" class="nav-fab-btn" style="display:none;"
                         onclick="onCheckpointReached()" aria-label="Reached checkpoint">
-                        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-                            <path d="M11 18V5M6 10l5-5 5 5" stroke="white" stroke-width="2.2" stroke-linecap="round"
-                                stroke-linejoin="round" />
-                        </svg>
+                        <span class="nav-fab-btn-label">NEXT</span>
                     </button>
                 </div>
             </div>
-            <div id="map-legend" class="map-legend" style="display:none;">
-                <span class="legend-item"><span class="legend-dot" style="background:#10b981;"></span> Start</span>
+
+                <div id="map-legend" class="map-legend" style="display:none;">
+                <span class="legend-item"><span class="legend-dot" style="background:var(--accent);"></span> Start</span>
                 <span class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>
                     Destination</span>
                 <span class="legend-item"><span class="legend-dot" style="background:#8b5cf6;"></span> Checkpoint</span>
+                <span class="legend-item"><span class="legend-dot legend-dot-live"></span> Live Position</span>
             </div>
         </section>
     </main>
@@ -10685,9 +13590,13 @@ Code snippet
                 <span data-val="1">&#9733;</span><span data-val="2">&#9733;</span>
                 <span data-val="3">&#9733;</span><span data-val="4">&#9733;</span><span data-val="5">&#9733;</span>
             </div>
+            <div class="feedback-tag-block">
+                <div class="feedback-tag-label">What stood out?</div>
+                <div id="feedback-tags" class="feedback-tags"></div>
+            </div>
             <textarea id="feedback-comment" placeholder="Any issues? (optional)" rows="3"></textarea>
-            <button onclick="submitFeedback()">Submit Feedback</button>
-            <button onclick="closeFeedback()">Skip</button>
+            <button type="button" class="feedback-action-btn" onclick="submitFeedback()">Submit Feedback</button>
+            <button type="button" class="feedback-skip-btn" onclick="closeFeedback()">Skip</button>
         </div>
     </div>
 
@@ -10700,7 +13609,6 @@ Code snippet
         </div>
     </div>
 
-    <!-- Floor confirmation modal — shown at floor transitions -->
     <div id="floor-confirm-modal" class="modal-overlay" style="display:none;">
         <div class="modal-box floor-confirm-box">
             <div id="floor-confirm-icon" class="floor-confirm-icon"></div>
@@ -10715,20 +13623,51 @@ Code snippet
         </div>
     </div>
 
+    <div id="sensor-permission-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-box sensor-modal-box">
+            <div class="sensor-modal-badge">LIVE POINTER</div>
+            <h3 id="sensor-permission-title">Enable motion-based navigation?</h3>
+            <p id="sensor-permission-body" class="sensor-modal-copy">
+                Allow motion and orientation access so Wayfinder can move your on-screen pointer as you walk.
+            </p>
+            <div class="sensor-modal-feature-list">
+                <div class="sensor-modal-feature">Compass heading for pointer direction</div>
+                <div class="sensor-modal-feature">Motion sensing for walking updates</div>
+            </div>
+            <p id="sensor-permission-note" class="sensor-modal-note">
+                This works best on a phone with motion sensors.
+            </p>
+            <button type="button" id="sensor-permission-enable" class="feedback-action-btn" onclick="enableRouteSensors()">
+                Enable Sensors
+            </button>
+            <button type="button" class="feedback-skip-btn" onclick="dismissSensorPermissionModal()">
+                Continue Without Sensors
+            </button>
+        </div>
+    </div>
+
     <div class="mobile-safe-area-bottom"></div>
 
     <div id="pin-popup" class="pin-popup" style="display:none;">
-        <button type="button" id="pin-popup-start" class="pin-popup-btn">Set as Start</button>
-        <button type="button" id="pin-popup-stop" class="pin-popup-btn">Add as Stop</button>
-        <button type="button" id="pin-popup-destination" class="pin-popup-btn">Set as Destination</button>
+        <div class="pin-popup-card">
+            <div class="pin-popup-label" id="pin-popup-label">Location</div>
+            <div class="pin-popup-meta" id="pin-popup-meta">Ground Floor</div>
+            <div class="pin-popup-actions">
+                <button type="button" id="pin-popup-start" class="pin-popup-btn">Set as Start</button>
+                <button type="button" id="pin-popup-stop" class="pin-popup-btn">Add as Stop</button>
+                <button type="button" id="pin-popup-destination" class="pin-popup-btn">Set as Destination</button>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/intro.js@7.2.0/minified/intro.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@panzoom/panzoom@4.5.1/dist/panzoom.min.js"></script>
     <script>
+        window.pathData=[];
+
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/static/service-worker.js?v=9', { type: 'module', updateViaCache: 'none' })
+            navigator.serviceWorker.register('/static/service-worker.js?v=14', { type: 'module', updateViaCache: 'none' })
                 .then(r => console.log('SW registered:', r.scope))
                 .catch(e => console.warn('SW failed:', e));
         }
@@ -10742,7 +13681,7 @@ Code snippet
                         { element: document.querySelector('#start_node')?.closest('.form-group') || document.querySelector('#start_node'), intro: 'Your <strong>current location</strong> — search by room name or number.' },
                         { element: document.querySelector('[data-step="3"]'), intro: 'Your <strong>destination</strong> — pick any room, lab, or office in the building.' },
                         { element: document.querySelector('[data-step="4"]'), intro: '<strong>INITIATE ROUTE</strong> runs the pathfinding algorithm and draws the optimal route on the map. Hit <strong>ALT</strong> for an alternative path shown in light blue.' },
-                        { element: document.querySelector('[data-step="5"]') || document.querySelector('#checkpoint-btn'), intro: 'As you walk, tap <strong>Reached Checkpoint</strong> each time you arrive at a highlighted point — it tracks your progress and updates the remaining path.' },
+                        { element: document.querySelector('[data-step="5"]') || document.querySelector('#checkpoint-btn'), intro: 'As you walk, tap <strong>Reached Checkpoint</strong> each time you arrive at a highlighted point - it tracks your progress and updates the remaining path.' },
                     ],
                     showProgress: true,
                     showBullets: true,
@@ -10754,7 +13693,6 @@ Code snippet
                 .start();
         }
 
-        // Auto-launch tour for first-time visitors
         document.addEventListener('DOMContentLoaded', () => {
             if (!localStorage.getItem('wf-tour-done')) {
                 setTimeout(startTour, 800);
@@ -10762,40 +13700,76 @@ Code snippet
             }
         });
     </script>
-    <div id="faq-bubble" class="faq-bubble" onclick="toggleFAQChat()" title="Ask a question">
-        <span>?</span>
-    </div>
-    <div id="faq-chat" class="faq-chat" style="display:none;">
+
+    <button type="button" id="faq-bubble" class="faq-bubble" onclick="toggleFAQChat()"
+        title="Ask a question" aria-label="Open Wayfinder assistant" aria-controls="faq-chat" aria-expanded="false">
+        <span aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+                <path
+                    d="M6 6.5h12a2.5 2.5 0 0 1 2.5 2.5v6A2.5 2.5 0 0 1 18 17.5H11l-4.5 4v-4H6A2.5 2.5 0 0 1 3.5 15V9A2.5 2.5 0 0 1 6 6.5Z"
+                    stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                <path d="M9 12h.01M12 12h.01M15 12h.01" stroke="currentColor" stroke-width="2.4"
+                    stroke-linecap="round" />
+            </svg>
+        </span>
+    </button>
+    <div id="faq-chat-backdrop" class="faq-chat-backdrop" onclick="toggleFAQChat(false)" aria-hidden="true"></div>
+    <div id="faq-chat" class="faq-chat" style="display:none;" aria-hidden="true">
         <div class="faq-chat-header">
-            <span>Wayfinder Assistant</span>
-            <button onclick="toggleFAQChat()"
-                style="background:none;border:none;color:white;font-size:16px;cursor:pointer;padding:0 4px;">X</button>
+            <div class="faq-chat-title">
+                <span class="faq-chat-title-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path
+                            d="M6 6.5h12a2.5 2.5 0 0 1 2.5 2.5v6A2.5 2.5 0 0 1 18 17.5H11l-4.5 4v-4H6A2.5 2.5 0 0 1 3.5 15V9A2.5 2.5 0 0 1 6 6.5Z"
+                            stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+                        <path d="M9 12h.01M12 12h.01M15 12h.01" stroke="currentColor" stroke-width="2.4"
+                            stroke-linecap="round" />
+                    </svg>
+                </span>
+                <span>Wayfinder Assistant</span>
+            </div>
+            <div class="faq-chat-controls">
+                <button type="button" id="faq-expand-btn" class="faq-chat-control-btn"
+                    onclick="toggleFAQChatExpanded()" title="Expand assistant" aria-label="Expand assistant"
+                    aria-pressed="false">
+                    <svg viewBox="0 0 20 20" fill="none">
+                        <path d="M7 3.5H3.5V7M13 3.5h3.5V7M7 16.5H3.5V13M13 16.5h3.5V13" stroke="currentColor"
+                            stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </button>
+                <button type="button" class="faq-chat-control-btn" onclick="toggleFAQChat(false)"
+                    title="Close assistant" aria-label="Close assistant">
+                    <svg viewBox="0 0 20 20" fill="none">
+                        <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8"
+                            stroke-linecap="round" />
+                    </svg>
+                </button>
+            </div>
         </div>
         <div class="faq-chat-messages" id="faq-messages">
             <div class="faq-msg faq-msg-bot">Hi! Ask me anything about the building - room locations, how to navigate,
                 or how to use this app.</div>
         </div>
+        <div id="faq-suggestions" class="faq-suggestions"></div>
         <div class="faq-chat-input-row">
             <input type="text" id="faq-input" class="faq-input" placeholder="e.g. Where is the library?"
                 onkeydown="if(event.key==='Enter') sendFAQ()">
             <button class="faq-send-btn" onclick="sendFAQ()">Send</button>
         </div>
     </div>
-    <script type="module" src="/static/js/graph-data.js?v=9"></script>
-    <script type="module" src="/static/js/routing.js?v=9"></script>
-    <script type="module" src="/static/js/pdr.js?v=9"></script>
-    <script type="module" src="/static/js/metrics.js?v=9"></script>
-    <script type="module" src="/static/js/app.js?v=9"></script>
+
+    <script type="module" src="/static/js/app.js?v=17"></script>
 </body>
 
 </html>
+```
 
 File: scripts/generate_graph_js.py
-Code snippet
-
+```python
+```
 
 File: scripts/split.py
-Code snippet
+```python
 import os
 
 src = r"c:\Users\sanat\Desktop\final_project\app.py"
@@ -10846,9 +13820,10 @@ write(r"c:\Users\sanat\Desktop\final_project\backend\graph\__init__.py", "".join
 ]))
 
 print("Done slicing!")
+```
 
 File: scripts/split_routers.py
-Code snippet
+```python
 import os
 
 src = r"c:\Users\sanat\Desktop\final_project\app.py"
@@ -10969,9 +13944,10 @@ write(r"c:\Users\sanat\Desktop\final_project\backend\app.py", "".join([
 ]))
 
 print("Done generating routers and app.py!")
+```
 
 File: tests/test_backend.py
-Code snippet
+```python
 import json
 import unittest
 from fastapi.testclient import TestClient
@@ -11005,7 +13981,8 @@ class AppTestCase(unittest.TestCase):
             'end': 'COMPUTERLAB-GF',
             'path': ['MAINENTRANCE-GF', 'COMPUTERLAB-GF'],
             'rating': 5,
-            'comment': 'test'
+            'comment': 'test',
+            'tags': ['clear', 'map-helpful']
         }
         resp = self.client.post(
             '/feedback',
@@ -11020,9 +13997,25 @@ class AppTestCase(unittest.TestCase):
             'end': 'COMPUTERLAB-GF',
             'path': ['MAINENTRANCE-GF', 'COMPUTERLAB-GF'],
             'rating': 4,
+            'tags': ['wrong-floor'],
         }
         resp = self.client.post('/feedback', json=payload)
         self.assertEqual(resp.status_code, 403)
+
+    def test_feedback_invalid_tag_type(self):
+        payload = {
+            'start': 'MAINENTRANCE-GF',
+            'end': 'COMPUTERLAB-GF',
+            'path': ['MAINENTRANCE-GF', 'COMPUTERLAB-GF'],
+            'rating': 4,
+            'tags': ['clear', 3],
+        }
+        resp = self.client.post(
+            '/feedback',
+            json=payload,
+            headers={'X-Requested-With': 'XMLHttpRequest'},
+        )
+        self.assertEqual(resp.status_code, 422)
 
     def test_get_metrics(self):
         resp = self.client.get('/metrics')
@@ -11058,13 +14051,15 @@ class AppTestCase(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+```
 
 File: tests/test_routing_js/graph_data.json
-Code snippet
+```json
 {"NODES": {"MAINENTRANCE-GF": {"coords": [77, 58], "floor": 1, "label": "Main Entrance", "category": "Entrance", "type": "room"}, "OFFICE-GF": {"coords": [73, 42], "floor": 1, "label": "Office", "category": "Offices", "type": "room"}, "ADMIN-GF": {"coords": [75, 63], "floor": 1, "label": "Admin Office", "category": "Offices", "type": "room"}, "TUTORIAL-GF": {"coords": [68, 62], "floor": 1, "label": "Tutorial Room", "category": "Rooms", "type": "room"}, "CONFERENCEROOM1-GF": {"coords": [49, 58], "floor": 1, "label": "Conference Room 1", "category": "Rooms", "type": "room"}, "CONFERENCEROOM2-GF": {"coords": [53, 58], "floor": 1, "label": "Conference Room 2", "category": "Rooms", "type": "room"}, "COMPUTERLAB-GF": {"coords": [44, 59], "floor": 1, "label": "Computer Lab", "category": "Labs & Rooms", "type": "room"}, "CLASSROOM-GF": {"coords": [34, 58], "floor": 1, "label": "Classroom", "category": "Rooms", "type": "room"}, "LIBRARY-GF": {"coords": [24, 59], "floor": 1, "label": "Library", "category": "Offices", "type": "room"}, "PRINCIPALROOM-GF": {"coords": [20, 59], "floor": 1, "label": "Principal's Room", "category": "Offices", "type": "room"}, "RESTROOMS-GF": {"coords": [14, 56], "floor": 1, "label": "Restrooms", "category": "Restrooms", "type": "room"}, "LIFT-GF": {"coords": [72, 52], "floor": 1, "label": "Lift (Ground Floor)", "category": "Lift & Stairs", "type": "lift"}, "CURVEDSTAIRS-GF": {"coords": [77, 43], "floor": 1, "label": "Curved Stairs (Ground Floor)", "category": "Lift & Stairs", "type": "stairs", "stairs_kind": "curved"}, "STAIRSEND-GF": {"coords": [11, 55], "floor": 1, "label": "Stairs End (Ground Floor)", "category": "Lift & Stairs", "type": "stairs", "stairs_kind": "straight"}, "HALLWAY-TURNPOINT-1-GF": {"coords": [74, 58], "floor": 1, "label": "GF Turn 1", "is_waypoint": true, "type": "hallway"}, "HALLWAY-TURNPOINT-2-GF": {"coords": [39, 59], "floor": 1, "label": "GF Turn 2", "is_waypoint": true, "type": "hallway"}, "HALLWAY-TURNPOINT-3-GF": {"coords": [12, 60], "floor": 1, "label": "GF Turn 3 (End)", "is_waypoint": true, "type": "hallway"}, "MEDIAUNIT-1F": {"coords": [71, 42], "floor": 2, "label": "Media Unit", "category": "Rooms", "type": "room"}, "BALCONY-1F": {"coords": [75, 60], "floor": 2, "label": "Balcony", "category": "Rooms", "dead_end": true, "type": "room"}, "ROOM1-1F": {"coords": [66, 64], "floor": 2, "label": "Room 1", "category": "Rooms", "type": "room"}, "SEMINARHALL-1F": {"coords": [55, 62], "floor": 2, "label": "Seminar Hall", "category": "Labs & Rooms", "type": "room"}, "DESIGNLAB-1F": {"coords": [52, 58], "floor": 2, "label": "Design Thinking Lab", "category": "Labs & Rooms", "type": "room"}, "UPSROOM-1F": {"coords": [47, 60], "floor": 2, "label": "UPS Room", "category": "Rooms", "type": "room"}, "STAFFROOM1-1F": {"coords": [33, 60], "floor": 2, "label": "Staff Room 1", "category": "Offices", "type": "room"}, "STAFFROOM2-1F": {"coords": [36, 30], "floor": 2, "label": "Staff Room 2", "category": "Offices", "type": "room"}, "ROOM3-1F": {"coords": [37, 27], "floor": 2, "label": "Room 3", "category": "Rooms", "type": "room"}, "BOARDROOM-1F": {"coords": [22, 61], "floor": 2, "label": "Board Room", "category": "Rooms", "type": "room"}, "ROOM2-1F": {"coords": [19, 61], "floor": 2, "label": "Room 2", "category": "Rooms", "type": "room"}, "RESTROOMS-1F": {"coords": [13, 57], "floor": 2, "label": "Restrooms", "category": "Restrooms", "type": "room"}, "LIFT-1F": {"coords": [69, 53], "floor": 2, "label": "Lift (First Floor)", "category": "Lift & Stairs", "type": "lift"}, "CURVEDSTAIRS-1F": {"coords": [74, 42], "floor": 2, "label": "Curved Stairs (First Floor)", "category": "Lift & Stairs", "type": "stairs", "stairs_kind": "curved"}, "STAIRSEND-1F": {"coords": [9, 58], "floor": 2, "label": "Stairs End (First Floor)", "category": "Lift & Stairs", "type": "stairs", "stairs_kind": "straight"}, "HALLWAY-TURNPOINT-1-1F": {"coords": [72, 59], "floor": 2, "label": "1F Turn 1", "is_waypoint": true, "type": "hallway"}, "HALLWAY-TURNPOINT-2-1F": {"coords": [36, 59], "floor": 2, "label": "1F Turn 2", "is_waypoint": true, "type": "hallway"}, "HALLWAY-TURNPOINT-3-1F": {"coords": [11, 62], "floor": 2, "label": "1F Turn 3 (End)", "is_waypoint": true, "type": "hallway"}, "PASSAGEWAY-1F": {"coords": [36, 59], "floor": 2, "label": "1F Passageway Entry", "is_waypoint": true, "type": "hallway"}, "PASSAGEWAY-1F-TOP": {"coords": [36, 43], "floor": 2, "label": "1F Passageway Top", "is_waypoint": true, "type": "hallway"}, "ALUMNIRELATIONSOFFICE-2F": {"coords": [67, 42], "floor": 3, "label": "Alumni Relations Office", "category": "Offices", "type": "room"}, "STUDENTCOUNCILROOM-2F": {"coords": [67, 61], "floor": 3, "label": "Student Council Room", "category": "Rooms", "type": "room"}, "CORPORATERELATIONSDEPT-2F": {"coords": [70, 61], "floor": 3, "label": "Corporate Relations Department", "category": "Offices", "type": "room"}, "CASESTUDYLAB1-2F": {"coords": [45, 58], "floor": 3, "label": "Case Study Lab 1", "category": "Labs & Rooms", "type": "room"}, "CASESTUDYLAB2-2F": {"coords": [50, 58], "floor": 3, "label": "Case Study Lab 2", "category": "Labs & Rooms", "type": "room"}, "RESEARCHDEPT-2F": {"coords": [40, 60], "floor": 3, "label": "Research & Publication Centre", "category": "Offices", "type": "room"}, "FACULTYLOUNGE-2F": {"coords": [31, 58], "floor": 3, "label": "Faculty Lounge", "category": "Offices", "type": "room"}, "ENTREPRENEURSHIPCELL-2F": {"coords": [21, 60], "floor": 3, "label": "Entrepreneurship Cell", "category": "Offices", "type": "room"}, "PLACEMENTCELL-2F": {"coords": [18, 61], "floor": 3, "label": "Placement Cell & Career Counseling", "category": "Offices", "type": "room"}, "RESTROOMS-2F": {"coords": [13, 57], "floor": 3, "label": "Restrooms", "category": "Restrooms", "type": "room"}, "LIFT-2F": {"coords": [66, 52], "floor": 3, "label": "Lift (Second Floor)", "category": "Lift & Stairs", "type": "lift"}, "CURVEDSTAIRS-2F": {"coords": [70, 43], "floor": 3, "label": "Curved Stairs (Second Floor)", "category": "Lift & Stairs", "type": "stairs", "stairs_kind": "curved"}, "STAIRSEND-2F": {"coords": [9, 57], "floor": 3, "label": "Stairs End (Second Floor)", "category": "Lift & Stairs", "type": "stairs", "stairs_kind": "straight"}, "HALLWAY-TURNPOINT-1-2F": {"coords": [69, 57], "floor": 3, "label": "2F Turn 1", "is_waypoint": true, "type": "hallway"}, "HALLWAY-TURNPOINT-2-2F": {"coords": [11, 60], "floor": 3, "label": "2F Turn 2 (End)", "is_waypoint": true, "type": "hallway"}, "HALLWAY-TURNPOINT-3-2F": {"coords": [40, 58], "floor": 3, "label": "2F Turn 3", "is_waypoint": true, "type": "hallway"}, "ROOM1-3F": {"coords": [33, 59], "floor": 4, "label": "Room 1", "category": "Rooms", "type": "room"}, "ROOM2-3F": {"coords": [47, 59], "floor": 4, "label": "Room 2", "category": "Rooms", "type": "room"}, "ROOM3-3F": {"coords": [52, 59], "floor": 4, "label": "Room 3", "category": "Rooms", "type": "room"}, "ROOM4-3F": {"coords": [70, 43], "floor": 4, "label": "Room 4", "category": "Rooms", "type": "room"}, "RESTROOMS-3F": {"coords": [13, 57], "floor": 4, "label": "Restrooms", "category": "Restrooms", "type": "room"}, "LIFT-3F": {"coords": [69, 53], "floor": 4, "label": "Lift (Third Floor)", "category": "Lift & Stairs", "type": "lift"}, "CURVEDSTAIRS-3F": {"coords": [74, 43], "floor": 4, "label": "Curved Stairs (Third Floor)", "category": "Lift & Stairs", "type": "stairs", "stairs_kind": "curved"}, "STAIRSEND-3F": {"coords": [9, 57], "floor": 4, "label": "Stairs End (Third Floor)", "category": "Lift & Stairs", "type": "stairs", "stairs_kind": "straight"}, "HALLWAY-TURNPOINT-1-3F": {"coords": [72, 58], "floor": 4, "label": "3F Turn 1", "is_waypoint": true, "type": "hallway"}, "HALLWAY-TURNPOINT-2-3F": {"coords": [12, 60], "floor": 4, "label": "3F Turn 2 (End)", "is_waypoint": true, "type": "hallway"}, "HALLWAY-TURNPOINT-3-3F": {"coords": [41, 59], "floor": 4, "label": "3F Turn 3", "is_waypoint": true, "type": "hallway"}}, "GRAPH": {"MAINENTRANCE-GF": ["HALLWAY-TURNPOINT-1-GF", "HALLWAY-TURNPOINT-2-GF"], "OFFICE-GF": ["HALLWAY-TURNPOINT-1-GF", "HALLWAY-TURNPOINT-2-GF"], "ADMIN-GF": ["HALLWAY-TURNPOINT-1-GF", "HALLWAY-TURNPOINT-2-GF"], "TUTORIAL-GF": ["HALLWAY-TURNPOINT-1-GF", "HALLWAY-TURNPOINT-2-GF"], "CONFERENCEROOM1-GF": ["HALLWAY-TURNPOINT-2-GF", "HALLWAY-TURNPOINT-1-GF"], "CONFERENCEROOM2-GF": ["HALLWAY-TURNPOINT-2-GF", "HALLWAY-TURNPOINT-1-GF"], "COMPUTERLAB-GF": ["HALLWAY-TURNPOINT-2-GF", "HALLWAY-TURNPOINT-1-GF"], "CLASSROOM-GF": ["PRINCIPALROOM-GF", "HALLWAY-TURNPOINT-2-GF", "HALLWAY-TURNPOINT-3-GF"], "LIBRARY-GF": ["HALLWAY-TURNPOINT-3-GF", "HALLWAY-TURNPOINT-2-GF"], "PRINCIPALROOM-GF": ["CLASSROOM-GF", "HALLWAY-TURNPOINT-3-GF", "HALLWAY-TURNPOINT-2-GF"], "RESTROOMS-GF": ["HALLWAY-TURNPOINT-3-GF"], "LIFT-GF": ["HALLWAY-TURNPOINT-1-GF", "LIFT-1F"], "CURVEDSTAIRS-GF": ["HALLWAY-TURNPOINT-1-GF", "CURVEDSTAIRS-1F"], "STAIRSEND-GF": ["HALLWAY-TURNPOINT-3-GF", "STAIRSEND-1F"], "HALLWAY-TURNPOINT-1-GF": ["HALLWAY-TURNPOINT-2-GF", "MAINENTRANCE-GF", "OFFICE-GF", "ADMIN-GF", "TUTORIAL-GF", "CONFERENCEROOM1-GF", "CONFERENCEROOM2-GF", "COMPUTERLAB-GF", "LIFT-GF", "CURVEDSTAIRS-GF"], "HALLWAY-TURNPOINT-2-GF": ["HALLWAY-TURNPOINT-3-GF", "HALLWAY-TURNPOINT-1-GF", "MAINENTRANCE-GF", "OFFICE-GF", "ADMIN-GF", "TUTORIAL-GF", "CONFERENCEROOM1-GF", "CONFERENCEROOM2-GF", "COMPUTERLAB-GF", "CLASSROOM-GF", "LIBRARY-GF", "PRINCIPALROOM-GF"], "HALLWAY-TURNPOINT-3-GF": ["HALLWAY-TURNPOINT-2-GF", "RESTROOMS-GF", "STAIRSEND-GF", "CLASSROOM-GF", "LIBRARY-GF", "PRINCIPALROOM-GF"], "MEDIAUNIT-1F": ["HALLWAY-TURNPOINT-1-1F", "HALLWAY-TURNPOINT-2-1F"], "BALCONY-1F": ["LIFT-1F", "HALLWAY-TURNPOINT-1-1F"], "ROOM1-1F": ["HALLWAY-TURNPOINT-1-1F", "HALLWAY-TURNPOINT-2-1F"], "SEMINARHALL-1F": ["HALLWAY-TURNPOINT-1-1F", "HALLWAY-TURNPOINT-2-1F"], "DESIGNLAB-1F": ["HALLWAY-TURNPOINT-2-1F", "HALLWAY-TURNPOINT-1-1F"], "UPSROOM-1F": ["HALLWAY-TURNPOINT-2-1F", "HALLWAY-TURNPOINT-1-1F"], "STAFFROOM1-1F": ["HALLWAY-TURNPOINT-2-1F", "HALLWAY-TURNPOINT-3-1F"], "STAFFROOM2-1F": ["PASSAGEWAY-1F-TOP"], "ROOM3-1F": ["PASSAGEWAY-1F-TOP"], "BOARDROOM-1F": ["HALLWAY-TURNPOINT-3-1F", "HALLWAY-TURNPOINT-2-1F"], "ROOM2-1F": ["HALLWAY-TURNPOINT-3-1F", "HALLWAY-TURNPOINT-2-1F"], "RESTROOMS-1F": ["HALLWAY-TURNPOINT-3-1F"], "LIFT-1F": ["HALLWAY-TURNPOINT-1-1F", "BALCONY-1F", "LIFT-GF", "LIFT-2F"], "CURVEDSTAIRS-1F": ["HALLWAY-TURNPOINT-1-1F", "CURVEDSTAIRS-GF", "CURVEDSTAIRS-2F"], "STAIRSEND-1F": ["HALLWAY-TURNPOINT-3-1F", "STAIRSEND-GF", "STAIRSEND-2F"], "HALLWAY-TURNPOINT-1-1F": ["HALLWAY-TURNPOINT-2-1F", "MEDIAUNIT-1F", "ROOM1-1F", "SEMINARHALL-1F", "DESIGNLAB-1F", "UPSROOM-1F", "LIFT-1F", "CURVEDSTAIRS-1F", "BALCONY-1F"], "HALLWAY-TURNPOINT-2-1F": ["HALLWAY-TURNPOINT-3-1F", "HALLWAY-TURNPOINT-1-1F", "PASSAGEWAY-1F", "MEDIAUNIT-1F", "ROOM1-1F", "SEMINARHALL-1F", "DESIGNLAB-1F", "UPSROOM-1F", "STAFFROOM1-1F", "BOARDROOM-1F", "ROOM2-1F"], "HALLWAY-TURNPOINT-3-1F": ["HALLWAY-TURNPOINT-2-1F", "RESTROOMS-1F", "STAIRSEND-1F", "STAFFROOM1-1F", "BOARDROOM-1F", "ROOM2-1F"], "PASSAGEWAY-1F": ["HALLWAY-TURNPOINT-2-1F", "PASSAGEWAY-1F-TOP"], "PASSAGEWAY-1F-TOP": ["PASSAGEWAY-1F", "STAFFROOM2-1F", "ROOM3-1F"], "ALUMNIRELATIONSOFFICE-2F": ["HALLWAY-TURNPOINT-1-2F", "HALLWAY-TURNPOINT-3-2F"], "STUDENTCOUNCILROOM-2F": ["HALLWAY-TURNPOINT-1-2F", "HALLWAY-TURNPOINT-3-2F"], "CORPORATERELATIONSDEPT-2F": ["HALLWAY-TURNPOINT-1-2F", "HALLWAY-TURNPOINT-3-2F"], "CASESTUDYLAB1-2F": ["HALLWAY-TURNPOINT-3-2F", "HALLWAY-TURNPOINT-1-2F"], "CASESTUDYLAB2-2F": ["HALLWAY-TURNPOINT-3-2F", "HALLWAY-TURNPOINT-1-2F"], "RESEARCHDEPT-2F": ["HALLWAY-TURNPOINT-3-2F", "HALLWAY-TURNPOINT-2-2F"], "FACULTYLOUNGE-2F": ["HALLWAY-TURNPOINT-3-2F", "HALLWAY-TURNPOINT-2-2F"], "ENTREPRENEURSHIPCELL-2F": ["HALLWAY-TURNPOINT-2-2F", "HALLWAY-TURNPOINT-3-2F"], "PLACEMENTCELL-2F": ["HALLWAY-TURNPOINT-2-2F", "HALLWAY-TURNPOINT-3-2F"], "RESTROOMS-2F": ["HALLWAY-TURNPOINT-2-2F"], "LIFT-2F": ["HALLWAY-TURNPOINT-1-2F", "LIFT-1F", "LIFT-3F"], "CURVEDSTAIRS-2F": ["HALLWAY-TURNPOINT-1-2F", "CURVEDSTAIRS-1F", "CURVEDSTAIRS-3F"], "STAIRSEND-2F": ["HALLWAY-TURNPOINT-2-2F", "STAIRSEND-1F", "STAIRSEND-3F"], "HALLWAY-TURNPOINT-1-2F": ["HALLWAY-TURNPOINT-3-2F", "ALUMNIRELATIONSOFFICE-2F", "STUDENTCOUNCILROOM-2F", "CORPORATERELATIONSDEPT-2F", "CASESTUDYLAB1-2F", "CASESTUDYLAB2-2F", "LIFT-2F", "CURVEDSTAIRS-2F"], "HALLWAY-TURNPOINT-2-2F": ["HALLWAY-TURNPOINT-3-2F", "RESTROOMS-2F", "STAIRSEND-2F", "RESEARCHDEPT-2F", "FACULTYLOUNGE-2F", "ENTREPRENEURSHIPCELL-2F", "PLACEMENTCELL-2F"], "HALLWAY-TURNPOINT-3-2F": ["HALLWAY-TURNPOINT-2-2F", "HALLWAY-TURNPOINT-1-2F", "ALUMNIRELATIONSOFFICE-2F", "STUDENTCOUNCILROOM-2F", "CORPORATERELATIONSDEPT-2F", "CASESTUDYLAB1-2F", "CASESTUDYLAB2-2F", "RESEARCHDEPT-2F", "FACULTYLOUNGE-2F", "ENTREPRENEURSHIPCELL-2F", "PLACEMENTCELL-2F"], "ROOM1-3F": ["HALLWAY-TURNPOINT-3-3F", "HALLWAY-TURNPOINT-2-3F"], "ROOM2-3F": ["HALLWAY-TURNPOINT-3-3F", "HALLWAY-TURNPOINT-1-3F"], "ROOM3-3F": ["HALLWAY-TURNPOINT-3-3F", "HALLWAY-TURNPOINT-1-3F"], "ROOM4-3F": ["HALLWAY-TURNPOINT-1-3F", "HALLWAY-TURNPOINT-3-3F"], "RESTROOMS-3F": ["HALLWAY-TURNPOINT-2-3F"], "LIFT-3F": ["HALLWAY-TURNPOINT-1-3F", "LIFT-2F"], "CURVEDSTAIRS-3F": ["HALLWAY-TURNPOINT-1-3F", "CURVEDSTAIRS-2F"], "STAIRSEND-3F": ["HALLWAY-TURNPOINT-2-3F", "STAIRSEND-2F"], "HALLWAY-TURNPOINT-1-3F": ["HALLWAY-TURNPOINT-3-3F", "ROOM2-3F", "ROOM3-3F", "ROOM4-3F", "LIFT-3F", "CURVEDSTAIRS-3F"], "HALLWAY-TURNPOINT-2-3F": ["HALLWAY-TURNPOINT-3-3F", "RESTROOMS-3F", "STAIRSEND-3F", "ROOM1-3F"], "HALLWAY-TURNPOINT-3-3F": ["HALLWAY-TURNPOINT-2-3F", "HALLWAY-TURNPOINT-1-3F", "ROOM1-3F", "ROOM2-3F", "ROOM3-3F", "ROOM4-3F"]}}
+```
 
 File: tests/test_routing_js/routing.test.js
-Code snippet
+```javascript
 /**
  * routing.test.js — Node.js test suite for routing.js
  * Run:  node --experimental-vm-modules tests/test_routing_js/routing.test.js
@@ -11074,24 +14069,16 @@ Code snippet
  */
 
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import path from 'node:path';
 
 import {
   bidirectionalAStar,
+  buildDirections,
   edgeCost,
   heuristic,
+  planAlternate,
   planRoute,
 } from '../../frontend/static/js/routing.js';
-
-// ---------------------------------------------------------------------------
-// Load graph from pre-generated JSON snapshot
-// ---------------------------------------------------------------------------
-const __dir = path.dirname(fileURLToPath(import.meta.url));
-const { NODES, GRAPH } = JSON.parse(
-  readFileSync(path.join(__dir, 'graph_data.json'), 'utf8')
-);
+import { NODES, GRAPH } from '../../frontend/static/js/graph-data.js';
 
 // ---------------------------------------------------------------------------
 // Minimal test harness
@@ -11250,6 +14237,54 @@ test('planRoute segment annotation: stops increment segIdx', () => {
   assert.ok(segs.has(1), 'segment 1 should exist after stop');
 });
 
+test('planAlternate preserves intermediate stops', () => {
+  const primary = planRoute({
+    startNode: 'CONFERENCEROOM1-GF',
+    endNode: 'ROOM1-3F',
+    stops: ['MEDIAUNIT-1F', 'ALUMNIRELATIONSOFFICE-2F'],
+    nodes: NODES,
+    graph: GRAPH,
+  });
+  const alternate = planAlternate({
+    startNode: 'CONFERENCEROOM1-GF',
+    endNode: 'ROOM1-3F',
+    stops: ['MEDIAUNIT-1F', 'ALUMNIRELATIONSOFFICE-2F'],
+    nodes: NODES,
+    graph: GRAPH,
+    primaryPath: primary,
+  });
+  const ids = alternate.map(node => node.id);
+  assert.ok(ids.includes('MEDIAUNIT-1F'), 'alternate route should include stop 1');
+  assert.ok(ids.includes('ALUMNIRELATIONSOFFICE-2F'), 'alternate route should include stop 2');
+  assert.equal(ids[0], 'CONFERENCEROOM1-GF');
+  assert.equal(ids[ids.length - 1], 'ROOM1-3F');
+});
+
+test('buildDirections emits explicit stop instructions for multi-stop routes', () => {
+  const path = planRoute({
+    startNode: 'CONFERENCEROOM1-GF',
+    endNode: 'ROOM1-3F',
+    stops: ['MEDIAUNIT-1F', 'ALUMNIRELATIONSOFFICE-2F'],
+    nodes: NODES,
+    graph: GRAPH,
+  });
+  const directions = buildDirections(path, NODES).map(step => step.text);
+  assert.ok(directions.some(text => text.includes('[STOP]') && text.includes('Media Unit')), 'missing stop 1 instruction');
+  assert.ok(directions.some(text => text.includes('[STOP]') && text.includes('Alumni Relations Office')), 'missing stop 2 instruction');
+  assert.ok(directions.some(text => text.includes('[ARRIVED]') && text.includes('Lecture Hall - 4')), 'missing final arrival instruction');
+});
+
+test('top-right rooms route through the curved-stairs corner waypoint', () => {
+  const path = planRoute({
+    startNode: 'RESTROOMS-1F',
+    endNode: 'MEDIAUNIT-1F',
+    nodes: NODES,
+    graph: GRAPH,
+  });
+  const ids = path.map(node => node.id);
+  assert.ok(ids.includes('HALLWAY-TURNPOINT-4-1F'), 'route should turn at the top-right corner waypoint');
+});
+
 // ---------------------------------------------------------------------------
 // Parity test: random pairs — verify JS path endpoints match Python graph structure
 // ---------------------------------------------------------------------------
@@ -11308,4 +14343,5 @@ console.log(`\n${'─'.repeat(48)}`);
 console.log(`  ${passed} passed  |  ${failed} failed`);
 console.log(`${'─'.repeat(48)}\n`);
 process.exit(failed > 0 ? 1 : 0);
+```
 

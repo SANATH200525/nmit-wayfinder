@@ -1,8 +1,10 @@
 const COORD_TO_METERS = 0.51;
 const DEFAULT_STEP_LENGTH_M = 0.74;
-const MIN_STEP_INTERVAL_MS = 380;
-const STEP_ACCEL_THRESHOLD = 1.18;
+const MIN_STEP_INTERVAL_MS = 450;
+const STEP_ACCEL_THRESHOLD = 1.45;
 const HEADING_SMOOTHING = 0.22;
+const OFF_ROUTE_ANGLE_THRESHOLD = 50;  // degrees
+const OFF_ROUTE_COUNTER_THRESHOLD = 5; // consecutive bad steps before flagging
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -53,8 +55,75 @@ export function getPDRSupportState() {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Helpers for 1D path interpolation
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a cumulative arc-length array (in metres) over the route polyline.
+ * Each entry is the total distance from the start to that path node.
+ */
+function buildPathDistances(path) {
+  const dists = [0];
+  for (let i = 1; i < path.length; i++) {
+    const dx = (path[i].x - path[i - 1].x) * COORD_TO_METERS;
+    const dy = (path[i].y - path[i - 1].y) * COORD_TO_METERS;
+    dists.push(dists[i - 1] + Math.sqrt(dx * dx + dy * dy));
+  }
+  return dists;
+}
+
+/**
+ * Given a cumulative distance along the route, return the interpolated
+ * {x, y, floor} and the compass bearing of the current segment.
+ */
+function interpolateAlongPath(path, cumDists, distM) {
+  const totalM = cumDists[cumDists.length - 1];
+  const clampedDist = clamp(distM, 0, totalM);
+
+  // Find the segment that contains clampedDist
+  let seg = cumDists.length - 2;
+  for (let i = 0; i < cumDists.length - 1; i++) {
+    if (clampedDist <= cumDists[i + 1]) {
+      seg = i;
+      break;
+    }
+  }
+
+  const segLen = cumDists[seg + 1] - cumDists[seg];
+  const t = segLen > 0 ? (clampedDist - cumDists[seg]) / segLen : 0;
+
+  const a = path[seg];
+  const b = path[seg + 1];
+  const x = a.x + t * (b.x - a.x);
+  const y = a.y + t * (b.y - a.y);
+  const floor = t < 0.5 ? a.floor : b.floor;
+
+  // Bearing of this segment in degrees (north-up, clockwise)
+  const dxPx = b.x - a.x;
+  const dyPx = b.y - a.y;
+  // SVG y increases downward; atan2(dx, -dy) gives compass bearing
+  const bearingRad = Math.atan2(dxPx, -dyPx);
+  const bearing = normalizeHeading((bearingRad * 180) / Math.PI);
+
+  return { x, y, floor, bearing };
+}
+
+/**
+ * Return the cumulative distance (metres) from the start of the route to
+ * the first occurrence of nodeId in the path array.
+ */
+function distanceToNode(path, cumDists, nodeId) {
+  const idx = path.findIndex(p => p.id === nodeId);
+  if (idx < 0) return 0;
+  return cumDists[idx];
+}
+
+// ---------------------------------------------------------------------------
+// PDREngine
+// ---------------------------------------------------------------------------
 export class PDREngine {
-  constructor({ startNode, nodes, graph, onPositionUpdate, onFloorChange, sessionId }) {
+  constructor({ startNode, nodes, graph, onPositionUpdate, onFloorChange, sessionId, path = [] }) {
     this._nodes = nodes;
     this._graph = graph;
     this._onUpdate = onPositionUpdate;
@@ -62,6 +131,15 @@ export class PDREngine {
     this._sessionId = sessionId;
     this._lastPostTime = 0;
     this._lastHeadingReportTime = 0;
+
+    // 1-D path-snapping state
+    this._path = path;
+    this._cumDists = path.length > 1 ? buildPathDistances(path) : [0];
+    this._pathDistanceM = 0;
+
+    // Off-route detection
+    this.offRouteCounter = 0;
+    this.isOffRoute = false;
 
     const startData = nodes[startNode];
     this.position = { x: startData.coords[0], y: startData.coords[1] };
@@ -118,9 +196,16 @@ export class PDREngine {
     const node = this._nodes[nodeId];
     if (!node) return;
     const previousFloor = this.floor;
+
+    // Snap the 1-D cursor to the exact arc-length position of this checkpoint
+    this._pathDistanceM = distanceToNode(this._path, this._cumDists, nodeId);
+
     this.position = { x: node.coords[0], y: node.coords[1] };
     this.floor = node.floor;
     this.confidence = 1.0;
+    this.offRouteCounter = 0;
+    this.isOffRoute = false;
+
     if (previousFloor !== this.floor && this._onFloorChange) {
       this._onFloorChange({ fromFloor: previousFloor, toFloor: this.floor, transitionNode: nodeId });
     }
@@ -170,6 +255,7 @@ export class PDREngine {
       return;
     }
 
+    // Track compass heading for UI rotation display only; no X/Y math here
     const delta = shortestHeadingDelta(this.heading, rawHeading);
     this.heading = normalizeHeading(this.heading + (delta * HEADING_SMOOTHING));
 
@@ -181,10 +267,38 @@ export class PDREngine {
   }
 
   _step(stepLengthM = this.stepLengthM) {
-    const radians = (this.heading * Math.PI) / 180;
-    const delta = stepLengthM / COORD_TO_METERS;
-    this.position.x = clamp(this.position.x + (delta * Math.sin(radians)), 0, 100);
-    this.position.y = clamp(this.position.y - (delta * Math.cos(radians)), 0, 100);
+    // 1-D path snapping: advance the cursor along the route polyline
+    this._pathDistanceM += stepLengthM;
+
+    if (this._path.length > 1) {
+      const { x, y, floor, bearing } = interpolateAlongPath(
+        this._path, this._cumDists, this._pathDistanceM
+      );
+
+      const previousFloor = this.floor;
+      this.position.x = x;
+      this.position.y = y;
+      this.floor = floor;
+
+      if (previousFloor !== floor && this._onFloorChange) {
+        this._onFloorChange({ fromFloor: previousFloor, toFloor: floor });
+      }
+
+      // Off-route detection: compare physical compass to required segment bearing
+      if (this._headingInitialized) {
+        const angleDiff = Math.abs(shortestHeadingDelta(this.heading, bearing));
+        if (angleDiff > OFF_ROUTE_ANGLE_THRESHOLD) {
+          this.offRouteCounter++;
+          if (this.offRouteCounter >= OFF_ROUTE_COUNTER_THRESHOLD) {
+            this.isOffRoute = true;
+          }
+        } else {
+          this.offRouteCounter = 0;
+          this.isOffRoute = false;
+        }
+      }
+    }
+
     this.stepCount += 1;
     this.confidence = Math.max(0.08, this.confidence * 0.988);
     this._report();
@@ -202,6 +316,7 @@ export class PDREngine {
       heading: this.heading,
       stepCount: this.stepCount,
       active: this.active,
+      isOffRoute: this.isOffRoute,
     };
     if (this._onUpdate) this._onUpdate(update);
     this._postObservation(update);
