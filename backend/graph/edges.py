@@ -66,11 +66,17 @@ def build_graph():
     #                   restrooms/stairsend (they connect only via end waypoint)
     passageway_only = {'STAFFROOM2-1F', 'ROOM3-1F'}
     end_only = {nid for nid in nodes if 'RESTROOMS' in nid or 'STAIRSEND' in nid}
+    corner_only = {
+        'OFFICE-GF': 'HALLWAY-TURNPOINT-4-GF',
+        'MEDIAUNIT-1F': 'HALLWAY-TURNPOINT-4-1F',
+        'ALUMNIRELATIONSOFFICE-2F': 'HALLWAY-TURNPOINT-4-2F',
+        'ROOM4-3F': 'HALLWAY-TURNPOINT-4-3F',
+    }
 
     for nid, data in nodes.items():
         if is_waypoint(nid) or is_vertical(nid) or is_dead_end(nid):
             continue
-        if nid in passageway_only or nid in end_only:
+        if nid in passageway_only or nid in end_only or nid in corner_only:
             continue
         floor = data['floor']
         wps = [(wid, wd) for wid, wd in nodes.items()
@@ -80,6 +86,10 @@ def build_graph():
         cx, cy = data['coords']
         sorted_wps = sorted(wps, key=lambda w: math.dist((cx, cy), w[1]['coords']))
         for wp_id, _ in sorted_wps[:2]:
+            add_edge(graph, nid, wp_id)
+
+    for nid, wp_id in corner_only.items():
+        if nid in nodes and wp_id in nodes:
             add_edge(graph, nid, wp_id)
 
     # STEP 4 - Connect each vertical connector to nearest waypoint on its floor.
@@ -115,11 +125,14 @@ def build_graph():
     # STEP 7 - Extra direct edges for physical adjacency the waypoint system misses.
     for pair in [
         ('MAINENTRANCE-GF', 'HALLWAY-TURNPOINT-1-GF'),
-        ('OFFICE-GF',       'HALLWAY-TURNPOINT-1-GF'),
         ('CURVEDSTAIRS-GF', 'HALLWAY-TURNPOINT-1-GF'),
         ('LIFT-GF',         'HALLWAY-TURNPOINT-1-GF'),
         ('ADMIN-GF',        'HALLWAY-TURNPOINT-1-GF'),
         ('BALCONY-1F',      'HALLWAY-TURNPOINT-1-1F'),
+        ('CURVEDSTAIRS-GF', 'HALLWAY-TURNPOINT-4-GF'),
+        ('CURVEDSTAIRS-1F', 'HALLWAY-TURNPOINT-4-1F'),
+        ('CURVEDSTAIRS-2F', 'HALLWAY-TURNPOINT-4-2F'),
+        ('CURVEDSTAIRS-3F', 'HALLWAY-TURNPOINT-4-3F'),
     ]:
         if pair[0] in nodes and pair[1] in nodes:
             add_edge(graph, pair[0], pair[1])

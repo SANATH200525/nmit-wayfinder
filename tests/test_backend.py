@@ -31,7 +31,8 @@ class AppTestCase(unittest.TestCase):
             'end': 'COMPUTERLAB-GF',
             'path': ['MAINENTRANCE-GF', 'COMPUTERLAB-GF'],
             'rating': 5,
-            'comment': 'test'
+            'comment': 'test',
+            'tags': ['clear', 'map-helpful']
         }
         resp = self.client.post(
             '/feedback',
@@ -46,9 +47,25 @@ class AppTestCase(unittest.TestCase):
             'end': 'COMPUTERLAB-GF',
             'path': ['MAINENTRANCE-GF', 'COMPUTERLAB-GF'],
             'rating': 4,
+            'tags': ['wrong-floor'],
         }
         resp = self.client.post('/feedback', json=payload)
         self.assertEqual(resp.status_code, 403)
+
+    def test_feedback_invalid_tag_type(self):
+        payload = {
+            'start': 'MAINENTRANCE-GF',
+            'end': 'COMPUTERLAB-GF',
+            'path': ['MAINENTRANCE-GF', 'COMPUTERLAB-GF'],
+            'rating': 4,
+            'tags': ['clear', 3],
+        }
+        resp = self.client.post(
+            '/feedback',
+            json=payload,
+            headers={'X-Requested-With': 'XMLHttpRequest'},
+        )
+        self.assertEqual(resp.status_code, 422)
 
     def test_get_metrics(self):
         resp = self.client.get('/metrics')

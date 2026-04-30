@@ -8,6 +8,8 @@ security = HTTPBasic(auto_error=False)
 
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "nmitwayfinder"
+ADMIN_USER = ADMIN_USERNAME
+ADMIN_PASS = ADMIN_PASSWORD
 
 def require_admin(
     credentials: Annotated[HTTPBasicCredentials | None, Depends(security)],

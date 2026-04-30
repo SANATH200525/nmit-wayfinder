@@ -44,9 +44,9 @@
         }
 
         .page {
-            max-width: 1200px;
+            width: min(1600px, calc(100vw - 48px));
             margin: 0 auto;
-            padding: 32px 20px 56px;
+            padding: 32px 0 56px;
         }
 
         .hero {
@@ -120,7 +120,7 @@
 
         .secondary-grid {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-columns: 1fr;
             gap: 20px;
             align-items: start;
         }
@@ -136,6 +136,16 @@
 
         .table-wrap {
             overflow-x: auto;
+        }
+
+        .panel-footer {
+            margin-top: 14px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .panel-expand-toggle[hidden] {
+            display: none;
         }
 
         table {
@@ -265,6 +275,12 @@
 
         .compact {
             font-size: 14px;
+        }
+
+        @media (max-width: 1280px) {
+            .secondary-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         @media (max-width: 900px) {
@@ -399,7 +415,7 @@
                                 <th>Comment</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="recent-feedback-tbody">
                             {% if recent_feedback %}
                                 {% for item in recent_feedback %}
                                 <tr>
@@ -415,6 +431,9 @@
                         </tbody>
                     </table>
                 </div>
+                <div class="panel-footer">
+                    <button type="button" class="secondary panel-expand-toggle" data-target="recent-feedback-tbody" hidden>Expand</button>
+                </div>
             </section>
 
             <section class="panel">
@@ -429,7 +448,7 @@
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="faq-entries-tbody">
                             {% if all_faqs %}
                                 {% for faq in all_faqs %}
                                 <tr>
@@ -459,6 +478,9 @@
                         </tbody>
                     </table>
                 </div>
+                <div class="panel-footer">
+                    <button type="button" class="secondary panel-expand-toggle" data-target="faq-entries-tbody" hidden>Expand</button>
+                </div>
             </section>
 
             <section class="panel">
@@ -471,7 +493,7 @@
                                 <th>Multiplier</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="adaptive-weights-tbody">
                             {% if modified_weights %}
                                 {% for weight in modified_weights %}
                                 <tr>
@@ -484,6 +506,9 @@
                             {% endif %}
                         </tbody>
                     </table>
+                </div>
+                <div class="panel-footer">
+                    <button type="button" class="secondary panel-expand-toggle" data-target="adaptive-weights-tbody" hidden>Expand</button>
                 </div>
             </section>
         </section>
@@ -521,6 +546,35 @@
         
         fetchMetrics();
         setInterval(fetchMetrics, 30000);
+
+        function setupExpandableTable(tbodyId) {
+            const tbody = document.getElementById(tbodyId);
+            const toggle = document.querySelector(`.panel-expand-toggle[data-target="${tbodyId}"]`);
+            if (!tbody || !toggle) return;
+
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            if (rows.length <= 5) {
+                toggle.hidden = true;
+                return;
+            }
+
+            let expanded = false;
+            const syncRows = () => {
+                rows.forEach((row, index) => {
+                    row.hidden = !expanded && index >= 5;
+                });
+                toggle.hidden = false;
+                toggle.textContent = expanded ? 'Collapse' : 'Expand';
+                toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+            };
+
+            toggle.addEventListener('click', () => {
+                expanded = !expanded;
+                syncRows();
+            });
+
+            syncRows();
+        }
 
         async function adminPost(url, body) {
             const response = await fetch(url, {
@@ -594,6 +648,10 @@
                 setStatus(error.message, true);
             }
         }
+
+        setupExpandableTable('recent-feedback-tbody');
+        setupExpandableTable('faq-entries-tbody');
+        setupExpandableTable('adaptive-weights-tbody');
     </script>
 </body>
 </html>

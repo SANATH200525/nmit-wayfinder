@@ -286,6 +286,7 @@ export function buildDirections(path, nodes) {
   const nodeLabel = (id) => nodes[id]?.label || id;
   const isWaypoint = (id) => nodes[id]?.is_waypoint || id.includes('HALLWAY') || id.includes('PASSAGEWAY');
   const isTransit = (id) => nodes[id]?.type === 'stairs' || nodes[id]?.type === 'lift';
+  const lastSegment = Math.max(...path.map(node => node.segment ?? 0));
 
   function heading(a, b) {
     return (Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI + 360) % 360;
@@ -308,6 +309,29 @@ export function buildDirections(path, nodes) {
 
   let i = 1;
   let prevHeading = null;
+  let arrivedAtDestination = false;
+
+  function pushBoundaryArrival(node) {
+    if (!node || (node.segment ?? 0) === 0) return false;
+    const isFinalStop = (node.segment ?? 0) >= lastSegment;
+    const floorLabel = FLOOR_NAMES[node.floor];
+    if (isFinalStop) {
+      directions.push({
+        text: `[ARRIVED] You have arrived at your destination: ${nodeLabel(node.id)} on the ${floorLabel}.`,
+        floor: node.floor,
+        type: 'arrived'
+      });
+      arrivedAtDestination = true;
+    } else {
+      directions.push({
+        text: `[STOP] You have reached stop ${node.segment}: ${nodeLabel(node.id)} on the ${floorLabel}.`,
+        floor: node.floor,
+        type: 'stop'
+      });
+    }
+    prevHeading = null;
+    return true;
+  }
 
   while (i < path.length) {
     const prev = path[i - 1];
@@ -361,6 +385,9 @@ export function buildDirections(path, nodes) {
         : `${turnText}Walk ${distStr} along the corridor${floorCtx}.`;
       directions.push({ text: `[WALK] ${instruction}`, floor: prev.floor, type: 'walk' });
       prevHeading = corridorH;
+      if (nodeAtEnd && !isTransit(nodeAtEnd.id)) {
+        pushBoundaryArrival(nodeAtEnd);
+      }
       i = endLabel ? j + 1 : j;
       continue;
     }
@@ -377,17 +404,20 @@ export function buildDirections(path, nodes) {
       else instruction = `Go straight ahead to ${nodeLabel(curr.id)}${distLabel}.`;
       directions.push({ text: `[GO] ${instruction}`, floor: curr.floor, type: 'go' });
       prevHeading = h;
+      pushBoundaryArrival(curr);
       i++;
       continue;
     }
     i++;
   }
 
-  directions.push({
-    text: `[ARRIVED] You have arrived at your destination: ${nodeLabel(path[path.length - 1].id)} on the ${FLOOR_NAMES[path[path.length - 1].floor]}.`,
-    floor: path[path.length - 1].floor,
-    type: 'arrived'
-  });
+  if (!arrivedAtDestination) {
+    directions.push({
+      text: `[ARRIVED] You have arrived at your destination: ${nodeLabel(path[path.length - 1].id)} on the ${FLOOR_NAMES[path[path.length - 1].floor]}.`,
+      floor: path[path.length - 1].floor,
+      type: 'arrived'
+    });
+  }
 
   return directions;
 }

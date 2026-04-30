@@ -77,7 +77,7 @@ export const NODES = {
       58
     ],
     "floor": 1,
-    "label": "Classroom",
+    "label": "Lecture Hall - 1",
     "category": "Rooms",
     "type": "room"
   },
@@ -173,6 +173,16 @@ export const NODES = {
     "is_waypoint": true,
     "type": "hallway"
   },
+  "HALLWAY-TURNPOINT-4-GF": {
+    "coords": [
+      74,
+      43
+    ],
+    "floor": 1,
+    "label": "GF Turn 4 (Curved Stairs)",
+    "is_waypoint": true,
+    "type": "hallway"
+  },
   "MEDIAUNIT-1F": {
     "coords": [
       71,
@@ -189,7 +199,7 @@ export const NODES = {
       60
     ],
     "floor": 2,
-    "label": "Balcony",
+    "label": "Balcony - North Wing",
     "category": "Rooms",
     "dead_end": true,
     "type": "room"
@@ -200,7 +210,7 @@ export const NODES = {
       64
     ],
     "floor": 2,
-    "label": "Room 1",
+    "label": "Lecture Hall - 2",
     "category": "Rooms",
     "type": "room"
   },
@@ -260,7 +270,7 @@ export const NODES = {
       27
     ],
     "floor": 2,
-    "label": "Room 3",
+    "label": "Discussion Room - 1",
     "category": "Rooms",
     "type": "room"
   },
@@ -280,7 +290,7 @@ export const NODES = {
       61
     ],
     "floor": 2,
-    "label": "Room 2",
+    "label": "Lecture Hall - 3",
     "category": "Rooms",
     "type": "room"
   },
@@ -353,6 +363,16 @@ export const NODES = {
     ],
     "floor": 2,
     "label": "1F Turn 3 (End)",
+    "is_waypoint": true,
+    "type": "hallway"
+  },
+  "HALLWAY-TURNPOINT-4-1F": {
+    "coords": [
+      72,
+      42
+    ],
+    "floor": 2,
+    "label": "1F Turn 4 (Curved Stairs)",
     "is_waypoint": true,
     "type": "hallway"
   },
@@ -538,13 +558,23 @@ export const NODES = {
     "is_waypoint": true,
     "type": "hallway"
   },
+  "HALLWAY-TURNPOINT-4-2F": {
+    "coords": [
+      69,
+      43
+    ],
+    "floor": 3,
+    "label": "2F Turn 4 (Curved Stairs)",
+    "is_waypoint": true,
+    "type": "hallway"
+  },
   "ROOM1-3F": {
     "coords": [
       33,
       59
     ],
     "floor": 4,
-    "label": "Room 1",
+    "label": "Lecture Hall - 4",
     "category": "Rooms",
     "type": "room"
   },
@@ -554,7 +584,7 @@ export const NODES = {
       59
     ],
     "floor": 4,
-    "label": "Room 2",
+    "label": "Seminar Room - 1",
     "category": "Rooms",
     "type": "room"
   },
@@ -564,7 +594,7 @@ export const NODES = {
       59
     ],
     "floor": 4,
-    "label": "Room 3",
+    "label": "Seminar Room - 2",
     "category": "Rooms",
     "type": "room"
   },
@@ -574,7 +604,7 @@ export const NODES = {
       43
     ],
     "floor": 4,
-    "label": "Room 4",
+    "label": "Lecture Hall - 5",
     "category": "Rooms",
     "type": "room"
   },
@@ -649,6 +679,16 @@ export const NODES = {
     "label": "3F Turn 3",
     "is_waypoint": true,
     "type": "hallway"
+  },
+  "HALLWAY-TURNPOINT-4-3F": {
+    "coords": [
+      72,
+      43
+    ],
+    "floor": 4,
+    "label": "3F Turn 4 (Curved Stairs)",
+    "is_waypoint": true,
+    "type": "hallway"
   }
 };
 export const GRAPH = {
@@ -657,8 +697,7 @@ export const GRAPH = {
     "HALLWAY-TURNPOINT-2-GF"
   ],
   "OFFICE-GF": [
-    "HALLWAY-TURNPOINT-1-GF",
-    "HALLWAY-TURNPOINT-2-GF"
+    "HALLWAY-TURNPOINT-4-GF"
   ],
   "ADMIN-GF": [
     "HALLWAY-TURNPOINT-1-GF",
@@ -703,6 +742,7 @@ export const GRAPH = {
   ],
   "CURVEDSTAIRS-GF": [
     "HALLWAY-TURNPOINT-1-GF",
+    "HALLWAY-TURNPOINT-4-GF",
     "CURVEDSTAIRS-1F"
   ],
   "STAIRSEND-GF": [
@@ -711,8 +751,8 @@ export const GRAPH = {
   ],
   "HALLWAY-TURNPOINT-1-GF": [
     "HALLWAY-TURNPOINT-2-GF",
+    "HALLWAY-TURNPOINT-4-GF",
     "MAINENTRANCE-GF",
-    "OFFICE-GF",
     "ADMIN-GF",
     "TUTORIAL-GF",
     "CONFERENCEROOM1-GF",
@@ -725,7 +765,6 @@ export const GRAPH = {
     "HALLWAY-TURNPOINT-3-GF",
     "HALLWAY-TURNPOINT-1-GF",
     "MAINENTRANCE-GF",
-    "OFFICE-GF",
     "ADMIN-GF",
     "TUTORIAL-GF",
     "CONFERENCEROOM1-GF",
@@ -743,9 +782,13 @@ export const GRAPH = {
     "LIBRARY-GF",
     "PRINCIPALROOM-GF"
   ],
+  "HALLWAY-TURNPOINT-4-GF": [
+    "HALLWAY-TURNPOINT-1-GF",
+    "OFFICE-GF",
+    "CURVEDSTAIRS-GF"
+  ],
   "MEDIAUNIT-1F": [
-    "HALLWAY-TURNPOINT-1-1F",
-    "HALLWAY-TURNPOINT-2-1F"
+    "HALLWAY-TURNPOINT-4-1F"
   ],
   "BALCONY-1F": [
     "LIFT-1F",
@@ -796,6 +839,7 @@ export const GRAPH = {
   ],
   "CURVEDSTAIRS-1F": [
     "HALLWAY-TURNPOINT-1-1F",
+    "HALLWAY-TURNPOINT-4-1F",
     "CURVEDSTAIRS-GF",
     "CURVEDSTAIRS-2F"
   ],
@@ -806,7 +850,7 @@ export const GRAPH = {
   ],
   "HALLWAY-TURNPOINT-1-1F": [
     "HALLWAY-TURNPOINT-2-1F",
-    "MEDIAUNIT-1F",
+    "HALLWAY-TURNPOINT-4-1F",
     "ROOM1-1F",
     "SEMINARHALL-1F",
     "DESIGNLAB-1F",
@@ -819,7 +863,6 @@ export const GRAPH = {
     "HALLWAY-TURNPOINT-3-1F",
     "HALLWAY-TURNPOINT-1-1F",
     "PASSAGEWAY-1F",
-    "MEDIAUNIT-1F",
     "ROOM1-1F",
     "SEMINARHALL-1F",
     "DESIGNLAB-1F",
@@ -836,6 +879,11 @@ export const GRAPH = {
     "BOARDROOM-1F",
     "ROOM2-1F"
   ],
+  "HALLWAY-TURNPOINT-4-1F": [
+    "HALLWAY-TURNPOINT-1-1F",
+    "MEDIAUNIT-1F",
+    "CURVEDSTAIRS-1F"
+  ],
   "PASSAGEWAY-1F": [
     "HALLWAY-TURNPOINT-2-1F",
     "PASSAGEWAY-1F-TOP"
@@ -846,8 +894,7 @@ export const GRAPH = {
     "ROOM3-1F"
   ],
   "ALUMNIRELATIONSOFFICE-2F": [
-    "HALLWAY-TURNPOINT-1-2F",
-    "HALLWAY-TURNPOINT-3-2F"
+    "HALLWAY-TURNPOINT-4-2F"
   ],
   "STUDENTCOUNCILROOM-2F": [
     "HALLWAY-TURNPOINT-1-2F",
@@ -891,6 +938,7 @@ export const GRAPH = {
   ],
   "CURVEDSTAIRS-2F": [
     "HALLWAY-TURNPOINT-1-2F",
+    "HALLWAY-TURNPOINT-4-2F",
     "CURVEDSTAIRS-1F",
     "CURVEDSTAIRS-3F"
   ],
@@ -901,7 +949,7 @@ export const GRAPH = {
   ],
   "HALLWAY-TURNPOINT-1-2F": [
     "HALLWAY-TURNPOINT-3-2F",
-    "ALUMNIRELATIONSOFFICE-2F",
+    "HALLWAY-TURNPOINT-4-2F",
     "STUDENTCOUNCILROOM-2F",
     "CORPORATERELATIONSDEPT-2F",
     "CASESTUDYLAB1-2F",
@@ -921,7 +969,6 @@ export const GRAPH = {
   "HALLWAY-TURNPOINT-3-2F": [
     "HALLWAY-TURNPOINT-2-2F",
     "HALLWAY-TURNPOINT-1-2F",
-    "ALUMNIRELATIONSOFFICE-2F",
     "STUDENTCOUNCILROOM-2F",
     "CORPORATERELATIONSDEPT-2F",
     "CASESTUDYLAB1-2F",
@@ -930,6 +977,11 @@ export const GRAPH = {
     "FACULTYLOUNGE-2F",
     "ENTREPRENEURSHIPCELL-2F",
     "PLACEMENTCELL-2F"
+  ],
+  "HALLWAY-TURNPOINT-4-2F": [
+    "HALLWAY-TURNPOINT-1-2F",
+    "ALUMNIRELATIONSOFFICE-2F",
+    "CURVEDSTAIRS-2F"
   ],
   "ROOM1-3F": [
     "HALLWAY-TURNPOINT-3-3F",
@@ -944,8 +996,7 @@ export const GRAPH = {
     "HALLWAY-TURNPOINT-1-3F"
   ],
   "ROOM4-3F": [
-    "HALLWAY-TURNPOINT-1-3F",
-    "HALLWAY-TURNPOINT-3-3F"
+    "HALLWAY-TURNPOINT-4-3F"
   ],
   "RESTROOMS-3F": [
     "HALLWAY-TURNPOINT-2-3F"
@@ -956,6 +1007,7 @@ export const GRAPH = {
   ],
   "CURVEDSTAIRS-3F": [
     "HALLWAY-TURNPOINT-1-3F",
+    "HALLWAY-TURNPOINT-4-3F",
     "CURVEDSTAIRS-2F"
   ],
   "STAIRSEND-3F": [
@@ -964,9 +1016,9 @@ export const GRAPH = {
   ],
   "HALLWAY-TURNPOINT-1-3F": [
     "HALLWAY-TURNPOINT-3-3F",
+    "HALLWAY-TURNPOINT-4-3F",
     "ROOM2-3F",
     "ROOM3-3F",
-    "ROOM4-3F",
     "LIFT-3F",
     "CURVEDSTAIRS-3F"
   ],
@@ -981,7 +1033,11 @@ export const GRAPH = {
     "HALLWAY-TURNPOINT-1-3F",
     "ROOM1-3F",
     "ROOM2-3F",
-    "ROOM3-3F",
-    "ROOM4-3F"
+    "ROOM3-3F"
+  ],
+  "HALLWAY-TURNPOINT-4-3F": [
+    "HALLWAY-TURNPOINT-1-3F",
+    "ROOM4-3F",
+    "CURVEDSTAIRS-3F"
   ]
 };

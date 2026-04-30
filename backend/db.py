@@ -1,8 +1,14 @@
 import sqlite3
+import os
+import sys
+import tempfile
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DB_PATH = str(BASE_DIR / 'feedback.db')
+if 'pytest' in sys.modules:
+    DB_PATH = str(Path(tempfile.gettempdir()) / f'wayfinder-test-{os.getpid()}.db')
+else:
+    DB_PATH = os.environ.get('WAYFINDER_DB_PATH', str(BASE_DIR / 'feedback.db'))
 
 
 def get_db():
@@ -21,8 +27,12 @@ def init_db():
         conn.execute('''CREATE TABLE IF NOT EXISTS feedback (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             timestamp TEXT, start TEXT, end TEXT,
-            path TEXT, rating INTEGER, comment TEXT
+            path TEXT, rating INTEGER, comment TEXT,
+            tags TEXT DEFAULT '[]'
         )''')
+        feedback_cols = {row[1] for row in conn.execute("PRAGMA table_info(feedback)").fetchall()}
+        if 'tags' not in feedback_cols:
+            conn.execute("ALTER TABLE feedback ADD COLUMN tags TEXT DEFAULT '[]'")
         conn.execute('CREATE INDEX IF NOT EXISTS idx_feedback_route ON feedback (start, end);')
         conn.execute('''CREATE TABLE IF NOT EXISTS edge_weights (
             edge TEXT PRIMARY KEY, multiplier REAL DEFAULT 1.0

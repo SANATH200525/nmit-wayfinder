@@ -12,6 +12,7 @@ class FeedbackPayload(BaseModel):
     path: list[str]
     rating: int = Field(ge=1, le=5)
     comment: str = ''
+    tags: list[str] = Field(default_factory=list, max_length=6)
 
     @field_validator('start', 'end', 'comment', mode='before')
     @classmethod
@@ -24,6 +25,19 @@ class FeedbackPayload(BaseModel):
         if not value or any(not isinstance(node_id, str) or not node_id.strip() for node_id in value):
             raise ValueError('path must contain at least one node id')
         return value
+
+    @field_validator('tags')
+    @classmethod
+    def validate_tags(cls, value):
+        cleaned = []
+        for tag in value:
+            if not isinstance(tag, str):
+                raise ValueError('tags must be strings')
+            tag = tag.strip().lower()
+            if not tag:
+                continue
+            cleaned.append(tag)
+        return cleaned
 
 
 class FAQCreatePayload(BaseModel):
@@ -42,10 +56,10 @@ class FAQCreatePayload(BaseModel):
 
 class SessionStartPayload(BaseModel):
     session_id: str
-    start_node: str
-    end_node: str
-    mobility: MobilityMode
-    planned_path: list[str] = Field(max_length=500)
+    start_node: str = ''
+    end_node: str = ''
+    mobility: MobilityMode = MobilityMode.none
+    planned_path: list[str] = Field(default_factory=list, max_length=500)
     planned_distance_m: float | None = None
 
 

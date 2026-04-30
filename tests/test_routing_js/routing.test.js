@@ -7,24 +7,16 @@
  */
 
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import path from 'node:path';
 
 import {
   bidirectionalAStar,
+  buildDirections,
   edgeCost,
   heuristic,
+  planAlternate,
   planRoute,
 } from '../../frontend/static/js/routing.js';
-
-// ---------------------------------------------------------------------------
-// Load graph from pre-generated JSON snapshot
-// ---------------------------------------------------------------------------
-const __dir = path.dirname(fileURLToPath(import.meta.url));
-const { NODES, GRAPH } = JSON.parse(
-  readFileSync(path.join(__dir, 'graph_data.json'), 'utf8')
-);
+import { NODES, GRAPH } from '../../frontend/static/js/graph-data.js';
 
 // ---------------------------------------------------------------------------
 // Minimal test harness
@@ -181,6 +173,54 @@ test('planRoute segment annotation: stops increment segIdx', () => {
   const segs = new Set(path.map(p => p.segment));
   assert.ok(segs.has(0), 'segment 0 should exist');
   assert.ok(segs.has(1), 'segment 1 should exist after stop');
+});
+
+test('planAlternate preserves intermediate stops', () => {
+  const primary = planRoute({
+    startNode: 'CONFERENCEROOM1-GF',
+    endNode: 'ROOM1-3F',
+    stops: ['MEDIAUNIT-1F', 'ALUMNIRELATIONSOFFICE-2F'],
+    nodes: NODES,
+    graph: GRAPH,
+  });
+  const alternate = planAlternate({
+    startNode: 'CONFERENCEROOM1-GF',
+    endNode: 'ROOM1-3F',
+    stops: ['MEDIAUNIT-1F', 'ALUMNIRELATIONSOFFICE-2F'],
+    nodes: NODES,
+    graph: GRAPH,
+    primaryPath: primary,
+  });
+  const ids = alternate.map(node => node.id);
+  assert.ok(ids.includes('MEDIAUNIT-1F'), 'alternate route should include stop 1');
+  assert.ok(ids.includes('ALUMNIRELATIONSOFFICE-2F'), 'alternate route should include stop 2');
+  assert.equal(ids[0], 'CONFERENCEROOM1-GF');
+  assert.equal(ids[ids.length - 1], 'ROOM1-3F');
+});
+
+test('buildDirections emits explicit stop instructions for multi-stop routes', () => {
+  const path = planRoute({
+    startNode: 'CONFERENCEROOM1-GF',
+    endNode: 'ROOM1-3F',
+    stops: ['MEDIAUNIT-1F', 'ALUMNIRELATIONSOFFICE-2F'],
+    nodes: NODES,
+    graph: GRAPH,
+  });
+  const directions = buildDirections(path, NODES).map(step => step.text);
+  assert.ok(directions.some(text => text.includes('[STOP]') && text.includes('Media Unit')), 'missing stop 1 instruction');
+  assert.ok(directions.some(text => text.includes('[STOP]') && text.includes('Alumni Relations Office')), 'missing stop 2 instruction');
+  assert.ok(directions.some(text => text.includes('[ARRIVED]') && text.includes('Lecture Hall - 4')), 'missing final arrival instruction');
+});
+
+test('top-right rooms route through the curved-stairs corner waypoint', () => {
+  const path = planRoute({
+    startNode: 'RESTROOMS-1F',
+    endNode: 'MEDIAUNIT-1F',
+    nodes: NODES,
+    graph: GRAPH,
+  });
+  const ids = path.map(node => node.id);
+  assert.ok(ids.includes('HALLWAY-TURNPOINT-4-1F'), 'route should turn at the top-right corner waypoint');
 });
 
 // ---------------------------------------------------------------------------
