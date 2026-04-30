@@ -4,7 +4,7 @@
  */
 import { NODES, GRAPH } from './graph-data.js';
 import { planRoute, planAlternate, buildDirections } from './routing.js';
-import { PDREngine } from './pdr.js';
+import { PDREngine, getPDRSupportState } from './pdr.js';
 import { startSession, recordCheckpoint } from './metrics.js';
 
 // ---------------------------------------------------------------------------
@@ -79,6 +79,10 @@ let tsStart, tsEnd, tsStopInstances = [];
 let currentSessionId = null;
 let faqExpanded = false;
 let faqPendingNearest = null;
+let pdrEngine = null;
+let pdrLiveState = null;
+let pdrStatusState = null;
+let pdrPromptPending = false;
 window.allNodes = NODES;
 
 const FEEDBACK_TAG_PRESETS = {
@@ -369,6 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (feedbackTimer) { clearTimeout(feedbackTimer); feedbackTimer = null; }
     checkpoints = []; currentCheckpointIdx = 0; navStartTime = null;
     hideCheckpointButton();
+    stopPDR();
 
     const startNode = tsStart ? tsStart.getValue() : '';
     const endNode = tsEnd ? tsEnd.getValue() : '';
@@ -411,6 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const ortho = makeOrthogonalPath(path);
     drawPath(ortho, path);
     switchFloor(path[0].floor);
+    preparePDRForRoute(startNode, sessionId);
 
     if (isMobile()) {
       closeRouteForm();
@@ -494,6 +500,7 @@ window.switchFloor = function switchFloor(floorNum) {
   fitSVGToImage();
   syncNavFloor(floorNum);
   updateTransitionBanner();
+  renderPDRMarkers();
 };
 
 function makeOrthogonalPath(path) { return Array.isArray(path) ? [...path] : []; }
@@ -535,6 +542,288 @@ function hideDestinationPreview() {
   const mobilePanel = document.getElementById('mobile-destination-preview');
   if (panel) panel.style.display = 'none';
   if (mobilePanel) mobilePanel.style.display = 'none';
+}
+
+// ---------------------------------------------------------------------------
+// PDR UI + sensor lifecycle
+// ---------------------------------------------------------------------------
+function formatHeading(heading) {
+  return Number.isFinite(heading) ? `${Math.round(heading)}°` : '--';
+}
+
+function formatConfidence(confidence) {
+  return Number.isFinite(confidence) ? `${Math.round(confidence * 100)}%` : '--';
+}
+
+function buildPDRStatusMarkup(state) {
+  const safeState = state || {
+    tone: 'off',
+    badge: 'Sensors Off',
+    title: 'Motion pointer inactive',
+    copy: 'Enable sensors to move the pointer as you walk.',
+    heading: '--',
+    steps: '0',
+    confidence: '--',
+  };
+
+  return `
+    <div class="pdr-status-card">
+      <div class="pdr-status-head">
+        <div>
+          <div class="pdr-status-title">${safeState.title}</div>
+          <div class="pdr-status-copy">${safeState.copy}</div>
+        </div>
+        <div class="pdr-status-badge" data-tone="${safeState.tone}">${safeState.badge}</div>
+      </div>
+      <div class="pdr-status-grid">
+        <div class="pdr-status-stat">
+          <div class="pdr-status-label">Heading</div>
+          <div class="pdr-status-value">${safeState.heading}</div>
+        </div>
+        <div class="pdr-status-stat">
+          <div class="pdr-status-label">Steps</div>
+          <div class="pdr-status-value">${safeState.steps}</div>
+        </div>
+        <div class="pdr-status-stat">
+          <div class="pdr-status-label">Confidence</div>
+          <div class="pdr-status-value">${safeState.confidence}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderPDRStatus(state = null) {
+  pdrStatusState = state;
+  const desktopPanel = document.getElementById('pdr-status-panel');
+  const mobilePanel = document.getElementById('mobile-metrics-cards');
+  const hasRoute = Array.isArray(pathData) && pathData.length > 0;
+
+  if (!hasRoute) {
+    if (desktopPanel) {
+      desktopPanel.style.display = 'none';
+      desktopPanel.innerHTML = '';
+    }
+    if (mobilePanel) mobilePanel.innerHTML = '';
+    return;
+  }
+
+  const markup = buildPDRStatusMarkup(state);
+  if (desktopPanel) {
+    desktopPanel.innerHTML = markup;
+    desktopPanel.style.display = 'block';
+  }
+  if (mobilePanel) mobilePanel.innerHTML = markup;
+}
+
+function clearPDRMarkers() {
+  document.querySelectorAll('.pdr-user-marker-root').forEach(node => node.remove());
+}
+
+function createPDRMarkerGroup(update) {
+  const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  group.setAttribute('class', 'pdr-user-marker-root');
+  group.setAttribute('transform', `translate(${update.x},${update.y}) rotate(${Number.isFinite(update.heading) ? update.heading : 0})`);
+
+  const scaleGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  scaleGroup.setAttribute('class', 'pdr-user-marker-scale');
+
+  const halo = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  halo.setAttribute('class', 'pdr-user-halo');
+  halo.setAttribute('cx', '0');
+  halo.setAttribute('cy', '0');
+  halo.setAttribute('r', '2.6');
+
+  const body = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  body.setAttribute('class', 'pdr-user-body');
+  body.setAttribute('cx', '0');
+  body.setAttribute('cy', '0');
+  body.setAttribute('r', '1.35');
+
+  const core = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  core.setAttribute('class', 'pdr-user-core');
+  core.setAttribute('cx', '0');
+  core.setAttribute('cy', '0');
+  core.setAttribute('r', '0.45');
+
+  const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  arrow.setAttribute('class', 'pdr-user-arrow');
+  arrow.setAttribute('d', 'M0 -2.25 L1.05 -0.15 L0.38 -0.46 L0 1.6 L-0.38 -0.46 L-1.05 -0.15 Z');
+
+  scaleGroup.appendChild(halo);
+  scaleGroup.appendChild(body);
+  scaleGroup.appendChild(core);
+  scaleGroup.appendChild(arrow);
+  group.appendChild(scaleGroup);
+  return group;
+}
+
+function renderPDRMarkers() {
+  clearPDRMarkers();
+  if (!pdrLiveState) return;
+
+  [`svg-f${pdrLiveState.floor}`, `svg-nav-f${pdrLiveState.floor}`].forEach(svgId => {
+    const svg = document.getElementById(svgId);
+    if (svg) svg.appendChild(createPDRMarkerGroup(pdrLiveState));
+  });
+}
+
+function hideSensorPermissionModal() {
+  const modal = document.getElementById('sensor-permission-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function setSensorPermissionMessage({ title, body, note, enableLabel = 'Enable Sensors', disableEnable = false }) {
+  const titleEl = document.getElementById('sensor-permission-title');
+  const bodyEl = document.getElementById('sensor-permission-body');
+  const noteEl = document.getElementById('sensor-permission-note');
+  const enableBtn = document.getElementById('sensor-permission-enable');
+  if (titleEl) titleEl.textContent = title;
+  if (bodyEl) bodyEl.textContent = body;
+  if (noteEl) noteEl.textContent = note;
+  if (enableBtn) {
+    enableBtn.textContent = enableLabel;
+    enableBtn.disabled = disableEnable;
+  }
+}
+
+function preparePDRForRoute(startNode, sessionId) {
+  pdrEngine = new PDREngine({
+    startNode,
+    nodes: NODES,
+    graph: GRAPH,
+    sessionId,
+    onPositionUpdate: (update) => {
+      pdrLiveState = update;
+      renderPDRMarkers();
+      renderPDRStatus({
+        tone: 'live',
+        badge: 'Live',
+        title: 'Motion pointer active',
+        copy: `Tracking near ${NODES[update.nearestNode]?.label || 'your route'} on ${getFloorLabel(update.floor)}.`,
+        heading: formatHeading(update.heading),
+        steps: String(update.stepCount ?? 0),
+        confidence: formatConfidence(update.confidence),
+      });
+    },
+    onFloorChange: ({ toFloor }) => {
+      window.switchFloor(toFloor);
+      syncNavFloor(toFloor);
+    },
+  });
+  pdrLiveState = null;
+  clearPDRMarkers();
+
+  const support = getPDRSupportState();
+  if (!support.motionSupported || !support.orientationSupported) {
+    pdrPromptPending = false;
+    clearPDRMarkers();
+    renderPDRStatus({
+      tone: 'warn',
+      badge: 'Unavailable',
+      title: 'Live pointer not available here',
+      copy: 'This device does not expose the motion sensors needed for PDR. The route will still work normally.',
+      heading: '--',
+      steps: '0',
+      confidence: '--',
+    });
+    return;
+  }
+
+  pdrPromptPending = true;
+  renderPDRStatus({
+    tone: 'ready',
+    badge: 'Ready',
+    title: 'Enable live motion pointer',
+    copy: 'Grant sensor access to move the on-screen pointer as you walk through the building.',
+    heading: '--',
+    steps: '0',
+    confidence: '100%',
+  });
+  setSensorPermissionMessage({
+    title: 'Enable motion-based navigation?',
+    body: 'Allow motion and orientation access so Wayfinder can move your on-screen pointer as you walk.',
+    note: support.permissionRequired
+      ? 'Your browser will ask for sensor permission on the next tap.'
+      : 'Your device can start the live pointer immediately.',
+    enableLabel: 'Enable Sensors',
+    disableEnable: false,
+  });
+  const modal = document.getElementById('sensor-permission-modal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function stopPDR({ clearStatus = true } = {}) {
+  if (pdrEngine) pdrEngine.stop();
+  pdrEngine = null;
+  pdrLiveState = null;
+  pdrPromptPending = false;
+  clearPDRMarkers();
+  hideSensorPermissionModal();
+  if (clearStatus) renderPDRStatus(null);
+}
+
+window.enableRouteSensors = async function enableRouteSensors() {
+  if (!pdrEngine) return;
+
+  setSensorPermissionMessage({
+    title: 'Starting live pointer',
+    body: 'Hold your phone naturally while we start reading heading and motion updates.',
+    note: 'You can continue with normal navigation if the browser declines sensor access.',
+    enableLabel: 'Starting...',
+    disableEnable: true,
+  });
+
+  const result = await pdrEngine.start();
+  if (result.started) {
+    pdrPromptPending = false;
+    hideSensorPermissionModal();
+    toast('Live motion pointer enabled.');
+    return;
+  }
+
+  pdrPromptPending = false;
+  pdrLiveState = null;
+  clearPDRMarkers();
+  const denied = result.reason?.includes('denied');
+  renderPDRStatus({
+    tone: denied ? 'warn' : 'off',
+    badge: denied ? 'Denied' : 'Unavailable',
+    title: denied ? 'Sensor access was declined' : 'Could not start live pointer',
+    copy: denied
+      ? 'You can keep following the route manually, or try enabling motion permissions in your browser settings.'
+      : 'Wayfinder could not read motion sensors on this device. Navigation is still available without the live pointer.',
+    heading: '--',
+    steps: '0',
+    confidence: '--',
+  });
+  setSensorPermissionMessage({
+    title: denied ? 'Sensor permission was denied' : 'Live pointer unavailable',
+    body: denied
+      ? 'Wayfinder needs motion and orientation access to move the pointer on the map.'
+      : 'Your browser did not expose the required motion data for this route.',
+    note: 'You can continue navigating with checkpoints and turn-by-turn guidance.',
+    enableLabel: 'Try Again',
+    disableEnable: Boolean(!denied && !result.support?.motionSupported),
+  });
+}
+
+window.dismissSensorPermissionModal = function dismissSensorPermissionModal() {
+  hideSensorPermissionModal();
+  pdrPromptPending = false;
+  if (!pdrEngine?.active) {
+    pdrLiveState = null;
+    clearPDRMarkers();
+    renderPDRStatus({
+      tone: 'off',
+      badge: 'Off',
+      title: 'Motion pointer skipped',
+      copy: 'You can still follow the route using the map, checkpoints, and turn-by-turn instructions.',
+      heading: '--',
+      steps: '0',
+      confidence: '--',
+    });
+  }
 }
 
 function getUpcomingTransition() {
@@ -744,6 +1033,7 @@ function updateMobileRoutePreview(startId, endId) {
 }
 
 window.resetToForm = function () {
+  stopPDR({ clearStatus: false });
   const form = document.getElementById('nav-form');
   if (form) form.classList.remove('form-hidden');
   const rip = document.getElementById('route-info-panel');
@@ -767,6 +1057,7 @@ window.resetToForm = function () {
   hideDestinationPreview();
   updateTransitionBanner();
   pathData = []; checkpoints = []; currentCheckpointIdx = 0;
+  renderPDRStatus(null);
   const topBar = document.getElementById('mobile-top-bar');
   if (topBar) topBar.style.display = 'none';
   const strip = document.getElementById('mobile-directions-strip');
@@ -774,6 +1065,8 @@ window.resetToForm = function () {
   updateMobileRoutePreview('', '');
   document.body.classList.remove('has-route');
   document.documentElement.style.overflow = '';
+  const mobileMetricsCards = document.getElementById('mobile-metrics-cards');
+  if (mobileMetricsCards) mobileMetricsCards.innerHTML = '';
 };
 
 function showCheckpointButton() {
@@ -850,6 +1143,7 @@ window.onCheckpointReached = function () {
   const isLast = currentCheckpointIdx >= checkpoints.length - 1;
   if (isLast) {
     hideCheckpointButton();
+    stopPDR({ clearStatus: false });
     for (let f = 1; f <= 4; f++) {
       const svg = document.getElementById(`svg-f${f}`);
       if (svg) svg.innerHTML = '';
@@ -862,6 +1156,7 @@ window.onCheckpointReached = function () {
     const navScreen = document.getElementById('mobile-directions-strip');
     if (navScreen) navScreen.style.display = 'none';
     pathData = []; checkpoints = [];
+    renderPDRStatus(null);
     const elapsed = navStartTime ? Math.round((Date.now() - navStartTime) / 1000) : 0;
     const mins = Math.floor(elapsed / 60), secs = elapsed % 60;
     showSuccessOverlay(mins > 0 ? `${mins} min ${secs} sec` : `${secs} sec`);
@@ -875,6 +1170,7 @@ window.onCheckpointReached = function () {
   const floorChanging = nextCp && reachedCp.floor !== nextCp.floor;
 
   function advanceCheckpoint() {
+    if (pdrEngine) pdrEngine.resetToCheckpoint(reachedCp.id);
     currentCheckpointIdx++;
     const activeCp = checkpoints[currentCheckpointIdx];
     if (!activeCp) return;
@@ -967,6 +1263,7 @@ function highlightRemainingPath(checkpointIdx) {
     const nextIdx = currentCheckpointIdx + 1, nextCp = nextIdx < checkpoints.length ? checkpoints[nextIdx] : null;
     if (nextCp && nextCp.floor === f && remaining.some(p => p.id === nextCp.id)) drawCheckpointDot(svg, nextCp.x, nextCp.y);
   }
+  renderPDRMarkers();
 }
 
 // ---------------------------------------------------------------------------
@@ -1031,6 +1328,8 @@ window.drawPath = function drawPath(path, logicalPath = path) {
     syncMobileCheckpointBtn();
     setAltBtnsVisible(true);
   }
+  if (pdrStatusState) renderPDRStatus(pdrStatusState);
+  renderPDRMarkers();
   if (feedbackTimer) clearTimeout(feedbackTimer); feedbackTimer = null;
   if (!isMobile()) {
     if (checkpoints.length > 0) showCheckpointButton();
@@ -2014,6 +2313,7 @@ function syncNavSVGs() {
     const src = document.getElementById(`svg-f${f}`), dest = document.getElementById(`svg-nav-f${f}`);
     if (src && dest) dest.innerHTML = src.innerHTML;
   }
+  renderPDRMarkers();
   requestAnimationFrame(() => fitNavSVGToImage());
 }
 
@@ -2023,6 +2323,7 @@ function syncNavFloor(floorNum) {
   });
   document.querySelectorAll('.floor-tab').forEach(tab => tab.classList.toggle('active', tab.dataset.floor == floorNum));
   for (let i = 1; i <= 4; i++) { const el = document.getElementById(`nav-f${i}`); if (el) el.style.display = (i == floorNum) ? 'block' : 'none'; }
+  renderPDRMarkers();
   requestAnimationFrame(() => fitNavSVGToImage());
 }
 
@@ -2189,6 +2490,12 @@ window.requestAlternateRoute = async function requestAlternateRoute() {
         el.setAttribute('transform', `scale(${base.toFixed(3)})`);
       });
 
+    svg.querySelectorAll('.pdr-user-marker-scale')
+      .forEach(el => {
+        const base = 1 / scale;
+        el.setAttribute('transform', `scale(${base.toFixed(3)})`);
+      });
+
     svg.querySelectorAll('.bounce-anim').forEach(el => {
       const baseBounce = -1.2;
       const scaledBounce = baseBounce / scale;
@@ -2230,6 +2537,11 @@ window.requestAlternateRoute = async function requestAlternateRoute() {
   const _origDrawPath = window.drawPath || function(){};
   window.drawPath = function(...args) {
     _origDrawPath(...args);
+    for (let f = 1; f <= 4; f++) {
+      rescaleSVGStrokes(`f${f}-container`, `svg-f${f}`);
+      rescaleSVGStrokes(`nav-f${f}`, `svg-nav-f${f}`);
+    }
+    renderPDRMarkers();
     for (let f = 1; f <= 4; f++) {
       rescaleSVGStrokes(`f${f}-container`, `svg-f${f}`);
       rescaleSVGStrokes(`nav-f${f}`, `svg-nav-f${f}`);

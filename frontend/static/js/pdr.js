@@ -1,137 +1,209 @@
-/**
- * PDREngine — Pedestrian Dead Reckoning
- *
- * How it will work (next sprint):
- *   DeviceOrientationEvent → heading (magnetic north)
- *   DeviceMotionEvent      → accelerometer → step detection → stepLength estimate
- *   Each step: new position = old position + stepLength * [sin(heading), -cos(heading)]
- *   Coordinates: % space (0-100) matching the NODES coordinate system
- *   1 coordinate unit = COORD_TO_METERS (0.5m)
- *
- * This sprint: class skeleton + integration hooks only.
- */
+const COORD_TO_METERS = 0.5;
+const DEFAULT_STEP_LENGTH_M = 0.72;
+const MIN_STEP_INTERVAL_MS = 380;
+const STEP_ACCEL_THRESHOLD = 1.18;
+const HEADING_SMOOTHING = 0.22;
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function normalizeHeading(value) {
+  const normalized = value % 360;
+  return normalized < 0 ? normalized + 360 : normalized;
+}
+
+function shortestHeadingDelta(from, to) {
+  return ((to - from + 540) % 360) - 180;
+}
+
+function extractHeading(event) {
+  if (typeof event.webkitCompassHeading === 'number' && Number.isFinite(event.webkitCompassHeading)) {
+    return normalizeHeading(event.webkitCompassHeading);
+  }
+  if (typeof event.alpha === 'number' && Number.isFinite(event.alpha)) {
+    return normalizeHeading(360 - event.alpha);
+  }
+  return null;
+}
+
+async function requestSensorPermission(sensorEvent) {
+  if (typeof sensorEvent?.requestPermission !== 'function') {
+    return { granted: true, required: false };
+  }
+  try {
+    const result = await sensorEvent.requestPermission();
+    return { granted: result === 'granted', required: true };
+  } catch (error) {
+    return { granted: false, required: true, error };
+  }
+}
+
+export function getPDRSupportState() {
+  const hasWindow = typeof window !== 'undefined';
+  const motionEvent = hasWindow ? window.DeviceMotionEvent : undefined;
+  const orientationEvent = hasWindow ? window.DeviceOrientationEvent : undefined;
+
+  return {
+    motionSupported: typeof motionEvent !== 'undefined',
+    orientationSupported: typeof orientationEvent !== 'undefined',
+    permissionRequired:
+      typeof motionEvent?.requestPermission === 'function' ||
+      typeof orientationEvent?.requestPermission === 'function',
+  };
+}
 
 export class PDREngine {
-  // ─── Constructor ───────────────────────────────────────────────
-  constructor({ startNode, nodes, graph, onPositionUpdate, 
-                onFloorChange, sessionId }) {
-    /**
-     * @param startNode       string — node ID of confirmed start position
-     * @param nodes           object — NODES from graph-data.js
-     * @param graph           object — GRAPH adjacency list
-     * @param onPositionUpdate fn({ x, y, floor, nearestNode, distanceM, confidence })
-     * @param onFloorChange   fn({ fromFloor, toFloor, transitionNode })
-     * @param sessionId       string — for /session/pdr POST
-     */
+  constructor({ startNode, nodes, graph, onPositionUpdate, onFloorChange, sessionId }) {
     this._nodes = nodes;
     this._graph = graph;
     this._onUpdate = onPositionUpdate;
     this._onFloorChange = onFloorChange;
     this._sessionId = sessionId;
     this._lastPostTime = 0;
+    this._lastHeadingReportTime = 0;
 
     const startData = nodes[startNode];
     this.position = { x: startData.coords[0], y: startData.coords[1] };
     this.floor = startData.floor;
-    this.heading = 0;         // degrees clockwise from north
-    this.stepLengthM = 0.75;  // default 75cm per step
-    this.confidence = 1.0;    // 1.0 = certain (just confirmed checkpoint)
+    this.heading = 0;
+    this.stepLengthM = DEFAULT_STEP_LENGTH_M;
+    this.confidence = 1.0;
     this.stepCount = 0;
     this.active = false;
 
-    // Sensor listener references (stored so stop() can removeEventListener)
-    this._motionHandler    = this._onMotionEvent.bind(this);
-    this._orientHandler    = this._onOrientEvent.bind(this);
+    this._gravity = { x: 0, y: 0, z: 0 };
+    this._smoothedMagnitude = 0;
+    this._previousMagnitude = 0;
+    this._lastStepTime = 0;
+    this._headingInitialized = false;
+
+    this._motionHandler = this._onMotionEvent.bind(this);
+    this._orientHandler = this._onOrientEvent.bind(this);
   }
 
-  // ─── Lifecycle ─────────────────────────────────────────────────
   async start() {
-    if (this.active) return;
+    if (this.active) return { started: true, reason: 'already_active' };
 
-    // iOS 13+ requires explicit permission for motion/orientation
-    if (typeof DeviceMotionEvent?.requestPermission === 'function') {
-      const perm = await DeviceMotionEvent.requestPermission();
-      if (perm !== 'granted') {
-        console.warn('[PDR] Motion permission denied — PDR inactive');
-        return;
-      }
+    const support = getPDRSupportState();
+    if (!support.motionSupported || !support.orientationSupported) {
+      return { started: false, reason: 'unsupported', support };
     }
 
-    // TODO Sprint PDR-1: wire DeviceMotionEvent for step detection
-    // window.addEventListener('devicemotion', this._motionHandler);
+    const motionPerm = await requestSensorPermission(window.DeviceMotionEvent);
+    if (!motionPerm.granted) {
+      return { started: false, reason: 'motion_permission_denied', support, error: motionPerm.error };
+    }
 
-    // TODO Sprint PDR-1: wire DeviceOrientationEvent for heading
-    // window.addEventListener('deviceorientation', this._orientHandler);
+    const orientationPerm = await requestSensorPermission(window.DeviceOrientationEvent);
+    if (!orientationPerm.granted) {
+      return { started: false, reason: 'orientation_permission_denied', support, error: orientationPerm.error };
+    }
+
+    window.addEventListener('devicemotion', this._motionHandler, { passive: true });
+    window.addEventListener('deviceorientation', this._orientHandler, { passive: true });
 
     this.active = true;
-    console.log('[PDR] Engine started — sensors stubbed, awaiting Sprint PDR-1');
-    this._report(); // Report initial known position immediately
+    this._report();
+    return { started: true, support };
   }
 
   stop() {
     window.removeEventListener('devicemotion', this._motionHandler);
     window.removeEventListener('deviceorientation', this._orientHandler);
     this.active = false;
-    console.log('[PDR] Engine stopped');
   }
 
-  // ─── Checkpoint reset (called by onCheckpointReached in app.js) ─
   resetToCheckpoint(nodeId) {
     const node = this._nodes[nodeId];
-    if (!node) { console.warn(`[PDR] Unknown checkpoint node: ${nodeId}`); return; }
-    const prevFloor = this.floor;
-    this.position   = { x: node.coords[0], y: node.coords[1] };
-    this.floor      = node.floor;
-    this.confidence = 1.0;  // full reset — we know exactly where we are
-    this.stepCount  = 0;
-    if (prevFloor !== this.floor && this._onFloorChange) {
-      this._onFloorChange({ fromFloor: prevFloor, toFloor: this.floor, transitionNode: nodeId });
+    if (!node) return;
+    const previousFloor = this.floor;
+    this.position = { x: node.coords[0], y: node.coords[1] };
+    this.floor = node.floor;
+    this.confidence = 1.0;
+    if (previousFloor !== this.floor && this._onFloorChange) {
+      this._onFloorChange({ fromFloor: previousFloor, toFloor: this.floor, transitionNode: nodeId });
     }
-    console.log(`[PDR] Position snapped to ${nodeId} — confidence reset to 1.0`);
     this._report();
   }
 
-  // ─── Internal: sensor handlers (stubs) ─────────────────────────
   _onMotionEvent(event) {
-    // TODO Sprint PDR-1: 
-    //   1. Extract event.accelerationIncludingGravity.{x,y,z}
-    //   2. Detect step peaks via threshold on vertical acceleration
-    //   3. Estimate step length via Weinberg formula or fixed average
-    //   4. Call this._step(estimatedStepLengthM)
+    const source = event.accelerationIncludingGravity || event.acceleration;
+    if (!source) return;
+
+    const x = Number.isFinite(source.x) ? source.x : 0;
+    const y = Number.isFinite(source.y) ? source.y : 0;
+    const z = Number.isFinite(source.z) ? source.z : 0;
+
+    this._gravity.x = (this._gravity.x * 0.82) + (x * 0.18);
+    this._gravity.y = (this._gravity.y * 0.82) + (y * 0.18);
+    this._gravity.z = (this._gravity.z * 0.82) + (z * 0.18);
+
+    const linearX = x - this._gravity.x;
+    const linearY = y - this._gravity.y;
+    const linearZ = z - this._gravity.z;
+    const magnitude = Math.sqrt((linearX ** 2) + (linearY ** 2) + (linearZ ** 2));
+    this._smoothedMagnitude = (this._smoothedMagnitude * 0.68) + (magnitude * 0.32);
+
+    const now = Date.now();
+    const crossedThreshold =
+      this._smoothedMagnitude >= STEP_ACCEL_THRESHOLD &&
+      this._previousMagnitude < STEP_ACCEL_THRESHOLD;
+
+    if (crossedThreshold && (now - this._lastStepTime) >= MIN_STEP_INTERVAL_MS) {
+      const intensityBoost = clamp((this._smoothedMagnitude - STEP_ACCEL_THRESHOLD) * 0.08, 0, 0.18);
+      this._lastStepTime = now;
+      this._step(clamp(this.stepLengthM + intensityBoost, 0.55, 0.9));
+    }
+
+    this._previousMagnitude = this._smoothedMagnitude;
   }
 
   _onOrientEvent(event) {
-    // TODO Sprint PDR-1:
-    //   1. event.webkitCompassHeading (iOS) or 360 - event.alpha (Android)
-    //   2. Apply low-pass filter to smooth jitter
-    //   3. this.heading = filteredHeading
+    const rawHeading = extractHeading(event);
+    if (rawHeading === null) return;
+
+    if (!this._headingInitialized) {
+      this.heading = rawHeading;
+      this._headingInitialized = true;
+      this._report();
+      return;
+    }
+
+    const delta = shortestHeadingDelta(this.heading, rawHeading);
+    this.heading = normalizeHeading(this.heading + (delta * HEADING_SMOOTHING));
+
+    const now = Date.now();
+    if (Math.abs(delta) >= 1.5 || (now - this._lastHeadingReportTime) > 160) {
+      this._lastHeadingReportTime = now;
+      this._report();
+    }
   }
 
-  // ─── Internal: position update ─────────────────────────────────
   _step(stepLengthM = this.stepLengthM) {
-    const rad = (this.heading * Math.PI) / 180;
-    // 1 metre = 1/0.5 = 2 coordinate units (COORD_TO_METERS = 0.5)
-    const delta = stepLengthM / 0.5;
-    this.position.x +=  delta * Math.sin(rad);
-    this.position.y += -delta * Math.cos(rad); // y increases downward in image space
-    this.stepCount++;
-    // Confidence decays with each unconfirmed step
-    this.confidence = Math.max(0.05, this.confidence * 0.99);
+    const radians = (this.heading * Math.PI) / 180;
+    const delta = stepLengthM / COORD_TO_METERS;
+    this.position.x = clamp(this.position.x + (delta * Math.sin(radians)), 0, 100);
+    this.position.y = clamp(this.position.y - (delta * Math.cos(radians)), 0, 100);
+    this.stepCount += 1;
+    this.confidence = Math.max(0.08, this.confidence * 0.988);
     this._report();
   }
 
   _report() {
     const nearest = this._nearestNode();
     const update = {
-      x:           this.position.x,
-      y:           this.position.y,
-      floor:       this.floor,
+      x: this.position.x,
+      y: this.position.y,
+      floor: this.floor,
       nearestNode: nearest.id,
-      distanceM:   nearest.distM,
-      confidence:  this.confidence,
+      distanceM: nearest.distM,
+      confidence: this.confidence,
+      heading: this.heading,
+      stepCount: this.stepCount,
+      active: this.active,
     };
     if (this._onUpdate) this._onUpdate(update);
-    // Background-report to backend (fire and forget)
     this._postObservation(update);
   }
 
@@ -139,70 +211,37 @@ export class PDREngine {
     let best = { id: null, distM: Infinity };
     for (const [id, data] of Object.entries(this._nodes)) {
       if (data.floor !== this.floor) continue;
-      const dx = (data.coords[0] - this.position.x) * 0.5;
-      const dy = (data.coords[1] - this.position.y) * 0.5;
-      const d  = Math.sqrt(dx*dx + dy*dy);
-      if (d < best.distM) best = { id, distM: d };
+      const dx = (data.coords[0] - this.position.x) * COORD_TO_METERS;
+      const dy = (data.coords[1] - this.position.y) * COORD_TO_METERS;
+      const distance = Math.sqrt((dx ** 2) + (dy ** 2));
+      if (distance < best.distM) best = { id, distM: distance };
     }
     return best;
   }
 
   async _postObservation(update) {
+    if (!this._sessionId) return;
     const now = Date.now();
-    if (now - this._lastPostTime < 2000) return;
+    if ((now - this._lastPostTime) < 2000) return;
     this._lastPostTime = now;
-    // Don't await — fire and forget
+
     try {
       fetch('/session/pdr', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          session_id:            this._sessionId,
-          timestamp:             new Date().toISOString(),
-          estimated_x:           update.x,
-          estimated_y:           update.y,
-          floor:                 update.floor,
-          nearest_node:          update.nearestNode,
+          session_id: this._sessionId,
+          timestamp: new Date().toISOString(),
+          estimated_x: update.x,
+          estimated_y: update.y,
+          floor: update.floor,
+          nearest_node: update.nearestNode,
           distance_to_nearest_m: update.distanceM,
-          confidence:            update.confidence,
+          confidence: update.confidence,
         }),
       });
-    } catch { /* offline — PDR observations are not queued, they are lossy */ }
+    } catch {
+      // Best-effort telemetry only.
+    }
   }
 }
-
-// ─── PDR UI overlay (confidence indicator) ────────────────────────────────
-// Called from app.js when PDR is active
-export function renderPDRConfidence(confidence) {
-  let bar = document.getElementById('pdr-confidence-bar');
-  if (!bar) return; // element added to index.html by Person C
-  bar.style.width = `${Math.round(confidence * 100)}%`;
-  bar.style.background = confidence > 0.7 ? '#10b981'
-                       : confidence > 0.4 ? '#f59e0b'
-                       : '#ef4444';
-  const label = document.getElementById('pdr-confidence-label');
-  if (label) label.textContent = `PDR: ${Math.round(confidence * 100)}%`;
-}
-
-// ─── Integration point for app.js ─────────────────────────────────────────
-// In app.js, after planRoute() returns a path:
-//
-//   import { PDREngine, renderPDRConfidence } from './pdr.js';
-//
-//   window._pdrEngine = new PDREngine({
-//     startNode: formStartNode,
-//     nodes: NODES,
-//     graph: GRAPH,
-//     sessionId,
-//     onPositionUpdate: (update) => {
-//       renderPDRConfidence(update.confidence);
-//       // TODO Sprint PDR-2: draw live position dot on map SVG
-//     },
-//     onFloorChange: ({ toFloor }) => switchFloor(toFloor),
-//   });
-//   await window._pdrEngine.start();
-//
-// In onCheckpointReached() in app.js, add:
-//   if (window._pdrEngine) {
-//     window._pdrEngine.resetToCheckpoint(currentCheckpointNodeId);
-//   }

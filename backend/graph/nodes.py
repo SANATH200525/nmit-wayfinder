@@ -19,6 +19,7 @@ nodes = {
     'HALLWAY-TURNPOINT-1-GF': {'coords': (74, 58), 'floor': 1, 'label': 'GF Turn 1', 'is_waypoint': True},
     'HALLWAY-TURNPOINT-2-GF': {'coords': (39, 59), 'floor': 1, 'label': 'GF Turn 2', 'is_waypoint': True},
     'HALLWAY-TURNPOINT-3-GF': {'coords': (12, 60), 'floor': 1, 'label': 'GF Turn 3 (End)', 'is_waypoint': True},
+    'HALLWAY-TURNPOINT-4-GF': {'coords': (74, 43), 'floor': 1, 'label': 'GF Turn 4 (Curved Stairs)', 'is_waypoint': True},
 
     # -- FIRST FLOOR (floor: 2) --------------------------------------
     'MEDIAUNIT-1F':         {'coords': (71, 42), 'floor': 2, 'label': 'Media Unit',            'category': 'Rooms'},
@@ -40,6 +41,7 @@ nodes = {
     'HALLWAY-TURNPOINT-1-1F': {'coords': (72, 59), 'floor': 2, 'label': '1F Turn 1', 'is_waypoint': True},
     'HALLWAY-TURNPOINT-2-1F': {'coords': (36, 59), 'floor': 2, 'label': '1F Turn 2', 'is_waypoint': True},
     'HALLWAY-TURNPOINT-3-1F': {'coords': (11, 62), 'floor': 2, 'label': '1F Turn 3 (End)', 'is_waypoint': True},
+    'HALLWAY-TURNPOINT-4-1F': {'coords': (72, 42), 'floor': 2, 'label': '1F Turn 4 (Curved Stairs)', 'is_waypoint': True},
     # 1F passageway branch
     'PASSAGEWAY-1F':     {'coords': (36, 59), 'floor': 2, 'label': '1F Passageway Entry', 'is_waypoint': True},
     'PASSAGEWAY-1F-TOP': {'coords': (36, 43), 'floor': 2, 'label': '1F Passageway Top',   'is_waypoint': True},
@@ -62,6 +64,7 @@ nodes = {
     'HALLWAY-TURNPOINT-1-2F': {'coords': (69, 57), 'floor': 3, 'label': '2F Turn 1', 'is_waypoint': True},
     'HALLWAY-TURNPOINT-2-2F': {'coords': (11, 60), 'floor': 3, 'label': '2F Turn 2 (End)', 'is_waypoint': True},
     'HALLWAY-TURNPOINT-3-2F': {'coords': (40, 58), 'floor': 3, 'label': '2F Turn 3', 'is_waypoint': True},
+    'HALLWAY-TURNPOINT-4-2F': {'coords': (69, 43), 'floor': 3, 'label': '2F Turn 4 (Curved Stairs)', 'is_waypoint': True},
 
     # -- THIRD FLOOR (floor: 4) --------------------------------------
     'ROOM1-3F':     {'coords': (33, 59), 'floor': 4, 'label': 'Lecture Hall - 4',          'category': 'Rooms'},
@@ -76,6 +79,7 @@ nodes = {
     'HALLWAY-TURNPOINT-1-3F': {'coords': (72, 58), 'floor': 4, 'label': '3F Turn 1', 'is_waypoint': True},
     'HALLWAY-TURNPOINT-2-3F': {'coords': (12, 60), 'floor': 4, 'label': '3F Turn 2 (End)', 'is_waypoint': True},
     'HALLWAY-TURNPOINT-3-3F': {'coords': (41, 59), 'floor': 4, 'label': '3F Turn 3', 'is_waypoint': True},
+    'HALLWAY-TURNPOINT-4-3F': {'coords': (72, 43), 'floor': 4, 'label': '3F Turn 4 (Curved Stairs)', 'is_waypoint': True},
 }
 
 

@@ -1057,6 +1057,49 @@ input[type="radio"] {
     stroke-width: 2px;
 }
 
+.pdr-user-marker-root {
+    filter: drop-shadow(0 10px 12px rgba(15, 23, 42, 0.22));
+}
+
+.pdr-user-halo {
+    fill: rgba(59, 130, 246, 0.16);
+    stroke: rgba(59, 130, 246, 0.3);
+    stroke-width: 0.35;
+    animation: pdrPulse 1.5s ease-in-out infinite;
+    transform-box: fill-box;
+    transform-origin: center;
+}
+
+.pdr-user-body {
+    fill: #ffffff;
+    stroke: var(--accent);
+    stroke-width: 0.35;
+}
+
+.pdr-user-core {
+    fill: var(--accent);
+}
+
+.pdr-user-arrow {
+    fill: var(--teal);
+    stroke: #ffffff;
+    stroke-width: 0.22;
+    stroke-linejoin: round;
+}
+
+@keyframes pdrPulse {
+    0%,
+    100% {
+        opacity: 0.9;
+        transform: scale(0.92);
+    }
+
+    50% {
+        opacity: 0.4;
+        transform: scale(1.14);
+    }
+}
+
 /* â”€â”€ Map Legend â”€â”€ */
 .map-legend {
     display: flex;
@@ -1080,6 +1123,11 @@ input[type="radio"] {
     height: 10px;
     border-radius: 50%;
     display: inline-block;
+}
+
+.legend-dot-live {
+    background: linear-gradient(135deg, var(--accent), var(--teal));
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.14);
 }
 
 /* â”€â”€ CHECKPOINT BUTTON â€” outlined â”€â”€ */
@@ -1147,6 +1195,99 @@ input[type="radio"] {
 }
 
 /* â”€â”€ Route Info Panel â”€â”€ */
+.pdr-status-panel {
+    margin-top: 12px;
+}
+
+.pdr-status-card {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(15, 118, 110, 0.08));
+    border: 1px solid var(--border-light);
+    border-radius: 14px;
+    padding: 14px;
+}
+
+.pdr-status-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.pdr-status-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.pdr-status-copy {
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--text-secondary);
+}
+
+.pdr-status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.pdr-status-badge[data-tone="live"] {
+    background: rgba(16, 185, 129, 0.14);
+    color: #047857;
+}
+
+.pdr-status-badge[data-tone="ready"] {
+    background: rgba(59, 130, 246, 0.14);
+    color: var(--accent-d);
+}
+
+.pdr-status-badge[data-tone="warn"] {
+    background: rgba(245, 158, 11, 0.16);
+    color: #b45309;
+}
+
+.pdr-status-badge[data-tone="off"] {
+    background: rgba(148, 163, 184, 0.18);
+    color: #475569;
+}
+
+.pdr-status-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.pdr-status-stat {
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(59, 130, 246, 0.1);
+    border-radius: 12px;
+    padding: 10px;
+}
+
+.pdr-status-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.9px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.pdr-status-value {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
 #route-info-panel {
     margin-top: 14px;
     border-top: 1px solid var(--border-light);
@@ -1347,6 +1488,62 @@ input[type="radio"] {
     background: var(--surface);
     color: var(--text-primary);
     transition: background 0.18s, color 0.18s;
+}
+
+.modal-box button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.sensor-modal-box {
+    max-width: 420px;
+    text-align: left;
+}
+
+.sensor-modal-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 14px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.18);
+    color: var(--accent-d);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+.sensor-modal-copy,
+.sensor-modal-note {
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--text-secondary);
+}
+
+.sensor-modal-copy {
+    margin-bottom: 14px;
+}
+
+.sensor-modal-feature-list {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.sensor-modal-feature {
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-light);
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.sensor-modal-note {
+    margin-bottom: 16px;
 }
 
 .feedback-action-btn,
@@ -2638,6 +2835,10 @@ input[type="radio"] {
         margin-bottom: 20px;
     }
 
+    .nav-metric-cards > .pdr-status-card {
+        grid-column: 1 / -1;
+    }
+
     .nav-metric-card {
         background: #f5f5f5;
         border-radius: 14px;
@@ -3137,6 +3338,17 @@ input[type="radio"] {
     background: var(--surface-2);
     border-color: var(--border);
     color: var(--text-primary);
+}
+
+[data-theme="dark"] .pdr-status-card,
+[data-theme="dark"] .sensor-modal-feature {
+    background: rgba(15, 23, 42, 0.72);
+    border-color: var(--border);
+}
+
+[data-theme="dark"] .pdr-status-stat {
+    background: rgba(30, 41, 59, 0.84);
+    border-color: var(--border);
 }
 
 [data-theme="dark"] .radio-group label {

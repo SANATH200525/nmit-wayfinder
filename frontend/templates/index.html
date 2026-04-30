@@ -189,6 +189,7 @@
                         <div class="metric-item"><span class="metric-label">Route rating</span><strong
                                 id="m-rating">--</strong></div>
                     </div>
+                    <section id="pdr-status-panel" class="pdr-status-panel" style="display:none;"></section>
                     <details id="directions-panel" open style="display:none;">
                         <summary>Turn-by-Turn Directions</summary>
                         <ol id="directions-list"></ol>
@@ -308,6 +309,7 @@
                 <span class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>
                     Destination</span>
                 <span class="legend-item"><span class="legend-dot" style="background:#8b5cf6;"></span> Checkpoint</span>
+                <span class="legend-item"><span class="legend-dot legend-dot-live"></span> Live Position</span>
             </div>
         </section>
     </main>
@@ -348,6 +350,29 @@
             </button>
             <button id="floor-confirm-no" class="floor-confirm-no-btn" onclick="onFloorConfirmed(false)">
                 Wrong floor — go back
+            </button>
+        </div>
+    </div>
+
+    <div id="sensor-permission-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-box sensor-modal-box">
+            <div class="sensor-modal-badge">LIVE POINTER</div>
+            <h3 id="sensor-permission-title">Enable motion-based navigation?</h3>
+            <p id="sensor-permission-body" class="sensor-modal-copy">
+                Allow motion and orientation access so Wayfinder can move your on-screen pointer as you walk.
+            </p>
+            <div class="sensor-modal-feature-list">
+                <div class="sensor-modal-feature">Compass heading for pointer direction</div>
+                <div class="sensor-modal-feature">Motion sensing for walking updates</div>
+            </div>
+            <p id="sensor-permission-note" class="sensor-modal-note">
+                This works best on a phone with motion sensors.
+            </p>
+            <button type="button" id="sensor-permission-enable" class="feedback-action-btn" onclick="enableRouteSensors()">
+                Enable Sensors
+            </button>
+            <button type="button" class="feedback-skip-btn" onclick="dismissSensorPermissionModal()">
+                Continue Without Sensors
             </button>
         </div>
     </div>
