@@ -17,3 +17,4 @@ Thumbs.db
 
 # Environment variables (If you add secrets later)
 .env_tmp_patch.py
+".pytest_cache/" 
