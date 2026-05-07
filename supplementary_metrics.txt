@@ -1,0 +1,18 @@
+--- 1. RL Convergence ---
+Final BDA* Cost: 181.01
+Final A* Cost: 181.01
+
+--- 2. Query Time Distribution ---
+BDA*: Mean=0.16ms, p50=0.12ms, p90=0.29ms, p99=0.61ms, Max=5.21ms
+A*: Mean=0.11ms, p50=0.09ms, p90=0.22ms, p99=0.41ms, Max=0.62ms
+D* Lite: Mean=0.20ms, p50=0.17ms, p90=0.34ms, p99=0.76ms, Max=1.08ms
+
+--- 3. Peak Memory Per Query ---
+BDA*: Mean=3.06KB, Max=6.67KB
+A*: Mean=1.71KB, Max=3.95KB
+D* Lite: Mean=6.42KB, Max=6.48KB
+
+--- 4. Scalability ---
+Nodes: 68 | BDA*: 0.16ms | A*: 0.12ms | D* Lite: 0.20ms
+Nodes: 136 | BDA*: 0.46ms | A*: 0.31ms | D* Lite: 0.49ms
+Nodes: 272 | BDA*: 1.10ms | A*: 0.85ms | D* Lite: 1.25ms
