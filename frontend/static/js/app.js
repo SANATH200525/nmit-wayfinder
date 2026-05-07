@@ -13,7 +13,7 @@ import { startSession, recordCheckpoint } from './metrics.js';
 const FLOOR_NAMES = { 1: 'Ground Floor', 2: 'First Floor', 3: 'Second Floor', 4: 'Third Floor' };
 const FLOOR_ORDER = ['Ground Floor', 'First Floor', 'Second Floor', 'Third Floor'];
 const TYPE_ORDER = ['Entrance', 'Offices', 'Rooms', 'Labs & Rooms', 'Restrooms', 'Lift & Stairs'];
-const COORD_TO_METERS = 0.51;
+const COORD_TO_METERS = 0.5;
 const WALK_SPEED = 1.2;
 const FAQ_EXPANDED_STORAGE_KEY = 'wayfinder-faq-expanded';
 
