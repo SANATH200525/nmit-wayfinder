@@ -85,6 +85,14 @@ let pdrStatusState = null;
 let pdrPromptPending = false;
 window.allNodes = NODES;
 
+// ---------------------------------------------------------------------------
+// toPathNodes — maps planRoute/planAlternate's { id, x, y, floor } shape into
+// the { id, coords: [x, y], floor } shape expected by PDREngine.setPath().
+// ---------------------------------------------------------------------------
+function toPathNodes(path) {
+  return path.map(n => ({ id: n.id, coords: [n.x, n.y], floor: n.floor }));
+}
+
 const FEEDBACK_TAG_PRESETS = {
   1: [
     { tag: 'very-confusing', label: 'Very confusing' },
@@ -727,6 +735,9 @@ function preparePDRForRoute(startNode, sessionId, path) {
   pdrLiveState = null;
   clearPDRMarkers();
 
+  // Wire the path immediately so the first _report() after start() can project.
+  pdrEngine.setPath(toPathNodes(path));
+
   const support = getPDRSupportState();
   if (!support.motionSupported || !support.orientationSupported) {
     pdrPromptPending = false;
@@ -743,6 +754,17 @@ function preparePDRForRoute(startNode, sessionId, path) {
     return;
   }
 
+  // On devices that don't require an explicit browser permission prompt
+  // (Android, Chrome desktop), start immediately — no modal needed.
+  // On iOS 13+ (permissionRequired === true), we must show the modal first
+  // because sensor access requires a user-gesture-triggered requestPermission().
+  if (!support.permissionRequired) {
+    pdrPromptPending = false;
+    window.enableRouteSensors();
+    return;
+  }
+
+  // iOS path: show consent modal before calling start().
   pdrPromptPending = true;
   renderPDRStatus({
     tone: 'ready',
@@ -756,9 +778,7 @@ function preparePDRForRoute(startNode, sessionId, path) {
   setSensorPermissionMessage({
     title: 'Enable motion-based navigation?',
     body: 'Allow motion and orientation access so Wayfinder can move your on-screen pointer as you walk.',
-    note: support.permissionRequired
-      ? 'Your browser will ask for sensor permission on the next tap.'
-      : 'Your device can start the live pointer immediately.',
+    note: 'Your browser will ask for sensor permission on the next tap.',
     enableLabel: 'Enable Sensors',
     disableEnable: false,
   });
@@ -1070,6 +1090,8 @@ window.resetToForm = function () {
   hideDestinationPreview();
   updateTransitionBanner();
   pathData = []; checkpoints = []; currentCheckpointIdx = 0;
+  // FIX 1c: clear path projection so PDR stops snapping to stale route
+  if (pdrEngine) pdrEngine.setPath([]);
   renderPDRStatus(null);
   const topBar = document.getElementById('mobile-top-bar');
   if (topBar) topBar.style.display = 'none';
@@ -1169,6 +1191,8 @@ window.onCheckpointReached = function () {
     const navScreen = document.getElementById('mobile-directions-strip');
     if (navScreen) navScreen.style.display = 'none';
     pathData = []; checkpoints = [];
+    // FIX 1c: clear path projection so PDR stops snapping to stale route
+    if (pdrEngine) pdrEngine.setPath([]);
     renderPDRStatus(null);
     const elapsed = navStartTime ? Math.round((Date.now() - navStartTime) / 1000) : 0;
     const mins = Math.floor(elapsed / 60), secs = elapsed % 60;
@@ -1188,6 +1212,12 @@ window.onCheckpointReached = function () {
     const activeCp = checkpoints[currentCheckpointIdx];
     if (!activeCp) return;
     window.switchFloor(activeCp.floor);
+    // If a floor change just happened, the engine is still positioned at reachedCp
+    // (the stair/lift node on the old floor). Snap it to activeCp — the stair landing
+    // on the destination floor — so the live dot appears on the correct SVG layer.
+    if (pdrEngine && activeCp.floor !== reachedCp.floor) {
+      pdrEngine.resetToCheckpoint(activeCp.id);
+    }
     highlightRemainingPath(currentCheckpointIdx);
     syncDirectionsActiveStep(currentCheckpointIdx);
     showCheckpointButton();
@@ -2432,6 +2462,8 @@ window.requestAlternateRoute = async function requestAlternateRoute() {
   // (makeOrthogonalPath is globally available from script.js, but fallback to altPath just in case)
   const ortho = typeof makeOrthogonalPath === 'function' ? makeOrthogonalPath(altPath) : altPath;
   drawPath(ortho, altPath);
+  // FIX 1b: update PDR path projection to use the alternate route
+  if (pdrEngine) pdrEngine.setPath(toPathNodes(altPath));
 
   toast('Alternate route activated. Navigation updated.');
 };

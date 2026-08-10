@@ -50,11 +50,21 @@ const MAP_CORRIDOR_BEARING_DEG = 270;
  */
 const COORD_TO_METERS = 0.51;
 
-/** Default step length before any calibration. Typical adult walking gait. */
+/**
+ * Default step length before any calibration. Typical adult walking gait.
+ * NOTE: stepLengthM resets to this default on every new PDREngine instance
+ * (i.e. every new route in app.js creates a fresh engine), so calibration
+ * does not currently persist across multiple routes within one session.
+ * This is accepted behavior for the current single-destination use case.
+ */
 const DEFAULT_STEP_LENGTH_M = 0.74;
 
-/** Minimum milliseconds between two registered steps. Prevents double-counting. */
-const MIN_STEP_INTERVAL_MS = 380;
+/**
+ * Minimum milliseconds between two registered steps. Prevents double-counting.
+ * 300 ms corresponds to ~200 steps/min max cadence. Normal walking pace
+ * (100–120 spm, 500–600 ms gap) is unaffected either way.
+ */
+const MIN_STEP_INTERVAL_MS = 300;
 
 /**
  * STEP_ACCEL_THRESHOLD
@@ -86,10 +96,15 @@ const CONFIDENCE_WARN_THRESHOLD = 0.25;
 /**
  * PATH_SNAP_RADIUS_UNITS
  * Maximum distance (SVG units) from planned path before projection is skipped.
- * If the user walks far off the path (e.g. wrong turn), we stop snapping rather
- * than pinning them to an irrelevant segment.
+ * Set to approximately one corridor half-width:
+ *   NMIT main corridor ≈ 3.25 m wide → half-width ≈ 1.625 m
+ *   1.625 m / COORD_TO_METERS (0.51 m/unit) ≈ 3.2 → rounded to 3
+ * At 8 (the old value ≈ 4.1 m) users standing a full metre inside an adjacent
+ * room were still silently snapped to the corridor, masking real off-route events.
+ * If testing reveals false off-route warnings during normal walking, raise to 4
+ * and re-evaluate — do NOT revert to 8.
  */
-const PATH_SNAP_RADIUS_UNITS = 8;
+const PATH_SNAP_RADIUS_UNITS = 3; // ~1.5 m — one corridor half-width
 
 /** Minimum and maximum allowed stepLengthM after calibration adjustment. */
 const STEP_LENGTH_MIN_M = 0.45;
@@ -100,6 +115,14 @@ const POST_THROTTLE_MS = 2000;
 
 /** POST /session/pdr immediately on these event types regardless of throttle. */
 const POST_IMMEDIATE_EVENTS = new Set(['calibration', 'error', 'drift_warning']);
+
+/**
+ * PDR_DEBUG
+ * Set to true to enable console logging inside _step() for walk-testing.
+ * Logs: raw heading, adjusted heading, rawPos pre-snap, final snapped position,
+ * path node count, and isOffRoute. Remove or set false before shipping.
+ */
+const PDR_DEBUG = true;
 
 // ---------------------------------------------------------------------------
 // Pure utility functions
@@ -154,7 +177,10 @@ function extractHeading(event) {
     return normalizeHeading(event.webkitCompassHeading);
   }
   if (typeof event.alpha === 'number' && Number.isFinite(event.alpha)) {
-    return normalizeHeading(360 - event.alpha);
+    const screenAngle = (typeof window !== 'undefined' && window.screen && window.screen.orientation && typeof window.screen.orientation.angle === 'number')
+      ? window.screen.orientation.angle
+      : 0;
+    return normalizeHeading(360 - event.alpha - screenAngle);
   }
   return null;
 }
@@ -267,6 +293,7 @@ export class PDREngine {
     this._sessionId = sessionId;
 
     // ── Public state (readable by app.js) ────────────────────────────────
+    // Note: stepLengthM resets to DEFAULT_STEP_LENGTH_M for each new instance.
     const startData = nodes[startNode];
     this.position = { x: startData.coords[0], y: startData.coords[1] };
     this.floor = startData.floor;
@@ -277,7 +304,9 @@ export class PDREngine {
     this.active = false;
 
     // ── Gravity EMA filter state ─────────────────────────────────────────
-    this._gravity = { x: 0, y: 0, z: 0 };
+    // Seeded at 9.81 m/s² (earth gravity) on Z axis so warmup convergence
+    // starts from a realistic baseline instead of zero.
+    this._gravity = { x: 0, y: 0, z: 9.81 };
     this._smoothedMagnitude = 0;
     this._previousMagnitude = 0;
     this._lastStepTime = 0;
@@ -301,6 +330,11 @@ export class PDREngine {
     // the known graph distance and correct stepLengthM.
     this._pdrDistanceSinceCheckpoint = 0;  // SVG units
     this._stepsSinceCheckpoint = 0;
+    // Node ID of the most recently confirmed checkpoint, used by
+    // _pathDistanceBetween() to compute the graph-path reference distance
+    // for calibration. Null means no checkpoint has been confirmed yet this
+    // session — first calibration falls back to Euclidean distance.
+    this._prevCheckpointId = null;
 
     // ── Telemetry throttle ───────────────────────────────────────────────
     this._lastPostTime = 0;
@@ -309,6 +343,11 @@ export class PDREngine {
     // Tracks whether we've already fired a drift warning for the current
     // confidence descent, so we don't spam the backend.
     this._driftWarnFired = false;
+
+    // ── Off-route state ──────────────────────────────────────────────────
+    // True when the last step's snap distance exceeded PATH_SNAP_RADIUS_UNITS.
+    // Exposed via isOffRoute on every _report() update object.
+    this._isOffRoute = false;
 
     // ── Bound event handlers (stored for removeEventListener) ────────────
     this._motionHandler = this._onMotionEvent.bind(this);
@@ -390,15 +429,24 @@ export class PDREngine {
     // noisy correction factors that hurt more than they help.
     if (this._stepsSinceCheckpoint >= 5 && this._pdrDistanceSinceCheckpoint > 0.5) {
       const pdrEstimatedDistM = this._pdrDistanceSinceCheckpoint * COORD_TO_METERS;
-      const realDistUnits = dist2D(this.position, realPos);
+
+      // FIX 1: Use graph-path distance instead of Euclidean snap-distance.
+      // Euclidean (old) measures a straight line from current PDR dot to the
+      // checkpoint node — always shorter than the walked path on bent corridors,
+      // and corrupted by heading error. Graph-path distance sums node-to-node
+      // segment lengths along the planned route, which equals the real walked
+      // distance regardless of PDR heading accuracy.
+      const realDistUnits = this._pathDistanceBetween(this._prevCheckpointId, nodeId);
       const realDistM = realDistUnits * COORD_TO_METERS;
 
       // Correction factor: how wrong were we, proportionally?
       // e.g. PDR said 10m but real distance was 12m → factor = 1.2 → increase stepLengthM
-      // We take 60% of the correction to avoid overcorrecting on a single data point.
+      // Blend factor scales with segment length: short segments (<15 steps) get
+      // a gentler correction (0.35) to avoid oscillation from noisy short-distance estimates.
       if (realDistM > 0.3) {
         const rawFactor = realDistM / pdrEstimatedDistM;
-        const blendedFactor = 1.0 + (rawFactor - 1.0) * 0.6;
+        const blendWeight = this._stepsSinceCheckpoint < 15 ? 0.35 : 0.6;
+        const blendedFactor = 1.0 + (rawFactor - 1.0) * blendWeight;
         const newStepLength = clamp(
           this.stepLengthM * blendedFactor,
           STEP_LENGTH_MIN_M,
@@ -429,6 +477,11 @@ export class PDREngine {
     // ── Reset accumulators ──────────────────────────────────────────────
     this._pdrDistanceSinceCheckpoint = 0;
     this._stepsSinceCheckpoint = 0;
+    this._isOffRoute = false; // clear stale off-route flag from previous floor
+
+    // ── Advance calibration anchor ──────────────────────────────────────
+    // Must be set AFTER calibration above reads _prevCheckpointId.
+    this._prevCheckpointId = nodeId;
 
     // ── Floor change notification ───────────────────────────────────────
     if (previousFloor !== this.floor && this._onFloorChange) {
@@ -464,6 +517,63 @@ export class PDREngine {
     }));
   }
 
+  // ── Private: calibration helper ─────────────────────────────────────────
+
+  /**
+   * Computes the planned-path distance (in SVG units) between two node IDs
+   * by summing consecutive node-to-node segment lengths along this._pathNodes.
+   *
+   * This gives the actual walked distance along the route, independent of PDR
+   * heading accuracy, making calibration correct even on bent corridors.
+   *
+   * ALGORITHM:
+   *   Walk this._pathNodes in order. Once fromNodeId is found (or fromNodeId is
+   *   null, meaning start of path), accumulate dist2D between each consecutive
+   *   pair until toNodeId is reached.
+   *
+   * FALLBACK:
+   *   If either node ID is not found in this._pathNodes (e.g. path not yet set,
+   *   or first checkpoint of session where _prevCheckpointId is null), falls back
+   *   to the Euclidean distance from this.position to the target node.
+   *
+   * @param {string|null} fromNodeId  — previous checkpoint node ID (null = session start)
+   * @param {string}      toNodeId    — current checkpoint node ID
+   * @returns {number} distance in SVG coordinate units
+   */
+  _pathDistanceBetween(fromNodeId, toNodeId) {
+    // Fallback: no path set, or first checkpoint of session.
+    if (this._pathNodes.length < 2 || fromNodeId === null) {
+      const toNode = this._nodes[toNodeId];
+      if (!toNode) return 0;
+      return dist2D(this.position, { x: toNode.coords[0], y: toNode.coords[1] });
+    }
+
+    let accumulating = false;
+    let totalDist = 0;
+
+    for (let i = 0; i < this._pathNodes.length - 1; i++) {
+      const a = this._pathNodes[i];
+      const b = this._pathNodes[i + 1];
+
+      // Start accumulating the moment we pass fromNodeId.
+      if (!accumulating && a.id === fromNodeId) {
+        accumulating = true;
+      }
+
+      if (accumulating) {
+        totalDist += dist2D(a, b);
+        // Stop once the segment ends at toNodeId.
+        if (b.id === toNodeId) return totalDist;
+      }
+    }
+
+    // toNodeId not found beyond fromNodeId — path may not cover this segment.
+    // Fallback to Euclidean so calibration still fires rather than producing zero.
+    const toNode = this._nodes[toNodeId];
+    if (!toNode) return 0;
+    return dist2D(this.position, { x: toNode.coords[0], y: toNode.coords[1] });
+  }
+
   // ── Private: sensor event handlers ──────────────────────────────────────
 
   /**
@@ -497,26 +607,60 @@ export class PDREngine {
    * @param {DeviceMotionEvent} event
    */
   _onMotionEvent(event) {
-    const source = event.accelerationIncludingGravity || event.acceleration;
+    // FIX 3: Distinguish accelerationIncludingGravity from acceleration.
+    // event.acceleration is already gravity-compensated by the OS/browser.
+    // If we fall through to it and still run the gravity-EMA subtraction,
+    // we subtract gravity a second time → near-zero linear signal → step
+    // detector stops firing silently on some Android devices.
+    const includingGravity = event.accelerationIncludingGravity;
+    const usingIncludingGravity = !!(includingGravity && Number.isFinite(includingGravity.x));
+    const source = usingIncludingGravity ? includingGravity : event.acceleration;
     if (!source) return;
 
     const x = Number.isFinite(source.x) ? source.x : 0;
     const y = Number.isFinite(source.y) ? source.y : 0;
     const z = Number.isFinite(source.z) ? source.z : 0;
 
-    // Update gravity EMA
-    this._gravity.x = (this._gravity.x * 0.82) + (x * 0.18);
-    this._gravity.y = (this._gravity.y * 0.82) + (y * 0.18);
-    this._gravity.z = (this._gravity.z * 0.82) + (z * 0.18);
+    let linX, linY, linZ;
+    if (usingIncludingGravity) {
+      const oldGx = this._gravity.x;
+      const oldGy = this._gravity.y;
+      const oldGz = this._gravity.z;
+
+      // Raw accel-with-gravity: run gravity EMA to isolate linear component.
+      this._gravity.x = (this._gravity.x * 0.82) + (x * 0.18);
+      this._gravity.y = (this._gravity.y * 0.82) + (y * 0.18);
+      this._gravity.z = (this._gravity.z * 0.82) + (z * 0.18);
+
+      // Reorientation guard: compare instantaneous raw gravity vector against
+      // the estimated gravity vector before update. If angle > 15°, phone was reoriented mid-session.
+      const magRaw = Math.sqrt(x * x + y * y + z * z);
+      const magOld = Math.sqrt(oldGx * oldGx + oldGy * oldGy + oldGz * oldGz);
+      if (magRaw > 0.1 && magOld > 0.1) {
+        const dot = x * oldGx + y * oldGy + z * oldGz;
+        const cosTheta = clamp(dot / (magRaw * magOld), -1, 1);
+        const angleDeg = (Math.acos(cosTheta) * 180) / Math.PI;
+        if (angleDeg > 15) {
+          this._gravityReadyAt = Date.now() + GRAVITY_WARMUP_MS;
+        }
+      }
+
+      linX = x - this._gravity.x;
+      linY = y - this._gravity.y;
+      linZ = z - this._gravity.z;
+    } else {
+      // event.acceleration is OS-gravity-compensated — do NOT subtract again.
+      linX = x;
+      linY = y;
+      linZ = z;
+    }
 
     // Compute linear acceleration magnitude
-    const linX = x - this._gravity.x;
-    const linY = y - this._gravity.y;
-    const linZ = z - this._gravity.z;
     const magnitude = Math.sqrt(linX * linX + linY * linY + linZ * linZ);
 
-    // Smooth the magnitude signal
-    this._smoothedMagnitude = (this._smoothedMagnitude * 0.68) + (magnitude * 0.32);
+    // Smooth the magnitude signal. Using α=0.5 (was 0.32) trades a small amount of
+    // noise smoothing for reduced detection latency (~65 ms, down from ~130 ms) at fast cadence.
+    this._smoothedMagnitude = (this._smoothedMagnitude * 0.5) + (magnitude * 0.5);
 
     const now = Date.now();
 
@@ -529,12 +673,12 @@ export class PDREngine {
     const warmupDone = now >= this._gravityReadyAt;
 
     if (crossedThreshold && debounceOk && warmupDone) {
-      // Intensity boost: faster/harder steps have slightly longer stride.
-      // Capped at +0.18m to prevent outlier events from corrupting position.
+      // Intensity boost: square-root scaling scales gradually for vigorous steps.
+      // Capped at +0.10m (down from 0.18m) to prevent outlier events from corrupting position.
       const intensityBoost = clamp(
-        (this._smoothedMagnitude - STEP_ACCEL_THRESHOLD) * 0.08,
+        Math.sqrt(Math.max(0, this._smoothedMagnitude - STEP_ACCEL_THRESHOLD)) * 0.06,
         0,
-        0.18
+        0.10
       );
       this._lastStepTime = now;
       this._step(clamp(this.stepLengthM + intensityBoost, STEP_LENGTH_MIN_M, STEP_LENGTH_MAX_M));
@@ -565,6 +709,16 @@ export class PDREngine {
 
     // Interpolate toward the new heading via the shortest arc.
     const delta = shortestHeadingDelta(this.heading, rawHeading);
+
+    // FIX 2: Heading spike rejection.
+    // A human turning at a fast walk produces at most ~90°/s. DeviceOrientationEvent
+    // fires at ~60 Hz (one tick ≈ 16 ms), so the maximum real angular change per
+    // tick is ~90/60 ≈ 1.5°. A jump larger than 45° in a single tick cannot be a
+    // real turn — it is magnetic interference (rebar, elevator motors, conduits).
+    // Discard it entirely rather than blending it into the EMA, which would inject
+    // an immediate ~10° heading error (45° × HEADING_SMOOTHING=0.22) even at low α.
+    if (Math.abs(delta) > 45) return;
+
     this.heading = normalizeHeading(this.heading + delta * HEADING_SMOOTHING);
 
     const now = Date.now();
@@ -592,20 +746,47 @@ export class PDREngine {
    */
   _step(stepLengthM) {
     const deltaUnits = stepLengthM / COORD_TO_METERS;
-    const { dx, dy } = this._compassToSVGDelta(this.heading, deltaUnits);
+    const rawHeading = this.heading;
+    const { dx, dy, adjustedHeading } = this._compassToSVGDelta(rawHeading, deltaUnits);
 
-    // Apply delta and clamp to SVG bounds [0, 100]
-    const rawX = clamp(this.position.x + dx, 0, 100);
-    const rawY = clamp(this.position.y + dy, 0, 100);
-    const rawPos = { x: rawX, y: rawY };
+    // FIX 4: Compute actual displacement after boundary clamping so that steps
+    // taken while pinned at the SVG edge [0,100] do not phantom-accumulate in
+    // _pdrDistanceSinceCheckpoint, which would corrupt the next calibration.
+    const newX = this.position.x + dx;
+    const newY = this.position.y + dy;
+    const clampedX = clamp(newX, 0, 100);
+    const clampedY = clamp(newY, 0, 100);
+    // Effective displacement is what the dot actually moved, not the intended step.
+    const effectiveDX = clampedX - this.position.x;
+    const effectiveDY = clampedY - this.position.y;
+    const effectiveDist = Math.sqrt(effectiveDX * effectiveDX + effectiveDY * effectiveDY);
 
-    // Layer 4: project onto planned path
-    const snapped = this._projectOntoPath(rawPos);
+    const clampedPos = { x: clampedX, y: clampedY };
+
+    // Layer 4: project onto planned path; result now exposes snap distance
+    const { point: snapped, distance: snapDist, snapped: wasSnapped } = this._projectOntoPath(clampedPos);
     this.position = snapped;
 
-    // Accumulate PDR distance for calibration (use raw distance, not snapped)
-    const stepDistUnits = deltaUnits;
-    this._pdrDistanceSinceCheckpoint += stepDistUnits;
+    // Update off-route flag: true when we could not snap to the path
+    this._isOffRoute = !wasSnapped && this._pathNodes.length >= 2;
+
+    if (PDR_DEBUG) {
+      console.log(
+        '[PDR _step]',
+        'rawHeading:', rawHeading.toFixed(1),
+        'adjustedHeading:', adjustedHeading.toFixed(1),
+        'clampedPos:', `(${clampedX.toFixed(2)}, ${clampedY.toFixed(2)})`,
+        'snapped:', `(${snapped.x.toFixed(2)}, ${snapped.y.toFixed(2)})`,
+        'snapDist:', snapDist.toFixed(2),
+        'pathNodes:', this._pathNodes.length,
+        'isOffRoute:', this._isOffRoute,
+      );
+    }
+
+    // Accumulate only the effective (clamped) displacement — not the raw step length.
+    // If the position was pinned at the boundary, effectiveDist < deltaUnits and
+    // the phantom distance is not counted.
+    this._pdrDistanceSinceCheckpoint += effectiveDist;
     this._stepsSinceCheckpoint += 1;
 
     // Confidence decay
@@ -642,22 +823,25 @@ export class PDREngine {
    *     Δx = distance * sin(heading_radians)
    *     Δy = distance * (-cos(heading_radians))   ← note the negation because Y is inverted
    *
-   *   The MAP_CORRIDOR_BEARING_DEG constant is used only for the calibration
-   *   check in resetToCheckpoint — it is NOT subtracted here, because we want
-   *   to use the raw compass heading in the standard formula above. The mapping
-   *   from compass north to SVG screen north is already correct via the
-   *   sin/−cos formula. MAP_CORRIDOR_BEARING_DEG tells us the building orientation
-   *   for reference and for the path projection sanity check.
+   *   MAP_CORRIDOR_BEARING_DEG offset:
+   *     The NMIT floorplan is NOT drawn north-up — the SVG viewBox (0 0 100 100)
+   *     has no rotation transform and the main corridor runs left-to-right (+X),
+   *     but physically faces west (270° magnetic). Subtracting MAP_CORRIDOR_BEARING_DEG
+   *     rotates the magnetic heading into the SVG map frame so that the corridor
+   *     axis aligns with +X.
    *
    * @param {number} headingDeg  — magnetic compass heading, [0, 360)
    * @param {number} distUnits   — distance to travel in SVG coordinate units
-   * @returns {{ dx: number, dy: number }}
+   * @returns {{ dx: number, dy: number, adjustedHeading: number }}
    */
   _compassToSVGDelta(headingDeg, distUnits) {
-    const rad = (headingDeg * Math.PI) / 180;
+    // Rotate magnetic heading into SVG map frame (floorplan is not north-up).
+    const adjustedHeading = normalizeHeading(headingDeg - MAP_CORRIDOR_BEARING_DEG);
+    const rad = (adjustedHeading * Math.PI) / 180;
     return {
       dx: distUnits * Math.sin(rad),
       dy: distUnits * (-Math.cos(rad)),
+      adjustedHeading,
     };
   }
 
@@ -668,7 +852,7 @@ export class PDREngine {
    *   For each consecutive pair of path nodes on the current floor, find the
    *   closest point on that segment to rawPos. Take the overall minimum.
    *   If the minimum distance exceeds PATH_SNAP_RADIUS_UNITS (user may be off
-   *   route or path is not set), return rawPos unchanged.
+   *   route or path is not set), rawPos is returned unchanged.
    *
    * WHY THIS HELPS:
    *   The heading sensor drifts slightly over time. Without snapping, a 5°
@@ -677,10 +861,12 @@ export class PDREngine {
    *   even under moderate heading drift.
    *
    * @param {{ x: number, y: number }} rawPos
-   * @returns {{ x: number, y: number }}
+   * @returns {{ point: { x: number, y: number }, distance: number, snapped: boolean }}
    */
   _projectOntoPath(rawPos) {
-    if (this._pathNodes.length < 2) return rawPos;
+    if (this._pathNodes.length < 2) {
+      return { point: rawPos, distance: Infinity, snapped: false };
+    }
 
     let bestDist = Infinity;
     let bestPoint = rawPos;
@@ -701,8 +887,9 @@ export class PDREngine {
       }
     }
 
-    // Don't snap if too far from path (off-route, sensor failure, etc.)
-    return bestDist <= PATH_SNAP_RADIUS_UNITS ? bestPoint : rawPos;
+    // Snap only if within PATH_SNAP_RADIUS_UNITS; otherwise user is off-route.
+    const snapped = bestDist <= PATH_SNAP_RADIUS_UNITS;
+    return { point: snapped ? bestPoint : rawPos, distance: bestDist, snapped };
   }
 
   // ── Private: reporting ───────────────────────────────────────────────────
@@ -730,6 +917,8 @@ export class PDREngine {
       // Extra fields available to app.js if it wants them
       stepLengthM: this.stepLengthM,
       driftWarning: this.confidence < CONFIDENCE_WARN_THRESHOLD,
+      // isOffRoute: true when the last step could not snap to the planned path
+      isOffRoute: this._isOffRoute,
     };
 
     if (this._onUpdate) this._onUpdate(update);
@@ -823,3 +1012,10 @@ export class PDREngine {
     }
   }
 }
+
+// ---------------------------------------------------------------------------
+// Test-only exports
+// Exporting module-internal constants so the Node.js test suite can assert
+// their values without a DOM.  No logic is changed here.
+// ---------------------------------------------------------------------------
+export { PATH_SNAP_RADIUS_UNITS };
