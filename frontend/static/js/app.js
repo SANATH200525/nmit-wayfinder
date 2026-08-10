@@ -574,6 +574,12 @@ function buildPDRStatusMarkup(state) {
     confidence: '--',
   };
 
+  const rerouteBtnHtml = safeState.showRerouteButton
+    ? `<button class="pdr-reroute-btn" onclick="window.recalculateFromCurrentLocation()" style="margin-top: 10px; width: 100%; background: #f59e0b; color: #000; font-weight: 700; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3);">
+        ⚡ Recalculate Route from Live Position
+       </button>`
+    : '';
+
   return `
     <div class="pdr-status-card">
       <div class="pdr-status-head">
@@ -597,6 +603,7 @@ function buildPDRStatusMarkup(state) {
           <div class="pdr-status-value">${safeState.confidence}</div>
         </div>
       </div>
+      ${rerouteBtnHtml}
     </div>
   `;
 }
@@ -630,7 +637,8 @@ function clearPDRMarkers() {
 
 function createPDRMarkerGroup(update) {
   const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  group.setAttribute('class', 'pdr-user-marker-root');
+  const isOff = update.isOffRoute || update.isWrongWay;
+  group.setAttribute('class', isOff ? 'pdr-user-marker-root off-route' : 'pdr-user-marker-root');
   group.setAttribute('transform', `translate(${update.x},${update.y}) rotate(${Number.isFinite(update.heading) ? update.heading : 0})`);
 
   const scaleGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -695,7 +703,10 @@ function setSensorPermissionMessage({ title, body, note, enableLabel = 'Enable S
   }
 }
 
+let pdrOffRouteCount = 0;
+
 function preparePDRForRoute(startNode, sessionId, path) {
+  pdrOffRouteCount = 0;
   pdrEngine = new PDREngine({
     startNode,
     nodes: NODES,
@@ -705,17 +716,28 @@ function preparePDRForRoute(startNode, sessionId, path) {
     onPositionUpdate: (update) => {
       pdrLiveState = update;
       renderPDRMarkers();
-      if (update.isOffRoute) {
+      const isOff = update.isOffRoute || update.isWrongWay;
+      if (isOff) {
+        pdrOffRouteCount++;
+        const isWrong = update.isWrongWay;
         renderPDRStatus({
           tone: 'warn',
           badge: 'Off Route',
-          title: 'Looks like you went off route.',
+          title: isWrong ? 'Wrong Direction Detected' : 'Looks like you went off route.',
           copy: `Tracking near ${NODES[update.nearestNode]?.label || 'your route'} on ${getFloorLabel(update.floor)}.`,
           heading: formatHeading(update.heading),
           steps: String(update.stepCount ?? 0),
           confidence: formatConfidence(update.confidence),
+          showRerouteButton: true,
         });
+
+        // Auto-reroute after 3 consecutive off-route/wrong-way steps
+        if (pdrOffRouteCount >= 3) {
+          pdrOffRouteCount = 0;
+          window.recalculateFromCurrentLocation({ auto: true });
+        }
       } else {
+        pdrOffRouteCount = 0;
         renderPDRStatus({
           tone: 'live',
           badge: 'Live',
@@ -724,12 +746,13 @@ function preparePDRForRoute(startNode, sessionId, path) {
           heading: formatHeading(update.heading),
           steps: String(update.stepCount ?? 0),
           confidence: formatConfidence(update.confidence),
+          showRerouteButton: false,
         });
       }
     },
     onFloorChange: ({ toFloor }) => {
       window.switchFloor(toFloor);
-      syncNavFloor(toFloor);
+syncNavFloor(toFloor);
     },
   });
   pdrLiveState = null;
@@ -795,6 +818,31 @@ function stopPDR({ clearStatus = true } = {}) {
   hideSensorPermissionModal();
   if (clearStatus) renderPDRStatus(null);
 }
+
+// ---------------------------------------------------------------------------
+// Recalculate route
+// ---------------------------------------------------------------------------
+window.recalculateFromCurrentLocation = function ({ auto = false } = {}) {
+  if (!pdrLiveState || !pathData || pathData.length === 0) return;
+  const currentNearest = pdrLiveState.nearestNode;
+  const endNodeId = pathData[pathData.length - 1].id;
+  if (!currentNearest || !endNodeId || currentNearest === endNodeId) return;
+
+  const newPath = planRoute({
+    startNode: currentNearest,
+    endNode: endNodeId,
+    nodes: NODES,
+    graph: GRAPH,
+  });
+
+  if (newPath && newPath.length > 0) {
+    const ortho = makeOrthogonalPath(newPath);
+    drawPath(ortho, newPath);
+    if (pdrEngine) pdrEngine.setPath(toPathNodes(newPath));
+    pdrOffRouteCount = 0;
+    toast(auto ? 'Auto-recalculated route from your live position!' : 'Route recalculated!');
+  }
+};
 
 window.enableRouteSensors = async function enableRouteSensors() {
   if (!pdrEngine) return;

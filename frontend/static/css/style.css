@@ -1087,6 +1087,23 @@ input[type="radio"] {
     stroke-linejoin: round;
 }
 
+.pdr-user-marker-root.off-route .pdr-user-halo {
+    fill: rgba(245, 158, 11, 0.25);
+    stroke: rgba(245, 158, 11, 0.8);
+}
+
+.pdr-user-marker-root.off-route .pdr-user-body {
+    stroke: #f59e0b;
+}
+
+.pdr-user-marker-root.off-route .pdr-user-core {
+    fill: #f59e0b;
+}
+
+.pdr-user-marker-root.off-route .pdr-user-arrow {
+    fill: #ef4444;
+}
+
 @keyframes pdrPulse {
     0%,
     100% {

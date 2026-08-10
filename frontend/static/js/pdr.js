@@ -344,10 +344,12 @@ export class PDREngine {
     // confidence descent, so we don't spam the backend.
     this._driftWarnFired = false;
 
-    // ── Off-route state ──────────────────────────────────────────────────
-    // True when the last step's snap distance exceeded PATH_SNAP_RADIUS_UNITS.
-    // Exposed via isOffRoute on every _report() update object.
+    // ── Off-route & wrong-way state ──────────────────────────────────────
+    // True when the last step's snap distance exceeded PATH_SNAP_RADIUS_UNITS
+    // or when the user walked >60° against the segment direction for 2+ steps.
     this._isOffRoute = false;
+    this._wrongWayStepCount = 0;
+    this._isWrongWay = false;
 
     // ── Bound event handlers (stored for removeEventListener) ────────────
     this._motionHandler = this._onMotionEvent.bind(this);
@@ -404,6 +406,19 @@ export class PDREngine {
     window.removeEventListener('devicemotion', this._motionHandler);
     window.removeEventListener('deviceorientation', this._orientHandler);
     this.active = false;
+  }
+
+  /**
+   * Simulates a step manually (useful for laptop testing without physical sensors).
+   * @param {object} [opts]
+   * @param {number} [opts.stepLengthM=0.74]
+   * @param {number} [opts.headingDelta=0] — optional turn angle in degrees
+   */
+  stepSimulated({ stepLengthM = DEFAULT_STEP_LENGTH_M, headingDelta = 0 } = {}) {
+    if (headingDelta !== 0) {
+      this.heading = normalizeHeading(this.heading + headingDelta);
+    }
+    this._step(stepLengthM);
   }
 
   /**
@@ -478,6 +493,8 @@ export class PDREngine {
     this._pdrDistanceSinceCheckpoint = 0;
     this._stepsSinceCheckpoint = 0;
     this._isOffRoute = false; // clear stale off-route flag from previous floor
+    this._wrongWayStepCount = 0;
+    this._isWrongWay = false;
 
     // ── Advance calibration anchor ──────────────────────────────────────
     // Must be set AFTER calibration above reads _prevCheckpointId.
@@ -515,6 +532,9 @@ export class PDREngine {
       y: n.coords[1],
       floor: n.floor,
     }));
+    this._wrongWayStepCount = 0;
+    this._isWrongWay = false;
+    this._isOffRoute = false;
   }
 
   // ── Private: calibration helper ─────────────────────────────────────────
@@ -870,6 +890,9 @@ export class PDREngine {
 
     let bestDist = Infinity;
     let bestPoint = rawPos;
+    let bestSegmentHeadingMismatch = false;
+
+    const adjustedHeading = normalizeHeading(this.heading - MAP_CORRIDOR_BEARING_DEG);
 
     for (let i = 0; i < this._pathNodes.length - 1; i++) {
       const a = this._pathNodes[i];
@@ -884,11 +907,30 @@ export class PDREngine {
       if (d < bestDist) {
         bestDist = d;
         bestPoint = candidate;
+
+        // Heading mismatch check against segment direction (a -> b)
+        const abx = b.x - a.x;
+        const aby = b.y - a.y;
+        if (Math.abs(abx) > 1e-4 || Math.abs(aby) > 1e-4) {
+          const segHeading = normalizeHeading((Math.atan2(abx, -aby) * 180) / Math.PI);
+          const angleDelta = Math.abs(shortestHeadingDelta(adjustedHeading, segHeading));
+          bestSegmentHeadingMismatch = angleDelta > 60;
+        } else {
+          bestSegmentHeadingMismatch = false;
+        }
       }
     }
 
-    // Snap only if within PATH_SNAP_RADIUS_UNITS; otherwise user is off-route.
-    const snapped = bestDist <= PATH_SNAP_RADIUS_UNITS;
+    if (bestSegmentHeadingMismatch) {
+      this._wrongWayStepCount++;
+    } else {
+      this._wrongWayStepCount = Math.max(0, this._wrongWayStepCount - 1);
+    }
+
+    this._isWrongWay = this._wrongWayStepCount >= 2;
+
+    // Snap only if within PATH_SNAP_RADIUS_UNITS AND not walking wrong way
+    const snapped = bestDist <= PATH_SNAP_RADIUS_UNITS && !this._isWrongWay;
     return { point: snapped ? bestPoint : rawPos, distance: bestDist, snapped };
   }
 
@@ -917,8 +959,9 @@ export class PDREngine {
       // Extra fields available to app.js if it wants them
       stepLengthM: this.stepLengthM,
       driftWarning: this.confidence < CONFIDENCE_WARN_THRESHOLD,
-      // isOffRoute: true when the last step could not snap to the planned path
-      isOffRoute: this._isOffRoute,
+      // isOffRoute: true when the last step could not snap or user walking wrong direction
+      isOffRoute: this._isOffRoute || this._isWrongWay,
+      isWrongWay: this._isWrongWay,
     };
 
     if (this._onUpdate) this._onUpdate(update);

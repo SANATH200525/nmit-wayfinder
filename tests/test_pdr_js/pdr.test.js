@@ -460,6 +460,37 @@ test('resetToCheckpoint resets _isOffRoute to false', () => {
 });
 
 // ============================================================================
+// TEST 7 — Option A: Wrong-way detection & stepSimulated
+// ============================================================================
+console.log('\n── TEST 7: Option A (wrong-way detection & stepSimulated) ──');
+
+test('walking 180° opposite route segment triggers isWrongWay after 2 steps', () => {
+  const nodes = makeNodes([
+    { id: 'A', x: 0,  y: 50, floor: 1 },
+    { id: 'B', x: 50, y: 50, floor: 1 }, // segment A->B moves in +X direction (heading=360°/0° north raw -> adjusted=90° East)
+  ]);
+  const engine = makeEngine(nodes, 'A');
+  engine.setPath([
+    { id: 'A', coords: [0,  50], floor: 1 },
+    { id: 'B', coords: [50, 50], floor: 1 },
+  ]);
+
+  // Heading 0° raw = 90° adjusted (East = aligned with segment A->B).
+  // Simulate step facing 180° raw (heading 180° = West = 180° opposite segment)
+  engine.heading = 180;
+  engine._headingInitialized = true;
+  engine._gravityReadyAt = 0;
+
+  // Step 1 wrong direction
+  engine.stepSimulated({ stepLengthM: 0.74 });
+  assert.equal(engine._isWrongWay, false, '1 step wrong way shouldn’t trip flag yet');
+
+  // Step 2 wrong direction
+  engine.stepSimulated({ stepLengthM: 0.74 });
+  assert.equal(engine._isWrongWay, true, '2 consecutive steps wrong way must trigger _isWrongWay: true');
+});
+
+// ============================================================================
 // Summary
 // ============================================================================
 console.log(`\n${'─'.repeat(55)}`);
