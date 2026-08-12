@@ -1,8 +1,0 @@
-commit name : ui changes and initial pdr implementation
-
-
-problems faced and detailed report : 
-
-1. pdr caliberation not done according to the checklist.
-2. css loading issue in local env also. 
-3. repository folder structure issue (pytest cache files issue) 

@@ -117,6 +117,9 @@ def debug_astar(
     graph = build_graph()
     
     def edge_cost(a, b):
+        # NOTE: These cost constants (150, 180) differ from the JS routing.js values
+        # (STAIRS_R_COST=75, STAIRS_L_COST=85, LIFT_COST=120).
+        # This endpoint is a dev/parity-test tool only. Never use it for production routing.
         x1, y1 = NODES[a]['coords']
         x2, y2 = NODES[b]['coords']
         f1 = NODES[a]['floor']

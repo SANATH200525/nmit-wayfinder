@@ -639,7 +639,12 @@ function createPDRMarkerGroup(update) {
   const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   const isOff = update.isOffRoute || update.isWrongWay;
   group.setAttribute('class', isOff ? 'pdr-user-marker-root off-route' : 'pdr-user-marker-root');
-  group.setAttribute('transform', `translate(${update.x},${update.y}) rotate(${Number.isFinite(update.heading) ? update.heading : 0})`);
+  // SVG rotate(angle) is clockwise from the positive-Y axis (down).
+  // The arrow path M0 -2.25... has its tip at (0, -2.25) i.e. pointing UP (−Y).
+  // For a north-up map, rotate(0)=up=north, rotate(90)=right=east, rotate(270)=left=west.
+  // This matches compass convention directly — use heading with no adjustment.
+  const svgHeading = Number.isFinite(update.heading) ? update.heading : 0;
+  group.setAttribute('transform', `translate(${update.x},${update.y}) rotate(${svgHeading})`);
 
   const scaleGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   scaleGroup.setAttribute('class', 'pdr-user-marker-scale');
@@ -703,6 +708,10 @@ function setSensorPermissionMessage({ title, body, note, enableLabel = 'Enable S
   }
 }
 
+// When false, auto-reroute is disabled — the off-route warning card and manual
+// "Recalculate" button still work. Set true to re-enable after field validation.
+const AUTO_REROUTE_ENABLED = false;
+
 let pdrOffRouteCount = 0;
 
 function preparePDRForRoute(startNode, sessionId, path) {
@@ -731,23 +740,41 @@ function preparePDRForRoute(startNode, sessionId, path) {
           showRerouteButton: true,
         });
 
-        // Auto-reroute after 3 consecutive off-route/wrong-way steps
-        if (pdrOffRouteCount >= 3) {
+        // Auto-reroute after 3 consecutive off-route/wrong-way steps.
+        // Disabled per field-testing feedback — auto-reroute felt premature before
+        // the user had a chance to self-correct. Manual button remains available.
+        if (AUTO_REROUTE_ENABLED && pdrOffRouteCount >= 3) {
           pdrOffRouteCount = 0;
           window.recalculateFromCurrentLocation({ auto: true });
         }
       } else {
         pdrOffRouteCount = 0;
-        renderPDRStatus({
-          tone: 'live',
-          badge: 'Live',
-          title: 'Motion pointer active',
-          copy: `Tracking near ${NODES[update.nearestNode]?.label || 'your route'} on ${getFloorLabel(update.floor)}.`,
-          heading: formatHeading(update.heading),
-          steps: String(update.stepCount ?? 0),
-          confidence: formatConfidence(update.confidence),
-          showRerouteButton: false,
-        });
+        // headingReliable: false means the device returned non-absolute alpha data
+        // (plain 'deviceorientation' on older Android). Switch to a warn tone so
+        // the user knows the pointer direction may be inaccurate on this device.
+        if (update.headingReliable === false) {
+          renderPDRStatus({
+            tone: 'warn',
+            badge: 'Heading Unreliable',
+            title: 'Compass heading may be inaccurate',
+            copy: 'This device is not providing absolute compass data. The pointer direction may drift. Position tracking continues.',
+            heading: formatHeading(update.heading),
+            steps: String(update.stepCount ?? 0),
+            confidence: formatConfidence(update.confidence),
+            showRerouteButton: false,
+          });
+        } else {
+          renderPDRStatus({
+            tone: 'live',
+            badge: 'Live',
+            title: 'Motion pointer active',
+            copy: `Tracking near ${NODES[update.nearestNode]?.label || 'your route'} on ${getFloorLabel(update.floor)}.`,
+            heading: formatHeading(update.heading),
+            steps: String(update.stepCount ?? 0),
+            confidence: formatConfidence(update.confidence),
+            showRerouteButton: false,
+          });
+        }
       }
     },
     onFloorChange: ({ toFloor }) => {

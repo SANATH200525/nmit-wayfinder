@@ -31,15 +31,19 @@
  * entrance toward the far end of the main corridor (into the building, westward).
  * Measured physically at NMIT main entrance: 270° (due west).
  *
- * HOW THIS IS USED:
- *   SVG uses standard screen axes: X increases right, Y increases downward.
- *   Magnetic north (0°) maps to "up" on screen, i.e. negative-Y direction.
- *   When the user faces MAP_CORRIDOR_BEARING_DEG (270°, west), they are moving
- *   in the negative-X direction on the SVG (left across the screen).
- *   The conversion is:
- *     svgAngle = compassHeading - MAP_CORRIDOR_BEARING_DEG + 270  (mod 360)
- *   which rotates the coordinate frame so that the corridor axis is +X.
- *   See _compassToSVGDelta() for the full derivation.
+ * DOCUMENTARY ONLY — NOT applied in _compassToSVGDelta().
+ *
+ * Rationale:
+ *   The NMIT floor plan SVG is drawn north-up: +X is east, −X is west,
+ *   −Y is north, +Y is south. This matches the standard compass-to-SVG
+ *   mapping exactly:
+ *     heading 0°  (north) → −Y (up the screen)
+ *     heading 90° (east)  → +X (right)
+ *     heading 180°(south) → +Y (down)
+ *     heading 270°(west)  → −X (left)
+ *   The standard formula dx=sin(h), dy=−cos(h) already gives the correct
+ *   SVG delta. Subtracting MAP_CORRIDOR_BEARING_DEG before the trig would
+ *   rotate every output 90° clockwise, which is wrong.
  */
 const MAP_CORRIDOR_BEARING_DEG = 270;
 
@@ -120,9 +124,10 @@ const POST_IMMEDIATE_EVENTS = new Set(['calibration', 'error', 'drift_warning'])
  * PDR_DEBUG
  * Set to true to enable console logging inside _step() for walk-testing.
  * Logs: raw heading, adjusted heading, rawPos pre-snap, final snapped position,
- * path node count, and isOffRoute. Remove or set false before shipping.
+ * path node count, and isOffRoute. MUST be false in production — every step
+ * fires a console.log at ~60 Hz, which is visible to all users in DevTools.
  */
-const PDR_DEBUG = true;
+const PDR_DEBUG = false;
 
 // ---------------------------------------------------------------------------
 // Pure utility functions
@@ -351,6 +356,17 @@ export class PDREngine {
     this._wrongWayStepCount = 0;
     this._isWrongWay = false;
 
+    // ── Heading reliability tracking ──────────────────────────────────────
+    // Set to true when we receive non-absolute orientation data (relative alpha
+    // only, no webkitCompassHeading). Exposed in _report() as headingReliable: false
+    // so the UI can warn the user that the live pointer direction may be inaccurate.
+    this._headingIsRelative = false;
+
+    // ── Orientation event name (set in start()) ───────────────────────────
+    // Stores which of 'deviceorientationabsolute' / 'deviceorientation' was
+    // actually registered so stop() can removeEventListener with the same name.
+    this._orientationEventName = 'deviceorientation';
+
     // ── Bound event handlers (stored for removeEventListener) ────────────
     this._motionHandler = this._onMotionEvent.bind(this);
     this._orientHandler = this._onOrientEvent.bind(this);
@@ -387,7 +403,19 @@ export class PDREngine {
     }
 
     window.addEventListener('devicemotion', this._motionHandler, { passive: true });
-    window.addEventListener('deviceorientation', this._orientHandler, { passive: true });
+
+    // Prefer 'deviceorientationabsolute' (Chrome 50+ on Android): its alpha is
+    // always magnetic-north-referenced (event.absolute === true).
+    // Plain 'deviceorientation' on many Android devices fires with event.absolute === false,
+    // meaning alpha is zeroed at listener-start rather than at magnetic north — two phones
+    // held identically but started at different moments will report different alpha values.
+    // iOS is unaffected because it exposes webkitCompassHeading which is always absolute,
+    // but we still try the absolute event first for uniformity.
+    const orientEventName = ('ondeviceorientationabsolute' in window)
+      ? 'deviceorientationabsolute'
+      : 'deviceorientation';
+    this._orientationEventName = orientEventName;
+    window.addEventListener(orientEventName, this._orientHandler, { passive: true });
 
     this.active = true;
 
@@ -404,7 +432,7 @@ export class PDREngine {
    */
   stop() {
     window.removeEventListener('devicemotion', this._motionHandler);
-    window.removeEventListener('deviceorientation', this._orientHandler);
+    window.removeEventListener(this._orientationEventName || 'deviceorientation', this._orientHandler);
     this.active = false;
   }
 
@@ -720,6 +748,23 @@ export class PDREngine {
     const rawHeading = extractHeading(event);
     if (rawHeading === null) return;
 
+    // Track whether we are receiving absolute (magnetic-north-referenced) data.
+    //   webkitCompassHeading  — iOS Safari, always absolute.
+    //   event.absolute===true — 'deviceorientationabsolute' on Chrome/Android.
+    //   event.absolute===false — plain 'deviceorientation' on Android: alpha is
+    //     relative to the device orientation at the moment addEventListener was
+    //     called, NOT to magnetic north. Two phones held identically but whose
+    //     listeners started at different times will report different values —
+    //     this is the field-tested inconsistency.
+    // NOTE: after switching to 'deviceorientationabsolute' (see start()), this
+    // branch should only fire on older Android browsers that lack the absolute
+    // event. On those devices the pointer direction will still be unreliable;
+    // the flag makes that visible to the UI rather than silently wrong.
+    const isAbsolute =
+      (typeof event.webkitCompassHeading === 'number' && Number.isFinite(event.webkitCompassHeading)) ||
+      event.absolute === true;
+    this._headingIsRelative = !isAbsolute;
+
     if (!this._headingInitialized) {
       this.heading = rawHeading;
       this._headingInitialized = true;
@@ -855,13 +900,21 @@ export class PDREngine {
    * @returns {{ dx: number, dy: number, adjustedHeading: number }}
    */
   _compassToSVGDelta(headingDeg, distUnits) {
-    // Rotate magnetic heading into SVG map frame (floorplan is not north-up).
-    const adjustedHeading = normalizeHeading(headingDeg - MAP_CORRIDOR_BEARING_DEG);
-    const rad = (adjustedHeading * Math.PI) / 180;
+    // The NMIT floorplan SVG is north-up (+X = east, −X = west, −Y = north, +Y = south).
+    // Standard compass-to-SVG formula applies directly — no frame rotation needed:
+    //
+    //   heading 0°  (north) → dx = sin(0)=0,    dy = −cos(0)=−1  → moves UP   (−Y) ✓
+    //   heading 90° (east)  → dx = sin(90)=1,   dy = −cos(90)=0  → moves RIGHT (+X) ✓
+    //   heading 180°(south) → dx = sin(180)=0,  dy = −cos(180)=1 → moves DOWN  (+Y) ✓
+    //   heading 270°(west)  → dx = sin(270)=−1, dy = −cos(270)=0 → moves LEFT  (−X) ✓
+    //
+    // MAP_CORRIDOR_BEARING_DEG (270) is documentary only and is NOT subtracted here.
+    // Subtracting it would rotate every output 90° clockwise, producing wrong directions.
+    const rad = (headingDeg * Math.PI) / 180;
     return {
       dx: distUnits * Math.sin(rad),
       dy: distUnits * (-Math.cos(rad)),
-      adjustedHeading,
+      adjustedHeading: headingDeg,
     };
   }
 
@@ -892,7 +945,10 @@ export class PDREngine {
     let bestPoint = rawPos;
     let bestSegmentHeadingMismatch = false;
 
-    const adjustedHeading = normalizeHeading(this.heading - MAP_CORRIDOR_BEARING_DEG);
+    // Compare compass heading directly with segment heading (both in north-up convention).
+    // No MAP_CORRIDOR_BEARING_DEG subtraction — that would rotate the mismatch check
+    // by 90° relative to the actual segment direction.
+    const adjustedHeading = normalizeHeading(this.heading);
 
     for (let i = 0; i < this._pathNodes.length - 1; i++) {
       const a = this._pathNodes[i];
@@ -962,6 +1018,9 @@ export class PDREngine {
       // isOffRoute: true when the last step could not snap or user walking wrong direction
       isOffRoute: this._isOffRoute || this._isWrongWay,
       isWrongWay: this._isWrongWay,
+      // headingReliable: false when the device is providing only relative-alpha data
+      // (non-absolute Android orientation). The UI should surface a warning to the user.
+      headingReliable: !this._headingIsRelative,
     };
 
     if (this._onUpdate) this._onUpdate(update);

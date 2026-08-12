@@ -91,7 +91,7 @@ function computePathDistance(path) {
   for (let i = 1; i < path.length; i++) {
     const dx = path[i].x - path[i-1].x;
     const dy = path[i].y - path[i-1].y;
-    total += Math.sqrt(dx*dx + dy*dy) * 0.5; // COORD_TO_METERS = 0.5
+    total += Math.sqrt(dx*dx + dy*dy) * 0.51; // COORD_TO_METERS — must match app.js and pdr.js
   }
   return Math.round(total);
 }

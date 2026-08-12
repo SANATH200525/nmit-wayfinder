@@ -328,14 +328,13 @@ function makeStepEngine(startX, headingDeg) {
   return engine;
 }
 
-// MAP_CORRIDOR_BEARING_DEG = 270.
-// To produce a pure +X delta: adjustedHeading must be 90 (east).
-// adjustedHeading = normalizeHeading(rawHeading - 270).
-// So rawHeading = 270 + 90 = 360 normalises to 0.
-// heading 0 -> adjustedHeading = 360-270=90 -> dx = dist*sin(90)=dist, dy=0. Correct.
+// With the coordinate frame fix, the standard formula applies directly:
+// heading 90° (east) → dx = sin(90°)=+1 (east, +X direction).
+// heading 0° (north) → dy = -cos(0°)=-1 (up, -Y direction), no X movement.
+// Tests use heading=90 to push the dot eastward toward the x=100 boundary.
 
 test('_step at boundary: position.x clamped to 100', () => {
-  const engine = makeStepEngine(99, 0); // heading 0 -> adjusted 90 -> east (+X)
+  const engine = makeStepEngine(99, 90); // heading 90 (east) -> dx = +dist -> hits x=100
   engine._step(0.74);
   assert.ok(engine.position.x <= 100,
     `x should be <=100; got ${engine.position.x.toFixed(4)}`);
@@ -346,8 +345,8 @@ test('_step at boundary: _pdrDistanceSinceCheckpoint << deltaUnits when clamped'
   const stepLengthM = 0.74;
   const deltaUnits = stepLengthM / COORD_TO_METERS; // ~1.45
 
-  // x=99.9: raw step pushes x to ~101.35, clamped to 100, effectiveDX=0.1
-  const engine = makeStepEngine(99.9, 0);
+  // x=99.9, heading=90 (east): raw step pushes x to ~101.35, clamped to 100, effectiveDX≈0.1
+  const engine = makeStepEngine(99.9, 90);
   engine._pdrDistanceSinceCheckpoint = 0;
   engine._step(stepLengthM);
 
@@ -363,7 +362,7 @@ test('_step mid-map (no clamping): accumulation equals deltaUnits exactly', () =
   const stepLengthM = 0.74;
   const deltaUnits = stepLengthM / COORD_TO_METERS;
 
-  const engine = makeStepEngine(50, 0); // well inside boundary
+  const engine = makeStepEngine(50, 90); // heading 90 (east), well inside boundary
   engine._pdrDistanceSinceCheckpoint = 0;
   engine._step(stepLengthM);
 
