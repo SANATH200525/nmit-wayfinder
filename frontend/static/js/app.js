@@ -1063,7 +1063,6 @@ function computeCheckpoints(logicalPath) {
 
   function addCheckpoint(node) {
     if (!node) return;
-    if (NODES[node.id]?.is_waypoint) return;
     const isVertical = nodeType(node.id) === 'lift' || nodeType(node.id) === 'stairs';
     const key = isVertical ? `${node.id}::${node.segment ?? 0}` : node.id;
     if (addedIds.has(key)) return;
@@ -1073,7 +1072,6 @@ function computeCheckpoints(logicalPath) {
   for (let i = 1; i < logicalPath.length - 1; i++) {
     const curr = logicalPath[i], next = logicalPath[i + 1];
     const currType = nodeType(curr.id);
-    if (NODES[curr.id]?.is_waypoint) continue;
     if (next && curr.floor !== next.floor) {
       const isLift = currType === 'lift', isStairs = currType === 'stairs';
       if (isLift || isStairs) {
@@ -1085,11 +1083,12 @@ function computeCheckpoints(logicalPath) {
       }
       continue;
     }
+    const isExplicitCheckpoint = curr.id.toLowerCase().includes('checkpoint') || NODES[curr.id]?.is_waypoint;
     const isUserStop = stopIds.includes(curr.id);
     const isStopNode = currType !== 'lift' && currType !== 'stairs' &&
       curr.id !== logicalPath[0].id && curr.id !== logicalPath[logicalPath.length - 1].id;
     const degree = (window.nodeDegrees && window.nodeDegrees[curr.id]) || 0;
-    if (isStopNode && (isUserStop || degree >= 3)) addCheckpoint(curr);
+    if (isExplicitCheckpoint || (isStopNode && (isUserStop || degree >= 3))) addCheckpoint(curr);
   }
   const last = logicalPath[logicalPath.length - 1];
   if (!addedIds.has(last.id)) result.push(last);

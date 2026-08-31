@@ -1,11 +1,11 @@
-const CACHE_NAME = 'nmit-wayfinder-v14';
+const CACHE_NAME = 'nmit-wayfinder-v15';
 import { openOfflineDB } from './js/db-helper.js';
 
 const FLOOR_PLANS = [
-  '/static/floor1.png',
-  '/static/floor2.png',
-  '/static/floor3.png',
-  '/static/floor4.png',
+  '/static/floor1-updated.png',
+  '/static/floor2-updated.png',
+  '/static/floor3-updated.png',
+  '/static/floor4-updated.png',
 ];
 
 // Pre-cached on install — must all be available offline

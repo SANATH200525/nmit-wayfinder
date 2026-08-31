@@ -1,1 +1,983 @@
-{"NODES": {"MAINENTRANCE-GF": {"coords": [77, 58], "floor": 1, "label": "Main Entrance", "category": "Entrance", "type": "room"}, "OFFICE-GF": {"coords": [73, 42], "floor": 1, "label": "Office", "category": "Offices", "type": "room"}, "ADMIN-GF": {"coords": [75, 63], "floor": 1, "label": "Admin Office", "category": "Offices", "type": "room"}, "TUTORIAL-GF": {"coords": [68, 62], "floor": 1, "label": "Tutorial Room", "category": "Rooms", "type": "room"}, "CONFERENCEROOM1-GF": {"coords": [49, 58], "floor": 1, "label": "Conference Room 1", "category": "Rooms", "type": "room"}, "CONFERENCEROOM2-GF": {"coords": [53, 58], "floor": 1, "label": "Conference Room 2", "category": "Rooms", "type": "room"}, "COMPUTERLAB-GF": {"coords": [44, 59], "floor": 1, "label": "Computer Lab", "category": "Labs & Rooms", "type": "room"}, "CLASSROOM-GF": {"coords": [34, 58], "floor": 1, "label": "Classroom", "category": "Rooms", "type": "room"}, "LIBRARY-GF": {"coords": [24, 59], "floor": 1, "label": "Library", "category": "Offices", "type": "room"}, "PRINCIPALROOM-GF": {"coords": [20, 59], "floor": 1, "label": "Principal's Room", "category": "Offices", "type": "room"}, "RESTROOMS-GF": {"coords": [14, 56], "floor": 1, "label": "Restrooms", "category": "Restrooms", "type": "room"}, "LIFT-GF": {"coords": [72, 52], "floor": 1, "label": "Lift (Ground Floor)", "category": "Lift & Stairs", "type": "lift"}, "CURVEDSTAIRS-GF": {"coords": [77, 43], "floor": 1, "label": "Curved Stairs (Ground Floor)", "category": "Lift & Stairs", "type": "stairs", "stairs_kind": "curved"}, "STAIRSEND-GF": {"coords": [11, 55], "floor": 1, "label": "Stairs End (Ground Floor)", "category": "Lift & Stairs", "type": "stairs", "stairs_kind": "straight"}, "HALLWAY-TURNPOINT-1-GF": {"coords": [74, 58], "floor": 1, "label": "GF Turn 1", "is_waypoint": true, "type": "hallway"}, "HALLWAY-TURNPOINT-2-GF": {"coords": [39, 59], "floor": 1, "label": "GF Turn 2", "is_waypoint": true, "type": "hallway"}, "HALLWAY-TURNPOINT-3-GF": {"coords": [12, 60], "floor": 1, "label": "GF Turn 3 (End)", "is_waypoint": true, "type": "hallway"}, "MEDIAUNIT-1F": {"coords": [71, 42], "floor": 2, "label": "Media Unit", "category": "Rooms", "type": "room"}, "BALCONY-1F": {"coords": [75, 60], "floor": 2, "label": "Balcony", "category": "Rooms", "dead_end": true, "type": "room"}, "ROOM1-1F": {"coords": [66, 64], "floor": 2, "label": "Room 1", "category": "Rooms", "type": "room"}, "SEMINARHALL-1F": {"coords": [55, 62], "floor": 2, "label": "Seminar Hall", "category": "Labs & Rooms", "type": "room"}, "DESIGNLAB-1F": {"coords": [52, 58], "floor": 2, "label": "Design Thinking Lab", "category": "Labs & Rooms", "type": "room"}, "UPSROOM-1F": {"coords": [47, 60], "floor": 2, "label": "UPS Room", "category": "Rooms", "type": "room"}, "STAFFROOM1-1F": {"coords": [33, 60], "floor": 2, "label": "Staff Room 1", "category": "Offices", "type": "room"}, "STAFFROOM2-1F": {"coords": [36, 30], "floor": 2, "label": "Staff Room 2", "category": "Offices", "type": "room"}, "ROOM3-1F": {"coords": [37, 27], "floor": 2, "label": "Room 3", "category": "Rooms", "type": "room"}, "BOARDROOM-1F": {"coords": [22, 61], "floor": 2, "label": "Board Room", "category": "Rooms", "type": "room"}, "ROOM2-1F": {"coords": [19, 61], "floor": 2, "label": "Room 2", "category": "Rooms", "type": "room"}, "RESTROOMS-1F": {"coords": [13, 57], "floor": 2, "label": "Restrooms", "category": "Restrooms", "type": "room"}, "LIFT-1F": {"coords": [69, 53], "floor": 2, "label": "Lift (First Floor)", "category": "Lift & Stairs", "type": "lift"}, "CURVEDSTAIRS-1F": {"coords": [74, 42], "floor": 2, "label": "Curved Stairs (First Floor)", "category": "Lift & Stairs", "type": "stairs", "stairs_kind": "curved"}, "STAIRSEND-1F": {"coords": [9, 58], "floor": 2, "label": "Stairs End (First Floor)", "category": "Lift & Stairs", "type": "stairs", "stairs_kind": "straight"}, "HALLWAY-TURNPOINT-1-1F": {"coords": [72, 59], "floor": 2, "label": "1F Turn 1", "is_waypoint": true, "type": "hallway"}, "HALLWAY-TURNPOINT-2-1F": {"coords": [36, 59], "floor": 2, "label": "1F Turn 2", "is_waypoint": true, "type": "hallway"}, "HALLWAY-TURNPOINT-3-1F": {"coords": [11, 62], "floor": 2, "label": "1F Turn 3 (End)", "is_waypoint": true, "type": "hallway"}, "PASSAGEWAY-1F": {"coords": [36, 59], "floor": 2, "label": "1F Passageway Entry", "is_waypoint": true, "type": "hallway"}, "PASSAGEWAY-1F-TOP": {"coords": [36, 43], "floor": 2, "label": "1F Passageway Top", "is_waypoint": true, "type": "hallway"}, "ALUMNIRELATIONSOFFICE-2F": {"coords": [67, 42], "floor": 3, "label": "Alumni Relations Office", "category": "Offices", "type": "room"}, "STUDENTCOUNCILROOM-2F": {"coords": [67, 61], "floor": 3, "label": "Student Council Room", "category": "Rooms", "type": "room"}, "CORPORATERELATIONSDEPT-2F": {"coords": [70, 61], "floor": 3, "label": "Corporate Relations Department", "category": "Offices", "type": "room"}, "CASESTUDYLAB1-2F": {"coords": [45, 58], "floor": 3, "label": "Case Study Lab 1", "category": "Labs & Rooms", "type": "room"}, "CASESTUDYLAB2-2F": {"coords": [50, 58], "floor": 3, "label": "Case Study Lab 2", "category": "Labs & Rooms", "type": "room"}, "RESEARCHDEPT-2F": {"coords": [40, 60], "floor": 3, "label": "Research & Publication Centre", "category": "Offices", "type": "room"}, "FACULTYLOUNGE-2F": {"coords": [31, 58], "floor": 3, "label": "Faculty Lounge", "category": "Offices", "type": "room"}, "ENTREPRENEURSHIPCELL-2F": {"coords": [21, 60], "floor": 3, "label": "Entrepreneurship Cell", "category": "Offices", "type": "room"}, "PLACEMENTCELL-2F": {"coords": [18, 61], "floor": 3, "label": "Placement Cell & Career Counseling", "category": "Offices", "type": "room"}, "RESTROOMS-2F": {"coords": [13, 57], "floor": 3, "label": "Restrooms", "category": "Restrooms", "type": "room"}, "LIFT-2F": {"coords": [66, 52], "floor": 3, "label": "Lift (Second Floor)", "category": "Lift & Stairs", "type": "lift"}, "CURVEDSTAIRS-2F": {"coords": [70, 43], "floor": 3, "label": "Curved Stairs (Second Floor)", "category": "Lift & Stairs", "type": "stairs", "stairs_kind": "curved"}, "STAIRSEND-2F": {"coords": [9, 57], "floor": 3, "label": "Stairs End (Second Floor)", "category": "Lift & Stairs", "type": "stairs", "stairs_kind": "straight"}, "HALLWAY-TURNPOINT-1-2F": {"coords": [69, 57], "floor": 3, "label": "2F Turn 1", "is_waypoint": true, "type": "hallway"}, "HALLWAY-TURNPOINT-2-2F": {"coords": [11, 60], "floor": 3, "label": "2F Turn 2 (End)", "is_waypoint": true, "type": "hallway"}, "HALLWAY-TURNPOINT-3-2F": {"coords": [40, 58], "floor": 3, "label": "2F Turn 3", "is_waypoint": true, "type": "hallway"}, "ROOM1-3F": {"coords": [33, 59], "floor": 4, "label": "Room 1", "category": "Rooms", "type": "room"}, "ROOM2-3F": {"coords": [47, 59], "floor": 4, "label": "Room 2", "category": "Rooms", "type": "room"}, "ROOM3-3F": {"coords": [52, 59], "floor": 4, "label": "Room 3", "category": "Rooms", "type": "room"}, "ROOM4-3F": {"coords": [70, 43], "floor": 4, "label": "Room 4", "category": "Rooms", "type": "room"}, "RESTROOMS-3F": {"coords": [13, 57], "floor": 4, "label": "Restrooms", "category": "Restrooms", "type": "room"}, "LIFT-3F": {"coords": [69, 53], "floor": 4, "label": "Lift (Third Floor)", "category": "Lift & Stairs", "type": "lift"}, "CURVEDSTAIRS-3F": {"coords": [74, 43], "floor": 4, "label": "Curved Stairs (Third Floor)", "category": "Lift & Stairs", "type": "stairs", "stairs_kind": "curved"}, "STAIRSEND-3F": {"coords": [9, 57], "floor": 4, "label": "Stairs End (Third Floor)", "category": "Lift & Stairs", "type": "stairs", "stairs_kind": "straight"}, "HALLWAY-TURNPOINT-1-3F": {"coords": [72, 58], "floor": 4, "label": "3F Turn 1", "is_waypoint": true, "type": "hallway"}, "HALLWAY-TURNPOINT-2-3F": {"coords": [12, 60], "floor": 4, "label": "3F Turn 2 (End)", "is_waypoint": true, "type": "hallway"}, "HALLWAY-TURNPOINT-3-3F": {"coords": [41, 59], "floor": 4, "label": "3F Turn 3", "is_waypoint": true, "type": "hallway"}}, "GRAPH": {"MAINENTRANCE-GF": ["HALLWAY-TURNPOINT-1-GF", "HALLWAY-TURNPOINT-2-GF"], "OFFICE-GF": ["HALLWAY-TURNPOINT-1-GF", "HALLWAY-TURNPOINT-2-GF"], "ADMIN-GF": ["HALLWAY-TURNPOINT-1-GF", "HALLWAY-TURNPOINT-2-GF"], "TUTORIAL-GF": ["HALLWAY-TURNPOINT-1-GF", "HALLWAY-TURNPOINT-2-GF"], "CONFERENCEROOM1-GF": ["HALLWAY-TURNPOINT-2-GF", "HALLWAY-TURNPOINT-1-GF"], "CONFERENCEROOM2-GF": ["HALLWAY-TURNPOINT-2-GF", "HALLWAY-TURNPOINT-1-GF"], "COMPUTERLAB-GF": ["HALLWAY-TURNPOINT-2-GF", "HALLWAY-TURNPOINT-1-GF"], "CLASSROOM-GF": ["PRINCIPALROOM-GF", "HALLWAY-TURNPOINT-2-GF", "HALLWAY-TURNPOINT-3-GF"], "LIBRARY-GF": ["HALLWAY-TURNPOINT-3-GF", "HALLWAY-TURNPOINT-2-GF"], "PRINCIPALROOM-GF": ["CLASSROOM-GF", "HALLWAY-TURNPOINT-3-GF", "HALLWAY-TURNPOINT-2-GF"], "RESTROOMS-GF": ["HALLWAY-TURNPOINT-3-GF"], "LIFT-GF": ["HALLWAY-TURNPOINT-1-GF", "LIFT-1F"], "CURVEDSTAIRS-GF": ["HALLWAY-TURNPOINT-1-GF", "CURVEDSTAIRS-1F"], "STAIRSEND-GF": ["HALLWAY-TURNPOINT-3-GF", "STAIRSEND-1F"], "HALLWAY-TURNPOINT-1-GF": ["HALLWAY-TURNPOINT-2-GF", "MAINENTRANCE-GF", "OFFICE-GF", "ADMIN-GF", "TUTORIAL-GF", "CONFERENCEROOM1-GF", "CONFERENCEROOM2-GF", "COMPUTERLAB-GF", "LIFT-GF", "CURVEDSTAIRS-GF"], "HALLWAY-TURNPOINT-2-GF": ["HALLWAY-TURNPOINT-3-GF", "HALLWAY-TURNPOINT-1-GF", "MAINENTRANCE-GF", "OFFICE-GF", "ADMIN-GF", "TUTORIAL-GF", "CONFERENCEROOM1-GF", "CONFERENCEROOM2-GF", "COMPUTERLAB-GF", "CLASSROOM-GF", "LIBRARY-GF", "PRINCIPALROOM-GF"], "HALLWAY-TURNPOINT-3-GF": ["HALLWAY-TURNPOINT-2-GF", "RESTROOMS-GF", "STAIRSEND-GF", "CLASSROOM-GF", "LIBRARY-GF", "PRINCIPALROOM-GF"], "MEDIAUNIT-1F": ["HALLWAY-TURNPOINT-1-1F", "HALLWAY-TURNPOINT-2-1F"], "BALCONY-1F": ["LIFT-1F", "HALLWAY-TURNPOINT-1-1F"], "ROOM1-1F": ["HALLWAY-TURNPOINT-1-1F", "HALLWAY-TURNPOINT-2-1F"], "SEMINARHALL-1F": ["HALLWAY-TURNPOINT-1-1F", "HALLWAY-TURNPOINT-2-1F"], "DESIGNLAB-1F": ["HALLWAY-TURNPOINT-2-1F", "HALLWAY-TURNPOINT-1-1F"], "UPSROOM-1F": ["HALLWAY-TURNPOINT-2-1F", "HALLWAY-TURNPOINT-1-1F"], "STAFFROOM1-1F": ["HALLWAY-TURNPOINT-2-1F", "HALLWAY-TURNPOINT-3-1F"], "STAFFROOM2-1F": ["PASSAGEWAY-1F-TOP"], "ROOM3-1F": ["PASSAGEWAY-1F-TOP"], "BOARDROOM-1F": ["HALLWAY-TURNPOINT-3-1F", "HALLWAY-TURNPOINT-2-1F"], "ROOM2-1F": ["HALLWAY-TURNPOINT-3-1F", "HALLWAY-TURNPOINT-2-1F"], "RESTROOMS-1F": ["HALLWAY-TURNPOINT-3-1F"], "LIFT-1F": ["HALLWAY-TURNPOINT-1-1F", "BALCONY-1F", "LIFT-GF", "LIFT-2F"], "CURVEDSTAIRS-1F": ["HALLWAY-TURNPOINT-1-1F", "CURVEDSTAIRS-GF", "CURVEDSTAIRS-2F"], "STAIRSEND-1F": ["HALLWAY-TURNPOINT-3-1F", "STAIRSEND-GF", "STAIRSEND-2F"], "HALLWAY-TURNPOINT-1-1F": ["HALLWAY-TURNPOINT-2-1F", "MEDIAUNIT-1F", "ROOM1-1F", "SEMINARHALL-1F", "DESIGNLAB-1F", "UPSROOM-1F", "LIFT-1F", "CURVEDSTAIRS-1F", "BALCONY-1F"], "HALLWAY-TURNPOINT-2-1F": ["HALLWAY-TURNPOINT-3-1F", "HALLWAY-TURNPOINT-1-1F", "PASSAGEWAY-1F", "MEDIAUNIT-1F", "ROOM1-1F", "SEMINARHALL-1F", "DESIGNLAB-1F", "UPSROOM-1F", "STAFFROOM1-1F", "BOARDROOM-1F", "ROOM2-1F"], "HALLWAY-TURNPOINT-3-1F": ["HALLWAY-TURNPOINT-2-1F", "RESTROOMS-1F", "STAIRSEND-1F", "STAFFROOM1-1F", "BOARDROOM-1F", "ROOM2-1F"], "PASSAGEWAY-1F": ["HALLWAY-TURNPOINT-2-1F", "PASSAGEWAY-1F-TOP"], "PASSAGEWAY-1F-TOP": ["PASSAGEWAY-1F", "STAFFROOM2-1F", "ROOM3-1F"], "ALUMNIRELATIONSOFFICE-2F": ["HALLWAY-TURNPOINT-1-2F", "HALLWAY-TURNPOINT-3-2F"], "STUDENTCOUNCILROOM-2F": ["HALLWAY-TURNPOINT-1-2F", "HALLWAY-TURNPOINT-3-2F"], "CORPORATERELATIONSDEPT-2F": ["HALLWAY-TURNPOINT-1-2F", "HALLWAY-TURNPOINT-3-2F"], "CASESTUDYLAB1-2F": ["HALLWAY-TURNPOINT-3-2F", "HALLWAY-TURNPOINT-1-2F"], "CASESTUDYLAB2-2F": ["HALLWAY-TURNPOINT-3-2F", "HALLWAY-TURNPOINT-1-2F"], "RESEARCHDEPT-2F": ["HALLWAY-TURNPOINT-3-2F", "HALLWAY-TURNPOINT-2-2F"], "FACULTYLOUNGE-2F": ["HALLWAY-TURNPOINT-3-2F", "HALLWAY-TURNPOINT-2-2F"], "ENTREPRENEURSHIPCELL-2F": ["HALLWAY-TURNPOINT-2-2F", "HALLWAY-TURNPOINT-3-2F"], "PLACEMENTCELL-2F": ["HALLWAY-TURNPOINT-2-2F", "HALLWAY-TURNPOINT-3-2F"], "RESTROOMS-2F": ["HALLWAY-TURNPOINT-2-2F"], "LIFT-2F": ["HALLWAY-TURNPOINT-1-2F", "LIFT-1F", "LIFT-3F"], "CURVEDSTAIRS-2F": ["HALLWAY-TURNPOINT-1-2F", "CURVEDSTAIRS-1F", "CURVEDSTAIRS-3F"], "STAIRSEND-2F": ["HALLWAY-TURNPOINT-2-2F", "STAIRSEND-1F", "STAIRSEND-3F"], "HALLWAY-TURNPOINT-1-2F": ["HALLWAY-TURNPOINT-3-2F", "ALUMNIRELATIONSOFFICE-2F", "STUDENTCOUNCILROOM-2F", "CORPORATERELATIONSDEPT-2F", "CASESTUDYLAB1-2F", "CASESTUDYLAB2-2F", "LIFT-2F", "CURVEDSTAIRS-2F"], "HALLWAY-TURNPOINT-2-2F": ["HALLWAY-TURNPOINT-3-2F", "RESTROOMS-2F", "STAIRSEND-2F", "RESEARCHDEPT-2F", "FACULTYLOUNGE-2F", "ENTREPRENEURSHIPCELL-2F", "PLACEMENTCELL-2F"], "HALLWAY-TURNPOINT-3-2F": ["HALLWAY-TURNPOINT-2-2F", "HALLWAY-TURNPOINT-1-2F", "ALUMNIRELATIONSOFFICE-2F", "STUDENTCOUNCILROOM-2F", "CORPORATERELATIONSDEPT-2F", "CASESTUDYLAB1-2F", "CASESTUDYLAB2-2F", "RESEARCHDEPT-2F", "FACULTYLOUNGE-2F", "ENTREPRENEURSHIPCELL-2F", "PLACEMENTCELL-2F"], "ROOM1-3F": ["HALLWAY-TURNPOINT-3-3F", "HALLWAY-TURNPOINT-2-3F"], "ROOM2-3F": ["HALLWAY-TURNPOINT-3-3F", "HALLWAY-TURNPOINT-1-3F"], "ROOM3-3F": ["HALLWAY-TURNPOINT-3-3F", "HALLWAY-TURNPOINT-1-3F"], "ROOM4-3F": ["HALLWAY-TURNPOINT-1-3F", "HALLWAY-TURNPOINT-3-3F"], "RESTROOMS-3F": ["HALLWAY-TURNPOINT-2-3F"], "LIFT-3F": ["HALLWAY-TURNPOINT-1-3F", "LIFT-2F"], "CURVEDSTAIRS-3F": ["HALLWAY-TURNPOINT-1-3F", "CURVEDSTAIRS-2F"], "STAIRSEND-3F": ["HALLWAY-TURNPOINT-2-3F", "STAIRSEND-2F"], "HALLWAY-TURNPOINT-1-3F": ["HALLWAY-TURNPOINT-3-3F", "ROOM2-3F", "ROOM3-3F", "ROOM4-3F", "LIFT-3F", "CURVEDSTAIRS-3F"], "HALLWAY-TURNPOINT-2-3F": ["HALLWAY-TURNPOINT-3-3F", "RESTROOMS-3F", "STAIRSEND-3F", "ROOM1-3F"], "HALLWAY-TURNPOINT-3-3F": ["HALLWAY-TURNPOINT-2-3F", "HALLWAY-TURNPOINT-1-3F", "ROOM1-3F", "ROOM2-3F", "ROOM3-3F", "ROOM4-3F"]}}
+{
+  "nodes": {
+    "main-entrance": {
+      "coords": [
+        77,
+        58
+      ],
+      "floor": 1,
+      "label": "Main Entrance",
+      "category": "Entrance",
+      "type": "room"
+    },
+    "curved-stairs-gf": {
+      "coords": [
+        76,
+        42
+      ],
+      "floor": 1,
+      "label": "Curved Stairs (Ground Floor)",
+      "category": "Lift & Stairs",
+      "type": "stairs",
+      "stairs_kind": "curved"
+    },
+    "student-admission-office-gf": {
+      "coords": [
+        73,
+        42
+      ],
+      "floor": 1,
+      "label": "Student Admission Office",
+      "category": "Offices",
+      "type": "room"
+    },
+    "lift-gf": {
+      "coords": [
+        71,
+        52
+      ],
+      "floor": 1,
+      "label": "Lift (Ground Floor)",
+      "category": "Lift & Stairs",
+      "type": "lift"
+    },
+    "reception-gf": {
+      "coords": [
+        72,
+        63
+      ],
+      "floor": 1,
+      "label": "Reception",
+      "category": "Offices",
+      "type": "room"
+    },
+    "it-lab-1-gf": {
+      "coords": [
+        43,
+        63
+      ],
+      "floor": 1,
+      "label": "IT Lab 1",
+      "category": "Labs & Rooms",
+      "type": "room"
+    },
+    "office-nsom-gf": {
+      "coords": [
+        18,
+        62
+      ],
+      "floor": 1,
+      "label": "Office NSOM",
+      "category": "Offices",
+      "type": "room"
+    },
+    "library-gf": {
+      "coords": [
+        28,
+        62
+      ],
+      "floor": 1,
+      "label": "Library",
+      "category": "Offices",
+      "type": "room"
+    },
+    "office-of-accounts-gf": {
+      "coords": [
+        14,
+        58
+      ],
+      "floor": 1,
+      "label": "Office of Accounts",
+      "category": "Offices",
+      "type": "room"
+    },
+    "stairs-end-gf": {
+      "coords": [
+        13,
+        56
+      ],
+      "floor": 1,
+      "label": "Stairs End (Ground Floor)",
+      "category": "Lift & Stairs",
+      "type": "stairs",
+      "stairs_kind": "straight"
+    },
+    "restrooms-gf": {
+      "coords": [
+        15,
+        58
+      ],
+      "floor": 1,
+      "label": "Restrooms",
+      "category": "Restrooms",
+      "type": "room"
+    },
+    "lecture-hall-1-gf": {
+      "coords": [
+        34,
+        56
+      ],
+      "floor": 1,
+      "label": "Lecture Hall 1",
+      "category": "Rooms",
+      "type": "room"
+    },
+    "lecture-hall-2-gf": {
+      "coords": [
+        49,
+        56
+      ],
+      "floor": 1,
+      "label": "Lecture Hall 2",
+      "category": "Rooms",
+      "type": "room"
+    },
+    "lecture-hall-3-gf": {
+      "coords": [
+        55,
+        56
+      ],
+      "floor": 1,
+      "label": "Lecture Hall 3",
+      "category": "Rooms",
+      "type": "room"
+    },
+    "checkpoint-1-lift-gf": {
+      "coords": [
+        73,
+        58
+      ],
+      "floor": 1,
+      "label": "GF Lift Junction",
+      "category": "Rooms",
+      "type": "waypoint",
+      "is_waypoint": true
+    },
+    "checkpoint-2-corridor-gf": {
+      "coords": [
+        41,
+        58
+      ],
+      "floor": 1,
+      "label": "GF Corridor Midpoint",
+      "category": "Rooms",
+      "type": "waypoint",
+      "is_waypoint": true
+    },
+    "balcony-1f": {
+      "coords": [
+        74,
+        59
+      ],
+      "floor": 2,
+      "label": "Balcony",
+      "category": "Rooms",
+      "type": "room"
+    },
+    "curved-stairs-up-1f": {
+      "coords": [
+        74,
+        41
+      ],
+      "floor": 2,
+      "label": "Curved Stairs Up (1st Floor)",
+      "category": "Lift & Stairs",
+      "type": "stairs",
+      "stairs_kind": "curved"
+    },
+    "curved-stairs-down-1f": {
+      "coords": [
+        80,
+        43
+      ],
+      "floor": 2,
+      "label": "Curved Stairs Down (1st Floor)",
+      "category": "Lift & Stairs",
+      "type": "stairs",
+      "stairs_kind": "curved"
+    },
+    "guest-lounge-1f": {
+      "coords": [
+        70,
+        42
+      ],
+      "floor": 2,
+      "label": "Guest Lounge",
+      "category": "Rooms",
+      "type": "room"
+    },
+    "lift-1f": {
+      "coords": [
+        69,
+        53
+      ],
+      "floor": 2,
+      "label": "Lift (First Floor)",
+      "category": "Lift & Stairs",
+      "type": "lift"
+    },
+    "faculty-room-1-1f": {
+      "coords": [
+        67,
+        65
+      ],
+      "floor": 2,
+      "label": "Faculty Room 1",
+      "category": "Offices",
+      "type": "room"
+    },
+    "dept-of-placements-1f": {
+      "coords": [
+        68,
+        64
+      ],
+      "floor": 2,
+      "label": "Dept of Placements",
+      "category": "Offices",
+      "type": "room"
+    },
+    "head-of-placements-1f": {
+      "coords": [
+        66,
+        65
+      ],
+      "floor": 2,
+      "label": "Head of Placements",
+      "category": "Offices",
+      "type": "room"
+    },
+    "seminar-hall(sammilana)-1f": {
+      "coords": [
+        55,
+        64
+      ],
+      "floor": 2,
+      "label": "Seminar Hall (Sammilana)",
+      "category": "Labs & Rooms",
+      "type": "room"
+    },
+    "stairs-end-1f": {
+      "coords": [
+        9,
+        58
+      ],
+      "floor": 2,
+      "label": "Stairs End (First Floor)",
+      "category": "Lift & Stairs",
+      "type": "stairs",
+      "stairs_kind": "straight"
+    },
+    "restrooms-1f": {
+      "coords": [
+        14,
+        57
+      ],
+      "floor": 2,
+      "label": "Restrooms",
+      "category": "Restrooms",
+      "type": "room"
+    },
+    "lecture-hall-5-1f": {
+      "coords": [
+        36,
+        44
+      ],
+      "floor": 2,
+      "label": "Lecture Hall 5",
+      "category": "Rooms",
+      "type": "room"
+    },
+    "lecture-hall-4-1f": {
+      "coords": [
+        18,
+        65
+      ],
+      "floor": 2,
+      "label": "Lecture Hall 4",
+      "category": "Rooms",
+      "type": "room"
+    },
+    "board-room-1f": {
+      "coords": [
+        35,
+        28
+      ],
+      "floor": 2,
+      "label": "Board Room",
+      "category": "Rooms",
+      "type": "room"
+    },
+    "dept-examination-1f": {
+      "coords": [
+        38,
+        29
+      ],
+      "floor": 2,
+      "label": "Dept of Examination",
+      "category": "Offices",
+      "type": "room"
+    },
+    "faculty-room-2-1f": {
+      "coords": [
+        47,
+        56
+      ],
+      "floor": 2,
+      "label": "Faculty Room 2",
+      "category": "Offices",
+      "type": "room"
+    },
+    "it-lab-2-1f": {
+      "coords": [
+        52,
+        57
+      ],
+      "floor": 2,
+      "label": "IT Lab 2",
+      "category": "Labs & Rooms",
+      "type": "room"
+    },
+    "checkpoint1-lift-1f": {
+      "coords": [
+        72,
+        60
+      ],
+      "floor": 2,
+      "label": "1F Lift Junction",
+      "category": "Rooms",
+      "type": "waypoint",
+      "is_waypoint": true
+    },
+    "checkpoint-2-corridor-1f": {
+      "coords": [
+        36,
+        60
+      ],
+      "floor": 2,
+      "label": "1F Corridor Passageway",
+      "category": "Rooms",
+      "type": "waypoint",
+      "is_waypoint": true
+    },
+    "curved-stairs-up-2f": {
+      "coords": [
+        72,
+        42
+      ],
+      "floor": 3,
+      "label": "Curved Stairs Up (2nd Floor)",
+      "category": "Lift & Stairs",
+      "type": "stairs",
+      "stairs_kind": "curved"
+    },
+    "curved-stairs-down-2f": {
+      "coords": [
+        80,
+        43
+      ],
+      "floor": 3,
+      "label": "Curved Stairs Down (2nd Floor)",
+      "category": "Lift & Stairs",
+      "type": "stairs",
+      "stairs_kind": "curved"
+    },
+    "alumni-relations-office-2f": {
+      "coords": [
+        68,
+        41
+      ],
+      "floor": 3,
+      "label": "Alumni Relations Office",
+      "category": "Offices",
+      "type": "room"
+    },
+    "lift-2f": {
+      "coords": [
+        67,
+        52
+      ],
+      "floor": 3,
+      "label": "Lift (Second Floor)",
+      "category": "Lift & Stairs",
+      "type": "lift"
+    },
+    "student-counselling-room-2f": {
+      "coords": [
+        69,
+        63
+      ],
+      "floor": 3,
+      "label": "Student Counselling Room",
+      "category": "Rooms",
+      "type": "room"
+    },
+    "faculty-room-2f": {
+      "coords": [
+        71,
+        63
+      ],
+      "floor": 3,
+      "label": "Faculty Room",
+      "category": "Offices",
+      "type": "room"
+    },
+    "sitting-area-2f": {
+      "coords": [
+        58,
+        63
+      ],
+      "floor": 3,
+      "label": "Sitting Area",
+      "category": "Rooms",
+      "type": "room"
+    },
+    "aircraft-systems-lab-2f": {
+      "coords": [
+        41,
+        64
+      ],
+      "floor": 3,
+      "label": "Aircraft Systems Lab",
+      "category": "Labs & Rooms",
+      "type": "room"
+    },
+    "staff-room-2-2f": {
+      "coords": [
+        33,
+        64
+      ],
+      "floor": 3,
+      "label": "Staff Room 2",
+      "category": "Offices",
+      "type": "room"
+    },
+    "staff-room-1-2f": {
+      "coords": [
+        23,
+        64
+      ],
+      "floor": 3,
+      "label": "Staff Room 1",
+      "category": "Offices",
+      "type": "room"
+    },
+    "smart-manufacturing-2f": {
+      "coords": [
+        18,
+        64
+      ],
+      "floor": 3,
+      "label": "Smart Manufacturing",
+      "category": "Labs & Rooms",
+      "type": "room"
+    },
+    "stairs-end-2f": {
+      "coords": [
+        10,
+        58
+      ],
+      "floor": 3,
+      "label": "Stairs End (Second Floor)",
+      "category": "Lift & Stairs",
+      "type": "stairs",
+      "stairs_kind": "straight"
+    },
+    "restrooms-2f": {
+      "coords": [
+        13,
+        57
+      ],
+      "floor": 3,
+      "label": "Restrooms",
+      "category": "Restrooms",
+      "type": "room"
+    },
+    "smart-innovation-zone-2f": {
+      "coords": [
+        32,
+        56
+      ],
+      "floor": 3,
+      "label": "Smart Innovation Zone",
+      "category": "Labs & Rooms",
+      "type": "room"
+    },
+    "mechanical-automation-lab-2f": {
+      "coords": [
+        47,
+        57
+      ],
+      "floor": 3,
+      "label": "Mechanical Automation Lab",
+      "category": "Labs & Rooms",
+      "type": "room"
+    },
+    "product-design-lab-2f": {
+      "coords": [
+        51,
+        57
+      ],
+      "floor": 3,
+      "label": "Product Design Lab",
+      "category": "Labs & Rooms",
+      "type": "room"
+    },
+    "checkpoint1-lift-2f": {
+      "coords": [
+        69,
+        61
+      ],
+      "floor": 3,
+      "label": "2F Lift Junction",
+      "category": "Rooms",
+      "type": "waypoint",
+      "is_waypoint": true
+    },
+    "checkpoint-2-corridor-2f": {
+      "coords": [
+        37,
+        60
+      ],
+      "floor": 3,
+      "label": "2F Corridor Midpoint",
+      "category": "Rooms",
+      "type": "waypoint",
+      "is_waypoint": true
+    },
+    "curved-stairs-up-3f": {
+      "coords": [
+        74,
+        42
+      ],
+      "floor": 4,
+      "label": "Curved Stairs Up (3rd Floor)",
+      "category": "Lift & Stairs",
+      "type": "stairs",
+      "stairs_kind": "curved"
+    },
+    "curved-stairs-down-3f": {
+      "coords": [
+        81,
+        45
+      ],
+      "floor": 4,
+      "label": "Curved Stairs Down (3rd Floor)",
+      "category": "Lift & Stairs",
+      "type": "stairs",
+      "stairs_kind": "curved"
+    },
+    "room1-3f": {
+      "coords": [
+        71,
+        42
+      ],
+      "floor": 4,
+      "label": "Room 1",
+      "category": "Rooms",
+      "type": "room"
+    },
+    "lift-3f": {
+      "coords": [
+        69,
+        53
+      ],
+      "floor": 4,
+      "label": "Lift (Third Floor)",
+      "category": "Lift & Stairs",
+      "type": "lift"
+    },
+    "samsung-innovation-campus-2-3f": {
+      "coords": [
+        66,
+        63
+      ],
+      "floor": 4,
+      "label": "Samsung Innovation Campus 2",
+      "category": "Labs & Rooms",
+      "type": "room"
+    },
+    "samsung-innovation-campus-1-3f": {
+      "coords": [
+        55,
+        64
+      ],
+      "floor": 4,
+      "label": "Samsung Innovation Campus 1",
+      "category": "Labs & Rooms",
+      "type": "room"
+    },
+    "restrooms-3f": {
+      "coords": [
+        14,
+        57
+      ],
+      "floor": 4,
+      "label": "Restrooms",
+      "category": "Restrooms",
+      "type": "room"
+    },
+    "stairs-end-3f": {
+      "coords": [
+        8,
+        58
+      ],
+      "floor": 4,
+      "label": "Stairs End (Third Floor)",
+      "category": "Lift & Stairs",
+      "type": "stairs",
+      "stairs_kind": "straight"
+    },
+    "room-2-3f": {
+      "coords": [
+        52,
+        57
+      ],
+      "floor": 4,
+      "label": "Room 2",
+      "category": "Rooms",
+      "type": "room"
+    },
+    "rooom-3-3f": {
+      "coords": [
+        48,
+        58
+      ],
+      "floor": 4,
+      "label": "Room 3",
+      "category": "Rooms",
+      "type": "room"
+    },
+    "room-4-3f": {
+      "coords": [
+        33,
+        57
+      ],
+      "floor": 4,
+      "label": "Room 4",
+      "category": "Rooms",
+      "type": "room"
+    },
+    "checkpoint1-lift-3f": {
+      "coords": [
+        71,
+        60
+      ],
+      "floor": 4,
+      "label": "3F Lift Junction",
+      "category": "Rooms",
+      "type": "waypoint",
+      "is_waypoint": true
+    },
+    "checkpoint-2-corridor-3f": {
+      "coords": [
+        38,
+        60
+      ],
+      "floor": 4,
+      "label": "3F Corridor Midpoint",
+      "category": "Rooms",
+      "type": "waypoint",
+      "is_waypoint": true
+    }
+  },
+  "graph": {
+    "main-entrance": [
+      "checkpoint-1-lift-gf"
+    ],
+    "curved-stairs-gf": [
+      "checkpoint-1-lift-gf",
+      "student-admission-office-gf",
+      "curved-stairs-down-1f"
+    ],
+    "student-admission-office-gf": [
+      "checkpoint-1-lift-gf",
+      "curved-stairs-gf"
+    ],
+    "lift-gf": [
+      "checkpoint-1-lift-gf",
+      "lift-1f"
+    ],
+    "reception-gf": [
+      "checkpoint-1-lift-gf"
+    ],
+    "it-lab-1-gf": [
+      "checkpoint-2-corridor-gf"
+    ],
+    "office-nsom-gf": [
+      "checkpoint-2-corridor-gf"
+    ],
+    "library-gf": [
+      "checkpoint-2-corridor-gf"
+    ],
+    "office-of-accounts-gf": [
+      "checkpoint-2-corridor-gf"
+    ],
+    "stairs-end-gf": [
+      "checkpoint-2-corridor-gf",
+      "restrooms-gf",
+      "stairs-end-1f"
+    ],
+    "restrooms-gf": [
+      "checkpoint-2-corridor-gf",
+      "stairs-end-gf"
+    ],
+    "lecture-hall-1-gf": [
+      "checkpoint-2-corridor-gf"
+    ],
+    "lecture-hall-2-gf": [
+      "checkpoint-2-corridor-gf"
+    ],
+    "lecture-hall-3-gf": [
+      "checkpoint-2-corridor-gf"
+    ],
+    "checkpoint-1-lift-gf": [
+      "checkpoint-2-corridor-gf",
+      "main-entrance",
+      "curved-stairs-gf",
+      "lift-gf",
+      "reception-gf",
+      "student-admission-office-gf"
+    ],
+    "checkpoint-2-corridor-gf": [
+      "checkpoint-1-lift-gf",
+      "stairs-end-gf",
+      "restrooms-gf",
+      "it-lab-1-gf",
+      "office-nsom-gf",
+      "library-gf",
+      "office-of-accounts-gf",
+      "lecture-hall-1-gf",
+      "lecture-hall-2-gf",
+      "lecture-hall-3-gf"
+    ],
+    "balcony-1f": [
+      "checkpoint1-lift-1f"
+    ],
+    "curved-stairs-up-1f": [
+      "checkpoint1-lift-1f",
+      "curved-stairs-down-1f",
+      "guest-lounge-1f",
+      "curved-stairs-down-2f"
+    ],
+    "curved-stairs-down-1f": [
+      "checkpoint1-lift-1f",
+      "curved-stairs-up-1f",
+      "curved-stairs-gf"
+    ],
+    "guest-lounge-1f": [
+      "checkpoint1-lift-1f",
+      "curved-stairs-up-1f"
+    ],
+    "lift-1f": [
+      "checkpoint1-lift-1f",
+      "lift-gf",
+      "lift-2f"
+    ],
+    "faculty-room-1-1f": [
+      "checkpoint1-lift-1f"
+    ],
+    "dept-of-placements-1f": [
+      "checkpoint1-lift-1f"
+    ],
+    "head-of-placements-1f": [
+      "checkpoint1-lift-1f"
+    ],
+    "seminar-hall(sammilana)-1f": [
+      "checkpoint1-lift-1f"
+    ],
+    "stairs-end-1f": [
+      "checkpoint-2-corridor-1f",
+      "restrooms-1f",
+      "stairs-end-gf",
+      "stairs-end-2f"
+    ],
+    "restrooms-1f": [
+      "checkpoint-2-corridor-1f",
+      "stairs-end-1f"
+    ],
+    "lecture-hall-5-1f": [
+      "checkpoint-2-corridor-1f",
+      "board-room-1f",
+      "dept-examination-1f"
+    ],
+    "lecture-hall-4-1f": [
+      "checkpoint-2-corridor-1f"
+    ],
+    "board-room-1f": [
+      "lecture-hall-5-1f",
+      "dept-examination-1f"
+    ],
+    "dept-examination-1f": [
+      "lecture-hall-5-1f",
+      "board-room-1f"
+    ],
+    "faculty-room-2-1f": [
+      "checkpoint-2-corridor-1f"
+    ],
+    "it-lab-2-1f": [
+      "checkpoint-2-corridor-1f"
+    ],
+    "checkpoint1-lift-1f": [
+      "checkpoint-2-corridor-1f",
+      "lift-1f",
+      "curved-stairs-down-1f",
+      "curved-stairs-up-1f",
+      "balcony-1f",
+      "guest-lounge-1f",
+      "faculty-room-1-1f",
+      "dept-of-placements-1f",
+      "head-of-placements-1f",
+      "seminar-hall(sammilana)-1f"
+    ],
+    "checkpoint-2-corridor-1f": [
+      "checkpoint1-lift-1f",
+      "lecture-hall-5-1f",
+      "stairs-end-1f",
+      "restrooms-1f",
+      "lecture-hall-4-1f",
+      "faculty-room-2-1f",
+      "it-lab-2-1f"
+    ],
+    "curved-stairs-up-2f": [
+      "checkpoint1-lift-2f",
+      "curved-stairs-down-2f",
+      "alumni-relations-office-2f",
+      "curved-stairs-down-3f"
+    ],
+    "curved-stairs-down-2f": [
+      "checkpoint1-lift-2f",
+      "curved-stairs-up-2f",
+      "curved-stairs-up-1f"
+    ],
+    "alumni-relations-office-2f": [
+      "checkpoint1-lift-2f",
+      "curved-stairs-up-2f"
+    ],
+    "lift-2f": [
+      "checkpoint1-lift-2f",
+      "lift-1f",
+      "lift-3f"
+    ],
+    "student-counselling-room-2f": [
+      "checkpoint1-lift-2f"
+    ],
+    "faculty-room-2f": [
+      "checkpoint1-lift-2f"
+    ],
+    "sitting-area-2f": [
+      "checkpoint1-lift-2f"
+    ],
+    "aircraft-systems-lab-2f": [
+      "checkpoint-2-corridor-2f"
+    ],
+    "staff-room-2-2f": [
+      "checkpoint-2-corridor-2f"
+    ],
+    "staff-room-1-2f": [
+      "checkpoint-2-corridor-2f"
+    ],
+    "smart-manufacturing-2f": [
+      "checkpoint-2-corridor-2f"
+    ],
+    "stairs-end-2f": [
+      "checkpoint-2-corridor-2f",
+      "restrooms-2f",
+      "stairs-end-1f",
+      "stairs-end-3f"
+    ],
+    "restrooms-2f": [
+      "checkpoint-2-corridor-2f",
+      "stairs-end-2f"
+    ],
+    "smart-innovation-zone-2f": [
+      "checkpoint-2-corridor-2f"
+    ],
+    "mechanical-automation-lab-2f": [
+      "checkpoint-2-corridor-2f"
+    ],
+    "product-design-lab-2f": [
+      "checkpoint-2-corridor-2f"
+    ],
+    "checkpoint1-lift-2f": [
+      "checkpoint-2-corridor-2f",
+      "lift-2f",
+      "curved-stairs-down-2f",
+      "curved-stairs-up-2f",
+      "alumni-relations-office-2f",
+      "student-counselling-room-2f",
+      "faculty-room-2f",
+      "sitting-area-2f"
+    ],
+    "checkpoint-2-corridor-2f": [
+      "checkpoint1-lift-2f",
+      "stairs-end-2f",
+      "restrooms-2f",
+      "aircraft-systems-lab-2f",
+      "staff-room-2-2f",
+      "staff-room-1-2f",
+      "smart-manufacturing-2f",
+      "smart-innovation-zone-2f",
+      "mechanical-automation-lab-2f",
+      "product-design-lab-2f"
+    ],
+    "curved-stairs-up-3f": [
+      "checkpoint1-lift-3f",
+      "curved-stairs-down-3f",
+      "room1-3f"
+    ],
+    "curved-stairs-down-3f": [
+      "checkpoint1-lift-3f",
+      "curved-stairs-up-3f",
+      "curved-stairs-up-2f"
+    ],
+    "room1-3f": [
+      "checkpoint1-lift-3f",
+      "curved-stairs-up-3f"
+    ],
+    "lift-3f": [
+      "checkpoint1-lift-3f",
+      "lift-2f"
+    ],
+    "samsung-innovation-campus-2-3f": [
+      "checkpoint1-lift-3f"
+    ],
+    "samsung-innovation-campus-1-3f": [
+      "checkpoint1-lift-3f"
+    ],
+    "restrooms-3f": [
+      "checkpoint-2-corridor-3f",
+      "stairs-end-3f"
+    ],
+    "stairs-end-3f": [
+      "checkpoint-2-corridor-3f",
+      "restrooms-3f",
+      "stairs-end-2f"
+    ],
+    "room-2-3f": [
+      "checkpoint-2-corridor-3f"
+    ],
+    "rooom-3-3f": [
+      "checkpoint-2-corridor-3f"
+    ],
+    "room-4-3f": [
+      "checkpoint-2-corridor-3f"
+    ],
+    "checkpoint1-lift-3f": [
+      "checkpoint-2-corridor-3f",
+      "lift-3f",
+      "curved-stairs-down-3f",
+      "curved-stairs-up-3f",
+      "room1-3f",
+      "samsung-innovation-campus-2-3f",
+      "samsung-innovation-campus-1-3f"
+    ],
+    "checkpoint-2-corridor-3f": [
+      "checkpoint1-lift-3f",
+      "restrooms-3f",
+      "stairs-end-3f",
+      "room-2-3f",
+      "rooom-3-3f",
+      "room-4-3f"
+    ]
+  }
+}

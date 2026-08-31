@@ -46,7 +46,7 @@ frontend/
     metrics.js     — Session/checkpoint/feedback telemetry
     db-helper.js   — IndexedDB wrapper for offline queue
   static/css/style.css   — UI styling (dark mode, glassmorphism)
-  static/floor1–4.png    — Floor plan photos
+  static/floor1–4-updated.png — Floor plan photos
   static/manifest.json   — PWA manifest
   static/service-worker.js
 

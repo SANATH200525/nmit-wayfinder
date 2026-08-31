@@ -219,7 +219,6 @@ function computeCheckpoints(logicalPath) {
 
     function addCheckpoint(node) {
         if (!node) return;
-        if (window.allNodes[node.id]?.is_waypoint) return;
         // For vertical nodes (lift/stairs), allow re-adding if in a different segment
         const isVertical = nodeType(node.id) === 'lift' || nodeType(node.id) === 'stairs';
         const key = isVertical ? `${node.id}::${node.segment ?? 0}` : node.id;
@@ -231,61 +230,42 @@ function computeCheckpoints(logicalPath) {
     for (let i = 1; i < logicalPath.length - 1; i++) {
         const curr = logicalPath[i];
         const next = logicalPath[i + 1];
-
         const currType = nodeType(curr.id);
-        const isWp = window.allNodes[curr.id]?.is_waypoint;
-
-        if (isWp) continue;
 
         // --- Floor transition ---
         if (next && curr.floor !== next.floor) {
             const isLift = currType === 'lift';
             const isStairs = currType === 'stairs';
 
-            if (isLift) {
-                // Scan past all consecutive lift-to-lift hops to find final exit.
+            if (isLift || isStairs) {
                 let j = i;
-                while (
-                    j + 1 < logicalPath.length &&
-                    nodeType(logicalPath[j + 1].id) === 'lift' &&
-                    logicalPath[j + 1].floor !== logicalPath[j].floor
-                ) { j++; }
-                addCheckpoint(curr);            // departure  e.g. LIFT-GF
-                addCheckpoint(logicalPath[j]);  // final exit e.g. LIFT-2F
-                i = j;
-            } else if (isStairs) {
-                // Same logic as lift: scan past ALL consecutive stair hops
-                // to find the final exit floor. This means 1F→3F via stairs
-                // only prompts at departure (1F) and arrival (3F), skipping 2F.
-                let j = i;
-                while (
-                    j + 1 < logicalPath.length &&
-                    nodeType(logicalPath[j + 1].id) === 'stairs' &&
-                    logicalPath[j + 1].floor !== logicalPath[j].floor
-                ) { j++; }
-                addCheckpoint(curr);            // departure stair node
-                addCheckpoint(logicalPath[j]);  // final arrival stair node
+                while (j + 1 < logicalPath.length &&
+                       nodeType(logicalPath[j + 1].id) === currType &&
+                       logicalPath[j + 1].floor !== logicalPath[j].floor) {
+                    j++;
+                }
+                addCheckpoint(curr);
+                addCheckpoint(logicalPath[j]);
                 i = j;
             }
             continue;
         }
 
-        // --- User-selected stop or high-degree junction ---
+        const isExplicitCheckpoint = curr.id.toLowerCase().includes('checkpoint') || window.allNodes[curr.id]?.is_waypoint;
         const isUserStop = stopIds.includes(curr.id);
         const isStopNode = currType !== 'lift' && currType !== 'stairs' &&
-            curr.id !== logicalPath[0].id &&
-            curr.id !== logicalPath[logicalPath.length - 1].id;
+            curr.id !== logicalPath[0].id && curr.id !== logicalPath[logicalPath.length - 1].id;
         const degree = (window.nodeDegrees && window.nodeDegrees[curr.id]) || 0;
-        const isJunction = degree >= 3;
 
-        if (isStopNode && (isUserStop || isJunction)) {
+        if (isExplicitCheckpoint || (isStopNode && (isUserStop || degree >= 3))) {
             addCheckpoint(curr);
         }
     }
 
-    // Always end with the final destination.
     const last = logicalPath[logicalPath.length - 1];
-    if (!addedIds.has(last.id)) result.push(last);
+    if (!addedIds.has(last.id)) {
+        result.push(last);
+    }
 
     return result;
 }

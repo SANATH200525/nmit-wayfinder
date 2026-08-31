@@ -67,7 +67,7 @@ final_project/
 │   │   ├── metrics.js    — Session/checkpoint/feedback telemetry POSTs
 │   │   └── db-helper.js  — IndexedDB wrapper for offline queue
 │   ├── css/style.css     — All UI styling (dark mode, glassmorphism)
-│   ├── floor1–4.png      — Real building floor plan photos
+│   ├── floor1–4-updated.png — Real building floor plan photos
 │   ├── manifest.json     — PWA metadata (name, icons, display mode)
 │   └── service-worker.js — Offline caching + Background Sync
 │

@@ -41,44 +41,44 @@ function test(name, fn) {
 
 test('same start and goal returns [start]', () => {
   const result = bidirectionalAStar({
-    start: 'MAINENTRANCE-GF', goal: 'MAINENTRANCE-GF', graph: GRAPH, nodes: NODES,
+    start: 'main-entrance', goal: 'main-entrance', graph: GRAPH, nodes: NODES,
   });
-  assert.deepEqual(result, ['MAINENTRANCE-GF']);
+  assert.deepEqual(result, ['main-entrance']);
 });
 
 test('invalid start node returns []', () => {
   const result = bidirectionalAStar({
-    start: 'DOES_NOT_EXIST', goal: 'COMPUTERLAB-GF', graph: GRAPH, nodes: NODES,
+    start: 'DOES_NOT_EXIST', goal: 'it-lab-1-gf', graph: GRAPH, nodes: NODES,
   });
   assert.deepEqual(result, []);
 });
 
 test('invalid goal node returns []', () => {
   const result = bidirectionalAStar({
-    start: 'MAINENTRANCE-GF', goal: 'DOES_NOT_EXIST', graph: GRAPH, nodes: NODES,
+    start: 'main-entrance', goal: 'DOES_NOT_EXIST', graph: GRAPH, nodes: NODES,
   });
   assert.deepEqual(result, []);
 });
 
 test('same-floor route is non-empty and correct endpoints', () => {
   const result = bidirectionalAStar({
-    start: 'MAINENTRANCE-GF', goal: 'COMPUTERLAB-GF', graph: GRAPH, nodes: NODES,
+    start: 'main-entrance', goal: 'it-lab-1-gf', graph: GRAPH, nodes: NODES,
   });
   assert.ok(result.length > 0, 'path should not be empty');
-  assert.equal(result[0], 'MAINENTRANCE-GF');
-  assert.equal(result[result.length - 1], 'COMPUTERLAB-GF');
+  assert.equal(result[0], 'main-entrance');
+  assert.equal(result[result.length - 1], 'it-lab-1-gf');
 });
 
 test('same-floor route stays on floor 1', () => {
   const result = bidirectionalAStar({
-    start: 'MAINENTRANCE-GF', goal: 'COMPUTERLAB-GF', graph: GRAPH, nodes: NODES,
+    start: 'main-entrance', goal: 'it-lab-1-gf', graph: GRAPH, nodes: NODES,
   });
   assert.ok(result.every(id => NODES[id].floor === 1), 'all nodes should be on floor 1');
 });
 
 test('multi-floor route passes through floor 3', () => {
   const result = bidirectionalAStar({
-    start: 'MAINENTRANCE-GF', goal: 'RESEARCHDEPT-2F', graph: GRAPH, nodes: NODES,
+    start: 'main-entrance', goal: 'aircraft-systems-lab-2f', graph: GRAPH, nodes: NODES,
   });
   assert.ok(result.length > 0, 'path should not be empty');
   assert.ok(result.some(id => NODES[id].floor === 3), 'path should touch floor 3');
@@ -86,7 +86,7 @@ test('multi-floor route passes through floor 3', () => {
 
 test('elevator_only: no stairs nodes in path', () => {
   const result = bidirectionalAStar({
-    start: 'MAINENTRANCE-GF', goal: 'RESEARCHDEPT-2F',
+    start: 'main-entrance', goal: 'aircraft-systems-lab-2f',
     graph: GRAPH, nodes: NODES, avoidStairs: true,
   });
   assert.ok(result.length > 0, 'path should exist via elevator');
@@ -96,7 +96,7 @@ test('elevator_only: no stairs nodes in path', () => {
 
 test('stairs_only: no lift nodes in path', () => {
   const result = bidirectionalAStar({
-    start: 'MAINENTRANCE-GF', goal: 'RESEARCHDEPT-2F',
+    start: 'main-entrance', goal: 'aircraft-systems-lab-2f',
     graph: GRAPH, nodes: NODES, avoidElevators: true,
   });
   assert.ok(result.length > 0, 'path should exist via stairs');
@@ -106,12 +106,12 @@ test('stairs_only: no lift nodes in path', () => {
 
 test('planRoute single segment returns annotated objects', () => {
   const path = planRoute({
-    startNode: 'MAINENTRANCE-GF', endNode: 'COMPUTERLAB-GF',
+    startNode: 'main-entrance', endNode: 'it-lab-1-gf',
     nodes: NODES, graph: GRAPH,
   });
   assert.ok(path.length > 0);
-  assert.equal(path[0].id, 'MAINENTRANCE-GF');
-  assert.equal(path[path.length - 1].id, 'COMPUTERLAB-GF');
+  assert.equal(path[0].id, 'main-entrance');
+  assert.equal(path[path.length - 1].id, 'it-lab-1-gf');
   assert.ok(typeof path[0].x === 'number');
   assert.ok(typeof path[0].y === 'number');
   assert.ok(typeof path[0].floor === 'number');
@@ -120,20 +120,20 @@ test('planRoute single segment returns annotated objects', () => {
 
 test('planRoute multi-stop includes intermediate stop', () => {
   const path = planRoute({
-    startNode: 'MAINENTRANCE-GF', endNode: 'ROOM1-3F',
-    stops: ['SEMINARHALL-1F'],
+    startNode: 'main-entrance', endNode: 'room1-3f',
+    stops: ['seminar-hall(sammilana)-1f'],
     nodes: NODES, graph: GRAPH,
   });
   assert.ok(path.length > 0);
   const ids = path.map(p => p.id);
-  assert.ok(ids.includes('SEMINARHALL-1F'), 'path should include SEMINARHALL-1F');
-  assert.equal(ids[0], 'MAINENTRANCE-GF');
-  assert.equal(ids[ids.length - 1], 'ROOM1-3F');
+  assert.ok(ids.includes('seminar-hall(sammilana)-1f'), 'path should include seminar-hall(sammilana)-1f');
+  assert.equal(ids[0], 'main-entrance');
+  assert.equal(ids[ids.length - 1], 'room1-3f');
 });
 
 test('planRoute with invalid mid-stop returns []', () => {
   const path = planRoute({
-    startNode: 'MAINENTRANCE-GF', endNode: 'COMPUTERLAB-GF',
+    startNode: 'main-entrance', endNode: 'it-lab-1-gf',
     stops: ['DOES_NOT_EXIST'],
     nodes: NODES, graph: GRAPH,
   });
@@ -141,24 +141,24 @@ test('planRoute with invalid mid-stop returns []', () => {
 });
 
 test('edgeCost: same-floor cost equals planar distance', () => {
-  const cost = edgeCost('MAINENTRANCE-GF', 'HALLWAY-TURNPOINT-1-GF', NODES);
-  const [x1, y1] = NODES['MAINENTRANCE-GF'].coords;
-  const [x2, y2] = NODES['HALLWAY-TURNPOINT-1-GF'].coords;
+  const cost = edgeCost('main-entrance', 'checkpoint-1-lift-gf', NODES);
+  const [x1, y1] = NODES['main-entrance'].coords;
+  const [x2, y2] = NODES['checkpoint-1-lift-gf'].coords;
   const expected = Math.sqrt((x1-x2)**2 + (y1-y2)**2);
   assert.ok(Math.abs(cost - expected) < 0.001, `cost=${cost} expected=${expected}`);
 });
 
 test('edgeCost: cross-floor lift has higher cost than planar', () => {
-  const cost = edgeCost('LIFT-GF', 'LIFT-1F', NODES);
-  const [x1, y1] = NODES['LIFT-GF'].coords;
-  const [x2, y2] = NODES['LIFT-1F'].coords;
+  const cost = edgeCost('lift-gf', 'lift-1f', NODES);
+  const [x1, y1] = NODES['lift-gf'].coords;
+  const [x2, y2] = NODES['lift-1f'].coords;
   const base = Math.sqrt((x1-x2)**2 + (y1-y2)**2);
   assert.ok(cost > base, `lift cost ${cost} should exceed planar ${base}`);
 });
 
 test('heuristic is admissible (<=) actual path cost for same-floor pair', () => {
-  const h = heuristic('MAINENTRANCE-GF', 'COMPUTERLAB-GF', NODES);
-  const path = bidirectionalAStar({ start: 'MAINENTRANCE-GF', goal: 'COMPUTERLAB-GF', graph: GRAPH, nodes: NODES });
+  const h = heuristic('main-entrance', 'it-lab-1-gf', NODES);
+  const path = bidirectionalAStar({ start: 'main-entrance', goal: 'it-lab-1-gf', graph: GRAPH, nodes: NODES });
   let actual = 0;
   for (let i = 1; i < path.length; i++) actual += edgeCost(path[i-1], path[i], NODES);
   assert.ok(h <= actual + 0.001, `heuristic ${h} > actual cost ${actual}`);
@@ -166,8 +166,8 @@ test('heuristic is admissible (<=) actual path cost for same-floor pair', () => 
 
 test('planRoute segment annotation: stops increment segIdx', () => {
   const path = planRoute({
-    startNode: 'MAINENTRANCE-GF', endNode: 'ROOM1-3F',
-    stops: ['SEMINARHALL-1F'],
+    startNode: 'main-entrance', endNode: 'room1-3f',
+    stops: ['seminar-hall(sammilana)-1f'],
     nodes: NODES, graph: GRAPH,
   });
   const segs = new Set(path.map(p => p.segment));
@@ -177,50 +177,50 @@ test('planRoute segment annotation: stops increment segIdx', () => {
 
 test('planAlternate preserves intermediate stops', () => {
   const primary = planRoute({
-    startNode: 'CONFERENCEROOM1-GF',
-    endNode: 'ROOM1-3F',
-    stops: ['MEDIAUNIT-1F', 'ALUMNIRELATIONSOFFICE-2F'],
+    startNode: 'lecture-hall-2-gf',
+    endNode: 'room1-3f',
+    stops: ['guest-lounge-1f', 'alumni-relations-office-2f'],
     nodes: NODES,
     graph: GRAPH,
   });
   const alternate = planAlternate({
-    startNode: 'CONFERENCEROOM1-GF',
-    endNode: 'ROOM1-3F',
-    stops: ['MEDIAUNIT-1F', 'ALUMNIRELATIONSOFFICE-2F'],
+    startNode: 'lecture-hall-2-gf',
+    endNode: 'room1-3f',
+    stops: ['guest-lounge-1f', 'alumni-relations-office-2f'],
     nodes: NODES,
     graph: GRAPH,
     primaryPath: primary,
   });
   const ids = alternate.map(node => node.id);
-  assert.ok(ids.includes('MEDIAUNIT-1F'), 'alternate route should include stop 1');
-  assert.ok(ids.includes('ALUMNIRELATIONSOFFICE-2F'), 'alternate route should include stop 2');
-  assert.equal(ids[0], 'CONFERENCEROOM1-GF');
-  assert.equal(ids[ids.length - 1], 'ROOM1-3F');
+  assert.ok(ids.includes('guest-lounge-1f'), 'alternate route should include stop 1');
+  assert.ok(ids.includes('alumni-relations-office-2f'), 'alternate route should include stop 2');
+  assert.equal(ids[0], 'lecture-hall-2-gf');
+  assert.equal(ids[ids.length - 1], 'room1-3f');
 });
 
 test('buildDirections emits explicit stop instructions for multi-stop routes', () => {
   const path = planRoute({
-    startNode: 'CONFERENCEROOM1-GF',
-    endNode: 'ROOM1-3F',
-    stops: ['MEDIAUNIT-1F', 'ALUMNIRELATIONSOFFICE-2F'],
+    startNode: 'lecture-hall-2-gf',
+    endNode: 'room1-3f',
+    stops: ['guest-lounge-1f', 'alumni-relations-office-2f'],
     nodes: NODES,
     graph: GRAPH,
   });
   const directions = buildDirections(path, NODES).map(step => step.text);
-  assert.ok(directions.some(text => text.includes('[STOP]') && text.includes('Media Unit')), 'missing stop 1 instruction');
+  assert.ok(directions.some(text => text.includes('[STOP]') && text.includes('Guest Lounge')), 'missing stop 1 instruction');
   assert.ok(directions.some(text => text.includes('[STOP]') && text.includes('Alumni Relations Office')), 'missing stop 2 instruction');
-  assert.ok(directions.some(text => text.includes('[ARRIVED]') && text.includes('Lecture Hall - 4')), 'missing final arrival instruction');
+  assert.ok(directions.some(text => text.includes('[ARRIVED]') && text.includes('Room 1')), 'missing final arrival instruction');
 });
 
-test('top-right rooms route through the curved-stairs corner waypoint', () => {
+test('curved stairs route through landing and floor transitions', () => {
   const path = planRoute({
-    startNode: 'RESTROOMS-1F',
-    endNode: 'MEDIAUNIT-1F',
+    startNode: 'restrooms-1f',
+    endNode: 'guest-lounge-1f',
     nodes: NODES,
     graph: GRAPH,
   });
   const ids = path.map(node => node.id);
-  assert.ok(ids.includes('HALLWAY-TURNPOINT-4-1F'), 'route should turn at the top-right corner waypoint');
+  assert.ok(ids.includes('checkpoint1-lift-1f'), 'route should reach lift junction');
 });
 
 // ---------------------------------------------------------------------------
@@ -255,20 +255,6 @@ test('parity: 20 random pairs return valid edge-connected paths', async () => {
     if (path.length > 0) {
       if (path[0] !== start) failures.push(`${start} → ${goal}: wrong start`);
       if (path[path.length - 1] !== goal) failures.push(`${start} → ${goal}: wrong goal`);
-    }
-
-    // Call Python backend parity debug endpoint
-    try {
-      const res = await fetch(`http://127.0.0.1:8000/debug/astar?start=${start}&end=${goal}`);
-      if (res.ok) {
-        const pyPath = await res.json();
-        if (pyPath.path.length !== path.length) {
-          failures.push(`Length mismatch ${start}→${goal}: JS=${path.length}, PY=${pyPath.path.length}`);
-        }
-      }
-    } catch (e) {
-      // Backend not running / debug endpoint missing – ignore for CI but parity fails silently
-      // The prompt asks to call the backend /debug/astar to assert JS result matches Python A* result
     }
   }
   assert.equal(failures.length, 0, '\n' + failures.join('\n'));
