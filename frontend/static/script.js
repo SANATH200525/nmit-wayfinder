@@ -80,11 +80,11 @@ document.addEventListener('DOMContentLoaded', () => {
     loadFAQs();
     fitSVGToImage();
 
-    
+
 
     // ── TomSelect init ──
     const tsStart = new TomSelect('#start_node', { maxOptions: 200 });
-    const tsEnd   = new TomSelect('#end_node',   { maxOptions: 200 });
+    const tsEnd = new TomSelect('#end_node', { maxOptions: 200 });
     window._registerTsEnd(tsEnd);   // bridge for pin-to-navigate
 
     document.querySelectorAll('.map-image').forEach(img => {
@@ -240,8 +240,8 @@ function computeCheckpoints(logicalPath) {
             if (isLift || isStairs) {
                 let j = i;
                 while (j + 1 < logicalPath.length &&
-                       nodeType(logicalPath[j + 1].id) === currType &&
-                       logicalPath[j + 1].floor !== logicalPath[j].floor) {
+                    nodeType(logicalPath[j + 1].id) === currType &&
+                    logicalPath[j + 1].floor !== logicalPath[j].floor) {
                     j++;
                 }
                 addCheckpoint(curr);

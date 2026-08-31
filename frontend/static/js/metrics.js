@@ -51,7 +51,7 @@ export async function startSession({ sessionId, startNode, endNode, mobility, pa
     planned_path: path.map(p => p.id),
     planned_distance_m: distanceM,
   };
-  
+
   try {
     const res = await fetch('/session/start', {
       method: 'POST',
@@ -89,9 +89,9 @@ export async function recordCheckpoint({ sessionId, checkpointIndex, checkpointN
 function computePathDistance(path) {
   let total = 0;
   for (let i = 1; i < path.length; i++) {
-    const dx = path[i].x - path[i-1].x;
-    const dy = path[i].y - path[i-1].y;
-    total += Math.sqrt(dx*dx + dy*dy) * 0.51; // COORD_TO_METERS — must match app.js and pdr.js
+    const dx = path[i].x - path[i - 1].x;
+    const dy = path[i].y - path[i - 1].y;
+    total += Math.sqrt(dx * dx + dy * dy) * 0.51; // COORD_TO_METERS — must match app.js and pdr.js
   }
   return Math.round(total);
 }

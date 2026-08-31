@@ -105,7 +105,7 @@ class MinHeap {
 // bidirectionalAStar — Pohl 1971 stopping criterion
 // ---------------------------------------------------------------------------
 export function bidirectionalAStar({
-  start, goal, graph, nodes, 
+  start, goal, graph, nodes,
   avoidStairs = false, avoidElevators = false,
   learnedWeights = {}
 }) {
@@ -148,7 +148,7 @@ export function bidirectionalAStar({
         gF[nbr] = newCost;
         parentF[nbr] = curr;
         fwd.push(newCost + heuristic(nbr, goal, nodes), nbr);
-        
+
         if (gB[nbr] !== undefined) {
           const candidate = newCost + gB[nbr];
           if (candidate < mu) {
@@ -174,7 +174,7 @@ export function bidirectionalAStar({
         gB[nbr] = newCost;
         parentB[nbr] = curr;
         bwd.push(newCost + heuristic(nbr, start, nodes), nbr);
-        
+
         if (gF[nbr] !== undefined) {
           const candidate = gF[nbr] + newCost;
           if (candidate < mu) {
@@ -222,18 +222,18 @@ export function bidirectionalAStar({
 // ---------------------------------------------------------------------------
 // MULTI-STOP PLANNER
 // ---------------------------------------------------------------------------
-export function planRoute({ startNode, endNode, stops=[], avoidStairs=false, 
-                            avoidElevators=false, nodes, graph, learnedWeights={} }) {
+export function planRoute({ startNode, endNode, stops = [], avoidStairs = false,
+  avoidElevators = false, nodes, graph, learnedWeights = {} }) {
   const waypoints = [startNode, ...stops, endNode];
   const fullPath = [];
   const segBoundaries = new Set(waypoints.slice(1));
 
   for (let i = 0; i < waypoints.length - 1; i++) {
-    const segStart = waypoints[i], segEnd = waypoints[i+1];
+    const segStart = waypoints[i], segEnd = waypoints[i + 1];
     if (segStart === segEnd) continue;
-    const seg = bidirectionalAStar({ 
-      start: segStart, goal: segEnd, graph, nodes, 
-      avoidStairs, avoidElevators, learnedWeights 
+    const seg = bidirectionalAStar({
+      start: segStart, goal: segEnd, graph, nodes,
+      avoidStairs, avoidElevators, learnedWeights
     });
     if (!seg.length) return []; // one segment failed → whole route fails
     const slice = fullPath.length ? seg.slice(1) : seg;
@@ -259,20 +259,22 @@ export function planRoute({ startNode, endNode, stops=[], avoidStairs=false,
 // planAlternate — returns a second-best path by penalising the primary route's
 // edges, forcing the algorithm to explore a different corridor.
 // ---------------------------------------------------------------------------
-export function planAlternate({ startNode, endNode, stops=[], avoidStairs=false,
-                                avoidElevators=false, nodes, graph,
-                                learnedWeights={}, primaryPath=[] }) {
+export function planAlternate({ startNode, endNode, stops = [], avoidStairs = false,
+  avoidElevators = false, nodes, graph,
+  learnedWeights = {}, primaryPath = [] }) {
   // Build a penalty map from the primary path edges so bidirectionalAStar
   // naturally avoids them (weight ×4 makes them very unattractive).
   const penaltyWeights = { ...learnedWeights };
   for (let i = 0; i < primaryPath.length - 1; i++) {
     const a = primaryPath[i].id, b = primaryPath[i + 1].id;
     const key = `${a}->${b}`, keyR = `${b}->${a}`;
-    penaltyWeights[key]  = (penaltyWeights[key]  ?? 1.0) * 4;
+    penaltyWeights[key] = (penaltyWeights[key] ?? 1.0) * 4;
     penaltyWeights[keyR] = (penaltyWeights[keyR] ?? 1.0) * 4;
   }
-  return planRoute({ startNode, endNode, stops, avoidStairs, avoidElevators,
-                     nodes, graph, learnedWeights: penaltyWeights });
+  return planRoute({
+    startNode, endNode, stops, avoidStairs, avoidElevators,
+    nodes, graph, learnedWeights: penaltyWeights
+  });
 }
 
 

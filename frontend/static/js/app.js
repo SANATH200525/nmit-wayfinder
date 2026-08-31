@@ -779,7 +779,7 @@ function preparePDRForRoute(startNode, sessionId, path) {
     },
     onFloorChange: ({ toFloor }) => {
       window.switchFloor(toFloor);
-syncNavFloor(toFloor);
+      syncNavFloor(toFloor);
     },
   });
   pdrLiveState = null;
@@ -2531,7 +2531,7 @@ window.requestAlternateRoute = async function requestAlternateRoute() {
 
   // 1. Replace the global path array
   pathData = altPath;
-  
+
   // 2. Re-initialize the entire navigation state using drawPath
   // (makeOrthogonalPath is globally available from script.js, but fallback to altPath just in case)
   const ortho = typeof makeOrthogonalPath === 'function' ? makeOrthogonalPath(altPath) : altPath;
@@ -2636,13 +2636,13 @@ window.requestAlternateRoute = async function requestAlternateRoute() {
     }
   });
 
-  window.resetMapZoom = function(containerId) {
+  window.resetMapZoom = function (containerId) {
     const pz = panzoomInstances[containerId];
     if (pz) pz.reset({ animate: true });
   };
 
-  const _origResetToForm = window.resetToForm || function(){};
-  window.resetToForm = function() {
+  const _origResetToForm = window.resetToForm || function () { };
+  window.resetToForm = function () {
     _origResetToForm();
     for (let f = 1; f <= 4; f++) {
       const pzDesktop = panzoomInstances[`f${f}-container`];
@@ -2653,8 +2653,8 @@ window.requestAlternateRoute = async function requestAlternateRoute() {
   };
 
   // Re-scale immediately when route is drawn so it doesn't wait for zoom interaction
-  const _origDrawPath = window.drawPath || function(){};
-  window.drawPath = function(...args) {
+  const _origDrawPath = window.drawPath || function () { };
+  window.drawPath = function (...args) {
     _origDrawPath(...args);
     for (let f = 1; f <= 4; f++) {
       rescaleSVGStrokes(`f${f}-container`, `svg-f${f}`);

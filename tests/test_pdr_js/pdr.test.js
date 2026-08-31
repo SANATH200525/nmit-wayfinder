@@ -37,8 +37,8 @@ globalThis.fetch = () => Promise.resolve({ ok: true });
 globalThis.window = {
   DeviceMotionEvent: undefined,
   DeviceOrientationEvent: undefined,
-  addEventListener: () => {},
-  removeEventListener: () => {},
+  addEventListener: () => { },
+  removeEventListener: () => { },
 };
 
 // ---------------------------------------------------------------------------
@@ -82,8 +82,8 @@ function makeEngine(nodes, startNodeId) {
     startNode: startNodeId,
     nodes,
     graph: {},
-    onPositionUpdate: () => {},
-    onFloorChange: () => {},
+    onPositionUpdate: () => { },
+    onFloorChange: () => { },
     sessionId: null,
   });
 }
@@ -95,14 +95,14 @@ console.log('\n── TEST 1: _pathDistanceBetween uses summed graph distance, n
 
 test('L-shaped path A(0,0)->B(10,0)->C(10,10): graph dist = 20, not 14.14', () => {
   const nodes = makeNodes([
-    { id: 'A', x: 0,  y: 0,  floor: 1 },
-    { id: 'B', x: 10, y: 0,  floor: 1 },
+    { id: 'A', x: 0, y: 0, floor: 1 },
+    { id: 'B', x: 10, y: 0, floor: 1 },
     { id: 'C', x: 10, y: 10, floor: 1 },
   ]);
   const engine = makeEngine(nodes, 'A');
   engine.setPath([
-    { id: 'A', coords: [0,  0],  floor: 1 },
-    { id: 'B', coords: [10, 0],  floor: 1 },
+    { id: 'A', coords: [0, 0], floor: 1 },
+    { id: 'B', coords: [10, 0], floor: 1 },
     { id: 'C', coords: [10, 10], floor: 1 },
   ]);
 
@@ -116,12 +116,12 @@ test('L-shaped path A(0,0)->B(10,0)->C(10,10): graph dist = 20, not 14.14', () =
 
 test('straight path A(0,0)->B(15,0): graph dist equals Euclidean', () => {
   const nodes = makeNodes([
-    { id: 'A', x: 0,  y: 0, floor: 1 },
+    { id: 'A', x: 0, y: 0, floor: 1 },
     { id: 'B', x: 15, y: 0, floor: 1 },
   ]);
   const engine = makeEngine(nodes, 'A');
   engine.setPath([
-    { id: 'A', coords: [0,  0], floor: 1 },
+    { id: 'A', coords: [0, 0], floor: 1 },
     { id: 'B', coords: [15, 0], floor: 1 },
   ]);
   const d = engine._pathDistanceBetween('A', 'B');
@@ -144,14 +144,14 @@ test('null fromNodeId falls back to Euclidean from current position', () => {
 
 test('resetToCheckpoint advances _prevCheckpointId correctly', () => {
   const nodes = makeNodes([
-    { id: 'A', x: 0,  y: 0,  floor: 1 },
-    { id: 'B', x: 10, y: 0,  floor: 1 },
+    { id: 'A', x: 0, y: 0, floor: 1 },
+    { id: 'B', x: 10, y: 0, floor: 1 },
     { id: 'C', x: 10, y: 10, floor: 1 },
   ]);
   const engine = makeEngine(nodes, 'A');
   engine.setPath([
-    { id: 'A', coords: [0,  0],  floor: 1 },
-    { id: 'B', coords: [10, 0],  floor: 1 },
+    { id: 'A', coords: [0, 0], floor: 1 },
+    { id: 'B', coords: [10, 0], floor: 1 },
     { id: 'C', coords: [10, 10], floor: 1 },
   ]);
 
@@ -164,14 +164,14 @@ test('resetToCheckpoint advances _prevCheckpointId correctly', () => {
 
 test('calibration with graph dist=PDR dist: stepLengthM unchanged (ratio 1.0)', () => {
   const nodes = makeNodes([
-    { id: 'A', x: 0,  y: 0,  floor: 1 },
-    { id: 'B', x: 10, y: 0,  floor: 1 },
+    { id: 'A', x: 0, y: 0, floor: 1 },
+    { id: 'B', x: 10, y: 0, floor: 1 },
     { id: 'C', x: 10, y: 10, floor: 1 },
   ]);
   const engine = makeEngine(nodes, 'A');
   engine.setPath([
-    { id: 'A', coords: [0,  0],  floor: 1 },
-    { id: 'B', coords: [10, 0],  floor: 1 },
+    { id: 'A', coords: [0, 0], floor: 1 },
+    { id: 'B', coords: [10, 0], floor: 1 },
     { id: 'C', coords: [10, 10], floor: 1 },
   ]);
 
@@ -413,13 +413,13 @@ test('reorientation >15° shifts warmup guard into the future', () => {
 
 test('blend weight is 0.35 for short segments (<15 steps) and 0.6 for long segments (>=15 steps)', () => {
   const nodes = makeNodes([
-    { id: 'A', x: 0,  y: 0,  floor: 1 },
-    { id: 'B', x: 10, y: 0,  floor: 1 },
-    { id: 'C', x: 20, y: 0,  floor: 1 },
+    { id: 'A', x: 0, y: 0, floor: 1 },
+    { id: 'B', x: 10, y: 0, floor: 1 },
+    { id: 'C', x: 20, y: 0, floor: 1 },
   ]);
   const engine = makeEngine(nodes, 'A');
   engine.setPath([
-    { id: 'A', coords: [0,  0], floor: 1 },
+    { id: 'A', coords: [0, 0], floor: 1 },
     { id: 'B', coords: [10, 0], floor: 1 },
     { id: 'C', coords: [20, 0], floor: 1 },
   ]);
@@ -465,12 +465,12 @@ console.log('\n── TEST 7: Option A (wrong-way detection & stepSimulated) ─
 
 test('walking 180° opposite route segment triggers isWrongWay after 2 steps', () => {
   const nodes = makeNodes([
-    { id: 'A', x: 0,  y: 50, floor: 1 },
+    { id: 'A', x: 0, y: 50, floor: 1 },
     { id: 'B', x: 50, y: 50, floor: 1 }, // segment A->B moves in +X direction (heading=360°/0° north raw -> adjusted=90° East)
   ]);
   const engine = makeEngine(nodes, 'A');
   engine.setPath([
-    { id: 'A', coords: [0,  50], floor: 1 },
+    { id: 'A', coords: [0, 50], floor: 1 },
     { id: 'B', coords: [50, 50], floor: 1 },
   ]);
 
