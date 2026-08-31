@@ -683,8 +683,10 @@ export const NODES = {
 };
 
 export const GRAPH = {
+  // Ground Floor
   "main-entrance": [
-    "checkpoint-1-lift-gf"
+    "checkpoint-1-lift-gf",
+    "reception-gf"
   ],
   "curved-stairs-gf": [
     "checkpoint-1-lift-gf",
@@ -700,65 +702,76 @@ export const GRAPH = {
     "lift-1f"
   ],
   "reception-gf": [
-    "checkpoint-1-lift-gf"
+    "checkpoint-1-lift-gf",
+    "main-entrance"
   ],
   "it-lab-1-gf": [
-    "checkpoint-2-corridor-gf"
+    "checkpoint-2-corridor-gf",
+    "lecture-hall-1-gf",
+    "lecture-hall-2-gf"
   ],
   "office-nsom-gf": [
-    "checkpoint-2-corridor-gf"
+    "office-of-accounts-gf",
+    "library-gf"
   ],
   "library-gf": [
+    "office-nsom-gf",
+    "lecture-hall-1-gf",
     "checkpoint-2-corridor-gf"
   ],
   "office-of-accounts-gf": [
-    "checkpoint-2-corridor-gf"
+    "stairs-end-gf",
+    "restrooms-gf",
+    "office-nsom-gf"
   ],
   "stairs-end-gf": [
-    "checkpoint-2-corridor-gf",
     "restrooms-gf",
+    "office-of-accounts-gf",
     "stairs-end-1f"
   ],
   "restrooms-gf": [
-    "checkpoint-2-corridor-gf",
-    "stairs-end-gf"
+    "stairs-end-gf",
+    "office-of-accounts-gf"
   ],
   "lecture-hall-1-gf": [
-    "checkpoint-2-corridor-gf"
+    "library-gf",
+    "checkpoint-2-corridor-gf",
+    "it-lab-1-gf"
   ],
   "lecture-hall-2-gf": [
-    "checkpoint-2-corridor-gf"
+    "it-lab-1-gf",
+    "checkpoint-2-corridor-gf",
+    "lecture-hall-3-gf"
   ],
   "lecture-hall-3-gf": [
-    "checkpoint-2-corridor-gf"
+    "lecture-hall-2-gf",
+    "checkpoint-1-lift-gf"
   ],
   "checkpoint-1-lift-gf": [
     "checkpoint-2-corridor-gf",
-    "main-entrance",
-    "curved-stairs-gf",
+    "lecture-hall-3-gf",
     "lift-gf",
     "reception-gf",
-    "student-admission-office-gf"
+    "student-admission-office-gf",
+    "main-entrance",
+    "curved-stairs-gf"
   ],
   "checkpoint-2-corridor-gf": [
-    "checkpoint-1-lift-gf",
-    "stairs-end-gf",
-    "restrooms-gf",
-    "it-lab-1-gf",
-    "office-nsom-gf",
     "library-gf",
-    "office-of-accounts-gf",
     "lecture-hall-1-gf",
+    "it-lab-1-gf",
     "lecture-hall-2-gf",
-    "lecture-hall-3-gf"
+    "checkpoint-1-lift-gf"
   ],
+
+  // First Floor
   "balcony-1f": [
     "checkpoint1-lift-1f"
   ],
   "curved-stairs-up-1f": [
     "checkpoint1-lift-1f",
-    "curved-stairs-down-1f",
     "guest-lounge-1f",
+    "curved-stairs-down-1f",
     "curved-stairs-down-2f"
   ],
   "curved-stairs-down-1f": [
@@ -776,74 +789,84 @@ export const GRAPH = {
     "lift-2f"
   ],
   "faculty-room-1-1f": [
+    "head-of-placements-1f",
+    "dept-of-placements-1f",
     "checkpoint1-lift-1f"
   ],
   "dept-of-placements-1f": [
+    "faculty-room-1-1f",
     "checkpoint1-lift-1f"
   ],
   "head-of-placements-1f": [
+    "seminar-hall(sammilana)-1f",
+    "faculty-room-1-1f",
     "checkpoint1-lift-1f"
   ],
   "seminar-hall(sammilana)-1f": [
-    "checkpoint1-lift-1f"
+    "it-lab-2-1f",
+    "checkpoint1-lift-1f",
+    "head-of-placements-1f"
   ],
   "stairs-end-1f": [
-    "checkpoint-2-corridor-1f",
     "restrooms-1f",
     "stairs-end-gf",
     "stairs-end-2f"
   ],
   "restrooms-1f": [
-    "checkpoint-2-corridor-1f",
-    "stairs-end-1f"
+    "stairs-end-1f",
+    "lecture-hall-4-1f"
   ],
   "lecture-hall-5-1f": [
-    "checkpoint-2-corridor-1f",
     "board-room-1f",
-    "dept-examination-1f"
+    "dept-examination-1f",
+    "checkpoint-2-corridor-1f"
   ],
   "lecture-hall-4-1f": [
+    "restrooms-1f",
     "checkpoint-2-corridor-1f"
   ],
   "board-room-1f": [
-    "lecture-hall-5-1f",
-    "dept-examination-1f"
+    "dept-examination-1f",
+    "lecture-hall-5-1f"
   ],
   "dept-examination-1f": [
-    "lecture-hall-5-1f",
-    "board-room-1f"
+    "board-room-1f",
+    "lecture-hall-5-1f"
   ],
   "faculty-room-2-1f": [
-    "checkpoint-2-corridor-1f"
+    "checkpoint-2-corridor-1f",
+    "it-lab-2-1f"
   ],
   "it-lab-2-1f": [
-    "checkpoint-2-corridor-1f"
+    "faculty-room-2-1f",
+    "seminar-hall(sammilana)-1f",
+    "checkpoint1-lift-1f"
   ],
   "checkpoint1-lift-1f": [
     "checkpoint-2-corridor-1f",
-    "lift-1f",
-    "curved-stairs-down-1f",
-    "curved-stairs-up-1f",
-    "balcony-1f",
-    "guest-lounge-1f",
+    "it-lab-2-1f",
+    "seminar-hall(sammilana)-1f",
+    "head-of-placements-1f",
     "faculty-room-1-1f",
     "dept-of-placements-1f",
-    "head-of-placements-1f",
-    "seminar-hall(sammilana)-1f"
+    "lift-1f",
+    "guest-lounge-1f",
+    "balcony-1f",
+    "curved-stairs-up-1f",
+    "curved-stairs-down-1f"
   ],
   "checkpoint-2-corridor-1f": [
-    "checkpoint1-lift-1f",
-    "lecture-hall-5-1f",
-    "stairs-end-1f",
-    "restrooms-1f",
     "lecture-hall-4-1f",
+    "lecture-hall-5-1f",
     "faculty-room-2-1f",
-    "it-lab-2-1f"
+    "checkpoint1-lift-1f"
   ],
+
+  // Second Floor
   "curved-stairs-up-2f": [
     "checkpoint1-lift-2f",
-    "curved-stairs-down-2f",
     "alumni-relations-office-2f",
+    "curved-stairs-down-2f",
     "curved-stairs-down-3f"
   ],
   "curved-stairs-down-2f": [
@@ -861,71 +884,87 @@ export const GRAPH = {
     "lift-3f"
   ],
   "student-counselling-room-2f": [
+    "sitting-area-2f",
+    "faculty-room-2f",
     "checkpoint1-lift-2f"
   ],
   "faculty-room-2f": [
+    "student-counselling-room-2f",
     "checkpoint1-lift-2f"
   ],
   "sitting-area-2f": [
+    "product-design-lab-2f",
+    "student-counselling-room-2f",
     "checkpoint1-lift-2f"
   ],
   "aircraft-systems-lab-2f": [
-    "checkpoint-2-corridor-2f"
+    "staff-room-2-2f",
+    "checkpoint-2-corridor-2f",
+    "mechanical-automation-lab-2f"
   ],
   "staff-room-2-2f": [
-    "checkpoint-2-corridor-2f"
+    "staff-room-1-2f",
+    "smart-innovation-zone-2f",
+    "checkpoint-2-corridor-2f",
+    "aircraft-systems-lab-2f"
   ],
   "staff-room-1-2f": [
-    "checkpoint-2-corridor-2f"
+    "smart-manufacturing-2f",
+    "staff-room-2-2f",
+    "smart-innovation-zone-2f"
   ],
   "smart-manufacturing-2f": [
-    "checkpoint-2-corridor-2f"
+    "restrooms-2f",
+    "staff-room-1-2f"
   ],
   "stairs-end-2f": [
-    "checkpoint-2-corridor-2f",
     "restrooms-2f",
     "stairs-end-1f",
     "stairs-end-3f"
   ],
   "restrooms-2f": [
-    "checkpoint-2-corridor-2f",
-    "stairs-end-2f"
+    "stairs-end-2f",
+    "smart-manufacturing-2f"
   ],
   "smart-innovation-zone-2f": [
+    "staff-room-1-2f",
+    "staff-room-2-2f",
     "checkpoint-2-corridor-2f"
   ],
   "mechanical-automation-lab-2f": [
-    "checkpoint-2-corridor-2f"
+    "aircraft-systems-lab-2f",
+    "checkpoint-2-corridor-2f",
+    "product-design-lab-2f"
   ],
   "product-design-lab-2f": [
-    "checkpoint-2-corridor-2f"
+    "mechanical-automation-lab-2f",
+    "sitting-area-2f",
+    "checkpoint1-lift-2f"
   ],
   "checkpoint1-lift-2f": [
     "checkpoint-2-corridor-2f",
-    "lift-2f",
-    "curved-stairs-down-2f",
-    "curved-stairs-up-2f",
-    "alumni-relations-office-2f",
+    "product-design-lab-2f",
+    "sitting-area-2f",
     "student-counselling-room-2f",
     "faculty-room-2f",
-    "sitting-area-2f"
+    "lift-2f",
+    "alumni-relations-office-2f",
+    "curved-stairs-up-2f",
+    "curved-stairs-down-2f"
   ],
   "checkpoint-2-corridor-2f": [
-    "checkpoint1-lift-2f",
-    "stairs-end-2f",
-    "restrooms-2f",
-    "aircraft-systems-lab-2f",
-    "staff-room-2-2f",
-    "staff-room-1-2f",
-    "smart-manufacturing-2f",
     "smart-innovation-zone-2f",
+    "staff-room-2-2f",
+    "aircraft-systems-lab-2f",
     "mechanical-automation-lab-2f",
-    "product-design-lab-2f"
+    "checkpoint1-lift-2f"
   ],
+
+  // Third Floor
   "curved-stairs-up-3f": [
     "checkpoint1-lift-3f",
-    "curved-stairs-down-3f",
-    "room1-3f"
+    "room1-3f",
+    "curved-stairs-down-3f"
   ],
   "curved-stairs-down-3f": [
     "checkpoint1-lift-3f",
@@ -941,44 +980,50 @@ export const GRAPH = {
     "lift-2f"
   ],
   "samsung-innovation-campus-2-3f": [
+    "samsung-innovation-campus-1-3f",
     "checkpoint1-lift-3f"
   ],
   "samsung-innovation-campus-1-3f": [
+    "room-2-3f",
+    "samsung-innovation-campus-2-3f",
     "checkpoint1-lift-3f"
   ],
   "restrooms-3f": [
-    "checkpoint-2-corridor-3f",
-    "stairs-end-3f"
+    "stairs-end-3f",
+    "room-4-3f"
   ],
   "stairs-end-3f": [
-    "checkpoint-2-corridor-3f",
     "restrooms-3f",
     "stairs-end-2f"
   ],
   "room-2-3f": [
-    "checkpoint-2-corridor-3f"
+    "rooom-3-3f",
+    "samsung-innovation-campus-1-3f",
+    "checkpoint1-lift-3f"
   ],
   "rooom-3-3f": [
-    "checkpoint-2-corridor-3f"
+    "room-4-3f",
+    "checkpoint-2-corridor-3f",
+    "room-2-3f"
   ],
   "room-4-3f": [
-    "checkpoint-2-corridor-3f"
+    "restrooms-3f",
+    "checkpoint-2-corridor-3f",
+    "rooom-3-3f"
   ],
   "checkpoint1-lift-3f": [
     "checkpoint-2-corridor-3f",
-    "lift-3f",
-    "curved-stairs-down-3f",
-    "curved-stairs-up-3f",
-    "room1-3f",
+    "room-2-3f",
+    "samsung-innovation-campus-1-3f",
     "samsung-innovation-campus-2-3f",
-    "samsung-innovation-campus-1-3f"
+    "lift-3f",
+    "room1-3f",
+    "curved-stairs-up-3f",
+    "curved-stairs-down-3f"
   ],
   "checkpoint-2-corridor-3f": [
-    "checkpoint1-lift-3f",
-    "restrooms-3f",
-    "stairs-end-3f",
-    "room-2-3f",
+    "room-4-3f",
     "rooom-3-3f",
-    "room-4-3f"
+    "checkpoint1-lift-3f"
   ]
 };

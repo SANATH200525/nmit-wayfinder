@@ -45,7 +45,7 @@ self.addEventListener('install', e => {
     caches.open(CACHE_NAME).then(async cache => {
       await Promise.allSettled(
         [...SHELL_ASSETS, ...FLOOR_PLANS].map(url =>
-          cache.add(url).catch(() => {})
+          cache.add(url).catch(() => { })
         )
       );
     })
@@ -84,7 +84,7 @@ self.addEventListener('fetch', e => {
 
   // FAQ + feedback: pass through (offline feedback queued by metrics.js/IndexedDB)
   if (url.pathname.startsWith('/faq') || url.pathname.startsWith('/feedback') ||
-      url.pathname.startsWith('/session')) {
+    url.pathname.startsWith('/session')) {
     return;
   }
 
@@ -167,9 +167,9 @@ async function flushOfflineFeedback() {
   for (const item of pending) {
     try {
       const res = await fetch('/feedback', {
-        method:  'POST',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-        body:    JSON.stringify(item.payload),
+        body: JSON.stringify(item.payload),
       });
       if (res.ok) await db.delete('pending-feedback', item.id);
     } catch { /* will retry on next sync */ }
@@ -185,9 +185,9 @@ async function flushOfflineSessions() {
   for (const item of pending) {
     try {
       const res = await fetch('/session/start', {
-        method:  'POST',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(item.payload),
+        body: JSON.stringify(item.payload),
       });
       if (res.ok) await db.delete('pending-sessions', item.id);
     } catch { /* will retry on next sync */ }

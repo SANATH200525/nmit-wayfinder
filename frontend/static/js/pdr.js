@@ -1120,4 +1120,4 @@ export class PDREngine {
 // Exporting module-internal constants so the Node.js test suite can assert
 // their values without a DOM.  No logic is changed here.
 // ---------------------------------------------------------------------------
-export { PATH_SNAP_RADIUS_UNITS };
+export { PATH_SNAP_RADIUS_UNITS };

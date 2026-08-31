@@ -779,7 +779,7 @@ function preparePDRForRoute(startNode, sessionId, path) {
     },
     onFloorChange: ({ toFloor }) => {
       window.switchFloor(toFloor);
-syncNavFloor(toFloor);
+      syncNavFloor(toFloor);
     },
   });
   pdrLiveState = null;
@@ -1085,10 +1085,7 @@ function computeCheckpoints(logicalPath) {
     }
     const isExplicitCheckpoint = curr.id.toLowerCase().includes('checkpoint') || NODES[curr.id]?.is_waypoint;
     const isUserStop = stopIds.includes(curr.id);
-    const isStopNode = currType !== 'lift' && currType !== 'stairs' &&
-      curr.id !== logicalPath[0].id && curr.id !== logicalPath[logicalPath.length - 1].id;
-    const degree = (window.nodeDegrees && window.nodeDegrees[curr.id]) || 0;
-    if (isExplicitCheckpoint || (isStopNode && (isUserStop || degree >= 3))) addCheckpoint(curr);
+    if (isExplicitCheckpoint || isUserStop) addCheckpoint(curr);
   }
   const last = logicalPath[logicalPath.length - 1];
   if (!addedIds.has(last.id)) result.push(last);
@@ -1205,32 +1202,28 @@ window.exitNavigationToForm = function exitNavigationToForm() {
 };
 
 function closeRouteForm() {
-  if (!isMobile()) return;
   const sheet = document.getElementById('route-form-sheet');
   if (sheet) sheet.classList.add('sheet-hidden');
   routeFormOpen = false;
-  document.documentElement.style.overflow = 'hidden';
+  const topBar = document.getElementById('mobile-top-bar');
+  if (topBar && isMobile()) topBar.style.display = 'flex';
 }
+window.closeRouteForm = closeRouteForm;
 
 // ---------------------------------------------------------------------------
 // Floor confirm modal
 // ---------------------------------------------------------------------------
-function showFloorConfirmModal(floorNum, method, onResponse) {
+function showFloorConfirmModal(targetFloor, method, onConfirm) {
   const modal = document.getElementById('floor-confirm-modal');
-  const icon = document.getElementById('floor-confirm-icon');
+  if (!modal) { onConfirm(true); return; }
   const title = document.getElementById('floor-confirm-title');
   const body = document.getElementById('floor-confirm-body');
-  if (!modal) { onResponse(true); return; }
-  const floorName = FLOOR_NAMES[floorNum] || `Floor ${floorNum}`;
-  icon.textContent = method === 'lift' ? 'ELEVATOR' : 'STAIRS';
-  icon.dataset.method = method;
-  title.textContent = method === 'lift'
-    ? `Take the lift to the ${floorName}`
-    : `Take the stairs to the ${floorName}`;
-  body.textContent = method === 'lift'
-    ? `Enter the lift and travel to the ${floorName}. Tap "Yes, I'm here" once the lift doors open.`
-    : `Walk up/down the stairs to the ${floorName}. Tap "Yes, I'm here" once you arrive.`;
-  _floorConfirmCallback = onResponse;
+  const icon = document.getElementById('floor-confirm-icon');
+  const floorName = FLOOR_NAMES[targetFloor] || `Floor ${targetFloor}`;
+  if (title) title.textContent = `Take the ${method === 'lift' ? 'Elevator' : 'Stairs'}`;
+  if (body) body.textContent = `Please take the ${method === 'lift' ? 'elevator' : 'stairs'} to ${floorName}, then confirm below.`;
+  if (icon) icon.innerHTML = method === 'lift' ? ICON_SVG.lift : ICON_SVG.stairs;
+  _floorConfirmCallback = onConfirm;
   modal.style.display = 'flex';
 }
 function hideFloorConfirmModal() {
@@ -1281,18 +1274,24 @@ window.onCheckpointReached = function () {
   const floorChanging = nextCp && reachedCp.floor !== nextCp.floor;
 
   function advanceCheckpoint() {
-    if (pdrEngine) pdrEngine.resetToCheckpoint(reachedCp.id);
+    const reachedIdx = currentCheckpointIdx;
+    const cpJustReached = checkpoints[reachedIdx];
+    if (pdrEngine && cpJustReached) pdrEngine.resetToCheckpoint(cpJustReached.id);
+
     currentCheckpointIdx++;
     const activeCp = checkpoints[currentCheckpointIdx];
     if (!activeCp) return;
+
     window.switchFloor(activeCp.floor);
-    // If a floor change just happened, the engine is still positioned at reachedCp
+    // If a floor change just happened, the engine is still positioned at cpJustReached
     // (the stair/lift node on the old floor). Snap it to activeCp — the stair landing
     // on the destination floor — so the live dot appears on the correct SVG layer.
-    if (pdrEngine && activeCp.floor !== reachedCp.floor) {
+    if (pdrEngine && activeCp.floor !== cpJustReached.floor) {
       pdrEngine.resetToCheckpoint(activeCp.id);
     }
-    highlightRemainingPath(currentCheckpointIdx);
+
+    // Split remaining path precisely at the checkpoint just confirmed
+    highlightRemainingPath(reachedIdx);
     syncDirectionsActiveStep(currentCheckpointIdx);
     showCheckpointButton();
     updateTransitionBanner();
@@ -2531,7 +2530,7 @@ window.requestAlternateRoute = async function requestAlternateRoute() {
 
   // 1. Replace the global path array
   pathData = altPath;
-  
+
   // 2. Re-initialize the entire navigation state using drawPath
   // (makeOrthogonalPath is globally available from script.js, but fallback to altPath just in case)
   const ortho = typeof makeOrthogonalPath === 'function' ? makeOrthogonalPath(altPath) : altPath;
@@ -2636,13 +2635,13 @@ window.requestAlternateRoute = async function requestAlternateRoute() {
     }
   });
 
-  window.resetMapZoom = function(containerId) {
+  window.resetMapZoom = function (containerId) {
     const pz = panzoomInstances[containerId];
     if (pz) pz.reset({ animate: true });
   };
 
-  const _origResetToForm = window.resetToForm || function(){};
-  window.resetToForm = function() {
+  const _origResetToForm = window.resetToForm || function () { };
+  window.resetToForm = function () {
     _origResetToForm();
     for (let f = 1; f <= 4; f++) {
       const pzDesktop = panzoomInstances[`f${f}-container`];
@@ -2653,8 +2652,8 @@ window.requestAlternateRoute = async function requestAlternateRoute() {
   };
 
   // Re-scale immediately when route is drawn so it doesn't wait for zoom interaction
-  const _origDrawPath = window.drawPath || function(){};
-  window.drawPath = function(...args) {
+  const _origDrawPath = window.drawPath || function () { };
+  window.drawPath = function (...args) {
     _origDrawPath(...args);
     for (let f = 1; f <= 4; f++) {
       rescaleSVGStrokes(`f${f}-container`, `svg-f${f}`);
