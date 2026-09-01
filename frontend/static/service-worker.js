@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nmit-wayfinder-v15';
+const CACHE_NAME = 'nmit-wayfinder-v16';
 import { openOfflineDB } from './js/db-helper.js';
 
 const FLOOR_PLANS = [
@@ -19,6 +19,7 @@ const SHELL_ASSETS = [
   '/static/js/routing.js',
   '/static/js/pdr.js',
   '/static/js/metrics.js',
+  '/static/js/checkpoint-flow.js',
   '/static/js/app.js',
 ];
 
@@ -28,6 +29,7 @@ const NETWORK_FIRST = [
   '/static/js/app.js',
   '/static/js/pdr.js',
   '/static/js/metrics.js',
+  '/static/js/checkpoint-flow.js',
   '/static/css/style.css',
 ];
 

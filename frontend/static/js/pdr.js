@@ -77,6 +77,21 @@ const MIN_STEP_INTERVAL_MS = 300;
  */
 const STEP_ACCEL_THRESHOLD = 1.18;
 
+/**
+ * Lower bound for the per-device adaptive step threshold. Some phones expose
+ * considerably smaller linear-acceleration peaks through the browser than
+ * others, so a single fixed 1.18 m/s² threshold can make the pointer stop.
+ */
+const MIN_STEP_ACCEL_THRESHOLD = 0.82;
+
+/** The step peak must exceed the recent quiet-motion baseline by this amount. */
+const STEP_THRESHOLD_ABOVE_BASELINE = 0.70;
+
+/** Large, stable phone rotations briefly pause step detection to avoid false steps. */
+const REORIENTATION_ANGLE_DEG = 45;
+const REORIENTATION_WARMUP_MS = 600;
+const REORIENTATION_COOLDOWN_MS = 1000;
+
 /** Heading smoothing factor. Lower = smoother but slower to respond. */
 const HEADING_SMOOTHING = 0.22;
 
@@ -315,6 +330,8 @@ export class PDREngine {
     this._smoothedMagnitude = 0;
     this._previousMagnitude = 0;
     this._lastStepTime = 0;
+    this._motionBaseline = 0;
+    this._effectiveStepThreshold = STEP_ACCEL_THRESHOLD;
 
     // ── Warmup guard ─────────────────────────────────────────────────────
     // Steps are ignored until this timestamp. Set to future on start().
@@ -335,11 +352,13 @@ export class PDREngine {
     // the known graph distance and correct stepLengthM.
     this._pdrDistanceSinceCheckpoint = 0;  // SVG units
     this._stepsSinceCheckpoint = 0;
-    // Node ID of the most recently confirmed checkpoint, used by
+    // Node ID of the most recently confirmed checkpoint (or the route start), used by
     // _pathDistanceBetween() to compute the graph-path reference distance
     // for calibration. Null means no checkpoint has been confirmed yet this
-    // session — first calibration falls back to Euclidean distance.
-    this._prevCheckpointId = null;
+    // session. Seeding it with the route start means the first checkpoint is
+    // calibrated against the complete planned route rather than a straight-line
+    // shortcut from wherever PDR happened to place the dot.
+    this._prevCheckpointId = startNode;
 
     // ── Telemetry throttle ───────────────────────────────────────────────
     this._lastPostTime = 0;
@@ -355,6 +374,21 @@ export class PDREngine {
     this._isOffRoute = false;
     this._wrongWayStepCount = 0;
     this._isWrongWay = false;
+
+    // Field-test diagnostics. These are intentionally in-memory only: callers
+    // can read them through getDiagnostics() without generating extra network
+    // traffic or retaining sensor data.
+    this._diagnosticMode = false;
+    this._diagnostics = {
+      motionEvents: 0,
+      orientationEvents: 0,
+      detectedSteps: 0,
+      reorientationGuards: 0,
+      lastMotionAt: null,
+      lastStepAt: null,
+      lastMotionSource: null,
+    };
+    this._lastReorientationAt = 0;
 
     // ── Heading reliability tracking ──────────────────────────────────────
     // Set to true when we receive non-absolute orientation data (relative alpha
@@ -447,6 +481,31 @@ export class PDREngine {
       this.heading = normalizeHeading(this.heading + headingDelta);
     }
     this._step(stepLengthM);
+  }
+
+  /** Enable concise console output for a live field test. */
+  setDiagnosticMode(enabled) {
+    this._diagnosticMode = Boolean(enabled);
+    return this._diagnosticMode;
+  }
+
+  /**
+   * Returns non-sensitive runtime counters that distinguish a sensor-event
+   * problem from a step-detector or route-projection problem.
+   */
+  getDiagnostics() {
+    return {
+      ...this._diagnostics,
+      active: this.active,
+      floor: this.floor,
+      stepCount: this.stepCount,
+      stepLengthM: this.stepLengthM,
+      smoothedMagnitude: this._smoothedMagnitude,
+      effectiveStepThreshold: this._effectiveStepThreshold,
+      warmupRemainingMs: Math.max(0, this._gravityReadyAt - Date.now()),
+      isOffRoute: this._isOffRoute,
+      isWrongWay: this._isWrongWay,
+    };
   }
 
   /**
@@ -655,6 +714,10 @@ export class PDREngine {
    * @param {DeviceMotionEvent} event
    */
   _onMotionEvent(event) {
+    const now = Date.now();
+    this._diagnostics.motionEvents++;
+    this._diagnostics.lastMotionAt = now;
+
     // FIX 3: Distinguish accelerationIncludingGravity from acceleration.
     // event.acceleration is already gravity-compensated by the OS/browser.
     // If we fall through to it and still run the gravity-EMA subtraction,
@@ -664,6 +727,9 @@ export class PDREngine {
     const usingIncludingGravity = !!(includingGravity && Number.isFinite(includingGravity.x));
     const source = usingIncludingGravity ? includingGravity : event.acceleration;
     if (!source) return;
+    this._diagnostics.lastMotionSource = usingIncludingGravity
+      ? 'accelerationIncludingGravity'
+      : 'acceleration';
 
     const x = Number.isFinite(source.x) ? source.x : 0;
     const y = Number.isFinite(source.y) ? source.y : 0;
@@ -688,8 +754,19 @@ export class PDREngine {
         const dot = x * oldGx + y * oldGy + z * oldGz;
         const cosTheta = clamp(dot / (magRaw * magOld), -1, 1);
         const angleDeg = (Math.acos(cosTheta) * 180) / Math.PI;
-        if (angleDeg > 15) {
-          this._gravityReadyAt = Date.now() + GRAVITY_WARMUP_MS;
+        // A 15° single-sample check re-triggered during ordinary hand movement,
+        // repeatedly extending the old 1.5 s warmup and making the pointer look
+        // stuck. Only respond to a genuinely large, stable reorientation, and
+        // cap that pause to a short one-time recovery window.
+        const stableMagnitude = Math.abs(magRaw - magOld) < 1.4;
+        if (
+          angleDeg > REORIENTATION_ANGLE_DEG &&
+          stableMagnitude &&
+          (now - this._lastReorientationAt) >= REORIENTATION_COOLDOWN_MS
+        ) {
+          this._lastReorientationAt = now;
+          this._gravityReadyAt = Math.max(this._gravityReadyAt, now + REORIENTATION_WARMUP_MS);
+          this._diagnostics.reorientationGuards++;
         }
       }
 
@@ -710,12 +787,22 @@ export class PDREngine {
     // noise smoothing for reduced detection latency (~65 ms, down from ~130 ms) at fast cadence.
     this._smoothedMagnitude = (this._smoothedMagnitude * 0.5) + (magnitude * 0.5);
 
-    const now = Date.now();
+    // Learn the quiet-motion baseline only below the current trigger level.
+    // This adapts to lower-amplitude browser sensor streams without allowing a
+    // sustained walking peak to inflate the threshold indefinitely.
+    if (this._smoothedMagnitude < this._effectiveStepThreshold) {
+      this._motionBaseline = (this._motionBaseline * 0.96) + (this._smoothedMagnitude * 0.04);
+    }
+    this._effectiveStepThreshold = clamp(
+      this._motionBaseline + STEP_THRESHOLD_ABOVE_BASELINE,
+      MIN_STEP_ACCEL_THRESHOLD,
+      STEP_ACCEL_THRESHOLD
+    );
 
     // Rising-edge threshold crossing + debounce + warmup guard
     const crossedThreshold =
-      this._smoothedMagnitude >= STEP_ACCEL_THRESHOLD &&
-      this._previousMagnitude < STEP_ACCEL_THRESHOLD;
+      this._smoothedMagnitude >= this._effectiveStepThreshold &&
+      this._previousMagnitude < this._effectiveStepThreshold;
 
     const debounceOk = (now - this._lastStepTime) >= MIN_STEP_INTERVAL_MS;
     const warmupDone = now >= this._gravityReadyAt;
@@ -729,6 +816,8 @@ export class PDREngine {
         0.10
       );
       this._lastStepTime = now;
+      this._diagnostics.detectedSteps++;
+      this._diagnostics.lastStepAt = now;
       this._step(clamp(this.stepLengthM + intensityBoost, STEP_LENGTH_MIN_M, STEP_LENGTH_MAX_M));
     }
 
@@ -745,6 +834,7 @@ export class PDREngine {
    * @param {DeviceOrientationEvent} event
    */
   _onOrientEvent(event) {
+    this._diagnostics.orientationEvents++;
     const rawHeading = extractHeading(event);
     if (rawHeading === null) return;
 
@@ -835,7 +925,7 @@ export class PDREngine {
     // Update off-route flag: true when we could not snap to the path
     this._isOffRoute = !wasSnapped && this._pathNodes.length >= 2;
 
-    if (PDR_DEBUG) {
+    if (PDR_DEBUG || this._diagnosticMode) {
       console.log(
         '[PDR _step]',
         'rawHeading:', rawHeading.toFixed(1),
@@ -845,6 +935,7 @@ export class PDREngine {
         'snapDist:', snapDist.toFixed(2),
         'pathNodes:', this._pathNodes.length,
         'isOffRoute:', this._isOffRoute,
+        'threshold:', this._effectiveStepThreshold.toFixed(2),
       );
     }
 

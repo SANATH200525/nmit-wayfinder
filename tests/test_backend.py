@@ -1,4 +1,5 @@
 import json
+import sqlite3
 import unittest
 from fastapi.testclient import TestClient
 
@@ -40,6 +41,51 @@ class AppTestCase(unittest.TestCase):
             headers={'X-Requested-With': 'XMLHttpRequest'},
         )
         self.assertEqual(resp.status_code, 200)
+
+    def test_low_rating_penalises_edge_cost(self):
+        payload = {
+            'start': 'MAINENTRANCE-GF',
+            'end': 'COMPUTERLAB-GF',
+            'path': ['MAINENTRANCE-GF', 'COMPUTERLAB-GF'],
+            'rating': 1,
+        }
+        resp = self.client.post(
+            '/feedback', json=payload,
+            headers={'X-Requested-With': 'XMLHttpRequest'},
+        )
+        self.assertEqual(resp.status_code, 200)
+
+        from backend.db import DB_PATH
+        with sqlite3.connect(DB_PATH) as conn:
+            weight = conn.execute(
+                'SELECT multiplier FROM edge_weights WHERE edge=?',
+                ('MAINENTRANCE-GF->COMPUTERLAB-GF',),
+            ).fetchone()[0]
+        self.assertGreater(weight, 1.0)
+
+    def test_high_rating_restores_penalised_edge_toward_neutral(self):
+        from backend.db import DB_PATH
+        edge = 'MAINENTRANCE-GF->COMPUTERLAB-GF'
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute('INSERT OR REPLACE INTO edge_weights VALUES (?, ?)', (edge, 1.4))
+            conn.commit()
+
+        payload = {
+            'start': 'MAINENTRANCE-GF',
+            'end': 'COMPUTERLAB-GF',
+            'path': ['MAINENTRANCE-GF', 'COMPUTERLAB-GF'],
+            'rating': 5,
+        }
+        resp = self.client.post(
+            '/feedback', json=payload,
+            headers={'X-Requested-With': 'XMLHttpRequest'},
+        )
+        self.assertEqual(resp.status_code, 200)
+
+        with sqlite3.connect(DB_PATH) as conn:
+            weight = conn.execute('SELECT multiplier FROM edge_weights WHERE edge=?', (edge,)).fetchone()[0]
+        self.assertLess(weight, 1.4)
+        self.assertGreaterEqual(weight, 1.0)
 
     def test_feedback_without_header(self):
         payload = {

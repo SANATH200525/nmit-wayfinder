@@ -6,6 +6,7 @@ import { NODES, GRAPH } from './graph-data.js';
 import { planRoute, planAlternate, buildDirections } from './routing.js';
 import { PDREngine, getPDRSupportState } from './pdr.js';
 import { startSession, recordCheckpoint } from './metrics.js';
+import { getCheckpointAdvancePlan, getCheckpointMarkersForFloor } from './checkpoint-flow.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -91,6 +92,34 @@ window.allNodes = NODES;
 // ---------------------------------------------------------------------------
 function toPathNodes(path) {
   return path.map(n => ({ id: n.id, coords: [n.x, n.y], floor: n.floor }));
+}
+
+// Return the path suffix beginning at a confirmed checkpoint. PDR must not
+// project a future step onto any segment already walked: at a junction those
+// old segments can be closer than the forward segment and make the live dot
+// snap backwards.
+function getRemainingPDRPath(checkpointIdx) {
+  if (!pathData?.length || checkpointIdx < 0 || !checkpoints?.[checkpointIdx]) return pathData;
+
+  let searchFrom = 0;
+  let pathIndex = -1;
+  for (let i = 0; i <= checkpointIdx; i++) {
+    const checkpoint = checkpoints[i];
+    pathIndex = pathData.findIndex((node, index) =>
+      index >= searchFrom &&
+      node.id === checkpoint.id &&
+      node.floor === checkpoint.floor
+    );
+    if (pathIndex === -1) return pathData;
+    searchFrom = pathIndex + 1;
+  }
+  return pathData.slice(pathIndex);
+}
+
+function updatePDRProjectionFromCheckpoint(checkpointIdx) {
+  if (!pdrEngine) return;
+  const remainingPath = getRemainingPDRPath(checkpointIdx);
+  if (remainingPath?.length >= 2) pdrEngine.setPath(toPathNodes(remainingPath));
 }
 
 const FEEDBACK_TAG_PRESETS = {
@@ -846,6 +875,16 @@ function stopPDR({ clearStatus = true } = {}) {
   if (clearStatus) renderPDRStatus(null);
 }
 
+// Field-test helpers. In the browser console, call getPDRDiagnostics() when
+// the dot stalls; call setPDRDiagnosticMode(true) to log each detected step.
+window.getPDRDiagnostics = () => pdrEngine?.getDiagnostics?.() || null;
+window.setPDRDiagnosticMode = (enabled) => {
+  if (!pdrEngine?.setDiagnosticMode) return false;
+  const active = pdrEngine.setDiagnosticMode(enabled);
+  toast(`PDR diagnostics ${active ? 'enabled' : 'disabled'}.`);
+  return active;
+};
+
 // ---------------------------------------------------------------------------
 // Recalculate route
 // ---------------------------------------------------------------------------
@@ -1273,50 +1312,55 @@ window.onCheckpointReached = function () {
   const isStairNode = reachedType === 'stairs' || reachedCp.id.includes('STAIRS') || reachedCp.id.includes('CURVEDSTAIRS');
   const floorChanging = nextCp && reachedCp.floor !== nextCp.floor;
 
-  function advanceCheckpoint() {
-    const reachedIdx = currentCheckpointIdx;
-    const cpJustReached = checkpoints[reachedIdx];
-    if (pdrEngine && cpJustReached) pdrEngine.resetToCheckpoint(cpJustReached.id);
+  function advanceCheckpoint({ arrivalConfirmed = false } = {}) {
+    const plan = getCheckpointAdvancePlan({
+      checkpoints,
+      currentIndex: currentCheckpointIdx,
+      arrivalConfirmed,
+    });
+    if (!plan) return;
 
-    currentCheckpointIdx++;
+    const cpJustReached = checkpoints[plan.reachedIndex];
+    const arrivalCp = checkpoints[plan.arrivalIndex];
+    if (pdrEngine) pdrEngine.resetToCheckpoint(cpJustReached.id);
+
+    // A floor-confirmation modal explicitly confirms both sides of a stair/lift
+    // transition. Keep PDR anchored at the arrival landing, but make the next
+    // real checkpoint active so a later tap cannot send the dot back to stairs.
+    if (plan.isFloorTransition) {
+      window.switchFloor(arrivalCp.floor);
+      if (pdrEngine) pdrEngine.resetToCheckpoint(arrivalCp.id);
+    } else {
+      window.switchFloor(arrivalCp.floor);
+    }
+
+    currentCheckpointIdx = plan.nextActiveIndex;
     const activeCp = checkpoints[currentCheckpointIdx];
     if (!activeCp) return;
 
-    window.switchFloor(activeCp.floor);
-    // If a floor change just happened, the engine is still positioned at cpJustReached
-    // (the stair/lift node on the old floor). Snap it to activeCp — the stair landing
-    // on the destination floor — so the live dot appears on the correct SVG layer.
-    if (pdrEngine && activeCp.floor !== cpJustReached.floor) {
-      pdrEngine.resetToCheckpoint(activeCp.id);
-    }
-
-    // Split remaining path precisely at the checkpoint just confirmed
-    highlightRemainingPath(reachedIdx);
+    updatePDRProjectionFromCheckpoint(plan.anchorIndex);
+    highlightRemainingPath(plan.visualProgressIndex);
     syncDirectionsActiveStep(currentCheckpointIdx);
     showCheckpointButton();
     updateTransitionBanner();
     if (isMobile()) { updateMobileCurrentStep(currentCheckpointIdx); syncNavSVGs(); }
-    recordCheckpoint({ sessionId: currentSessionId, checkpointIndex: currentCheckpointIdx, checkpointNodeId: activeCp.id });
+    plan.confirmedIndices.forEach(index => {
+      const checkpoint = checkpoints[index];
+      recordCheckpoint({ sessionId: currentSessionId, checkpointIndex: index, checkpointNodeId: checkpoint.id });
+    });
   }
 
   const currentVisibleFloor = parseInt(document.querySelector('.floor-tab.active')?.dataset.floor || '1');
 
   if ((isLiftNode || isStairNode) && floorChanging) {
     if (nextCp.floor === currentVisibleFloor) {
-      // User is already on the target floor. Skip modal and fast-forward.
-      let targetIdx = currentCheckpointIdx + 1;
-      while (targetIdx < checkpoints.length && checkpoints[targetIdx].floor !== currentVisibleFloor) {
-        targetIdx++;
-      }
-      if (targetIdx < checkpoints.length) {
-        // Set to one before the target so advanceCheckpoint() lands exactly on it
-        currentCheckpointIdx = targetIdx - 1;
-      }
-      advanceCheckpoint();
+      // The user is already at the arrival landing, so consume both sides of
+      // the transition exactly as the confirmation modal would.
+      advanceCheckpoint({ arrivalConfirmed: true });
     } else {
       hideCheckpointButton();
       showFloorConfirmModal(nextCp.floor, isLiftNode ? 'lift' : 'stairs', (confirmed) => {
-        if (confirmed) { window.switchFloor(nextCp.floor); advanceCheckpoint(); }
+        if (confirmed) advanceCheckpoint({ arrivalConfirmed: true });
         else { toast(`Head to the ${FLOOR_NAMES[nextCp.floor]} and tap the button when you arrive.`); showCheckpointButton(); }
       });
     }
@@ -1376,8 +1420,7 @@ function highlightRemainingPath(checkpointIdx) {
     if (globalStart.floor === f && remaining.some(p => p.id === globalStart.id)) draw3DPin(svg, globalStart.x, globalStart.y, 'marker-start');
     const isOnFinalLeg = currentCheckpointIdx >= checkpoints.length - 1;
     if (isOnFinalLeg && globalEnd.floor === f && remaining.some(p => p.id === globalEnd.id)) draw3DPin(svg, globalEnd.x, globalEnd.y, 'marker-end');
-    const nextIdx = currentCheckpointIdx + 1, nextCp = nextIdx < checkpoints.length ? checkpoints[nextIdx] : null;
-    if (nextCp && nextCp.floor === f && remaining.some(p => p.id === nextCp.id)) drawCheckpointDot(svg, nextCp.x, nextCp.y);
+    renderCheckpointMarkers(svg, checkpoints, f);
   }
   renderPDRMarkers();
 }
@@ -1390,12 +1433,11 @@ window.drawPath = function drawPath(path, logicalPath = path) {
   pathData = logicalPath;
   const globalStart = logicalPath[0], globalEnd = logicalPath[logicalPath.length - 1];
   const routeCheckpoints = computeCheckpoints(logicalPath);
-  const nextCheckpoint = routeCheckpoints.length > 0 ? routeCheckpoints[0] : null;
   checkpoints = routeCheckpoints;
   currentCheckpointIdx = 0;
   navStartTime = Date.now();
   for (let i = 1; i <= 4; i++) {
-    renderSVG(`svg-f${i}`, path, i, globalStart, globalEnd, nextCheckpoint);
+    renderSVG(`svg-f${i}`, path, i, globalStart, globalEnd, routeCheckpoints);
   }
   generateDirections(logicalPath);
   syncDirectionsActiveStep(0);
@@ -1456,7 +1498,7 @@ window.drawPath = function drawPath(path, logicalPath = path) {
 // ---------------------------------------------------------------------------
 // renderSVG
 // ---------------------------------------------------------------------------
-function renderSVG(svgId, fullPath, floorNum, globalStart, globalEnd, nextCheckpoint = null) {
+function renderSVG(svgId, fullPath, floorNum, globalStart, globalEnd, routeCheckpoints = []) {
   const svg = document.getElementById(svgId);
   if (!svg) return; svg.innerHTML = '';
 
@@ -1484,9 +1526,9 @@ function renderSVG(svgId, fullPath, floorNum, globalStart, globalEnd, nextCheckp
   if (fullPath.some(p => p.id === globalStart.id && p.floor === floorNum)) draw3DPin(svg, globalStart.x, globalStart.y, 'marker-start');
   const maxSeg = Math.max(...fullPath.map(p => p.segment ?? 0));
   const destSeg = fullPath.find(p => p.id === globalEnd.id)?.segment ?? maxSeg;
-  const isFinalLeg = !nextCheckpoint || destSeg === maxSeg;
+  const isFinalLeg = routeCheckpoints.length === 0 || destSeg === maxSeg;
   if (isFinalLeg && fullPath.some(p => p.id === globalEnd.id && p.floor === floorNum)) draw3DPin(svg, globalEnd.x, globalEnd.y, 'marker-end');
-  if (nextCheckpoint && fullPath.some(p => p.id === nextCheckpoint.id && p.floor === floorNum)) drawCheckpointDot(svg, nextCheckpoint.x, nextCheckpoint.y);
+  renderCheckpointMarkers(svg, routeCheckpoints, floorNum, fullPath);
 }
 
 // ---------------------------------------------------------------------------
@@ -1509,10 +1551,21 @@ function draw3DPin(svg, x, y, className) {
   g.appendChild(pin); g.appendChild(base); g.appendChild(bounce); svg.appendChild(g);
 }
 
-function drawCheckpointDot(svg, x, y) {
+function renderCheckpointMarkers(svg, checkpointList, floorNum, route = pathData) {
+  getCheckpointMarkersForFloor(checkpointList, floorNum).forEach((checkpoint, index) => {
+    const isOnRoute = route.some(point => point.id === checkpoint.id && point.floor === checkpoint.floor);
+    if (isOnRoute) drawCheckpointDot(svg, checkpoint.x, checkpoint.y, {
+      active: checkpoint === checkpoints[currentCheckpointIdx],
+      index,
+    });
+  });
+}
+
+function drawCheckpointDot(svg, x, y, { active = false, index = 0 } = {}) {
   const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-  circle.setAttribute('r', '1.2'); circle.setAttribute('fill', '#8b5cf6');
-  circle.setAttribute('stroke', '#ffffff'); circle.setAttribute('stroke-width', '0.4');
+  circle.setAttribute('r', active ? '1.45' : '1.15'); circle.setAttribute('fill', '#8b5cf6');
+  circle.setAttribute('stroke', active ? '#4c1d95' : '#ffffff'); circle.setAttribute('stroke-width', active ? '0.55' : '0.4');
+  circle.setAttribute('data-checkpoint-marker', String(index));
   const anim = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
   anim.setAttribute('attributeName', 'transform'); anim.setAttribute('type', 'translate');
   anim.setAttribute('values', `${x},${y}`); anim.setAttribute('dur', 'indefinite');

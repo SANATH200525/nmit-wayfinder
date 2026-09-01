@@ -30,7 +30,10 @@ def save_feedback(
     )
     conn.commit()
 
-    delta = 0.05 if payload.rating >= 4 else (-0.10 if payload.rating <= 2 else 0)
+    # Multipliers are applied directly to route cost. Poor feedback must raise
+    # an edge's cost so future routes avoid it; strong feedback can gradually
+    # restore a previously penalised edge toward the neutral 1.0 baseline.
+    delta = -0.05 if payload.rating >= 4 else (0.10 if payload.rating <= 2 else 0)
     for idx in range(len(payload.path) - 1):
         edge = f"{payload.path[idx]}->{payload.path[idx + 1]}"
         cur = conn.execute('SELECT multiplier FROM edge_weights WHERE edge=?', (edge,)).fetchone()

@@ -142,7 +142,7 @@ test('null fromNodeId falls back to Euclidean from current position', () => {
   assert.ok(Math.abs(d - 10) < 1e-9, `expected Euclidean 10, got ${d}`);
 });
 
-test('resetToCheckpoint advances _prevCheckpointId correctly', () => {
+test('first calibration anchor starts at the route start and then advances', () => {
   const nodes = makeNodes([
     { id: 'A', x: 0,  y: 0,  floor: 1 },
     { id: 'B', x: 10, y: 0,  floor: 1 },
@@ -155,11 +155,34 @@ test('resetToCheckpoint advances _prevCheckpointId correctly', () => {
     { id: 'C', coords: [10, 10], floor: 1 },
   ]);
 
-  assert.equal(engine._prevCheckpointId, null);
+  assert.equal(engine._prevCheckpointId, 'A');
   engine.resetToCheckpoint('B');
   assert.equal(engine._prevCheckpointId, 'B');
   engine.resetToCheckpoint('C');
   assert.equal(engine._prevCheckpointId, 'C');
+});
+
+test('first checkpoint calibration uses full planned-path distance, not a shortcut', () => {
+  const nodes = makeNodes([
+    { id: 'A', x: 0,  y: 0,  floor: 1 },
+    { id: 'B', x: 10, y: 0,  floor: 1 },
+    { id: 'C', x: 10, y: 10, floor: 1 },
+  ]);
+  const engine = makeEngine(nodes, 'A');
+  engine.setPath([
+    { id: 'A', coords: [0,  0],  floor: 1 },
+    { id: 'B', coords: [10, 0],  floor: 1 },
+    { id: 'C', coords: [10, 10], floor: 1 },
+  ]);
+
+  // The pointer only covered 16 of the actual 20 SVG units. A correct first
+  // calibration must increase stride length using the 20-unit routed distance.
+  engine._pdrDistanceSinceCheckpoint = 16;
+  engine._stepsSinceCheckpoint = 20;
+  engine.resetToCheckpoint('C');
+
+  assert.ok(engine.stepLengthM > 0.84,
+    `first calibration should use the 20-unit path and increase stride; got ${engine.stepLengthM.toFixed(4)}`);
 });
 
 test('calibration with graph dist=PDR dist: stepLengthM unchanged (ratio 1.0)', () => {
@@ -393,7 +416,7 @@ test('PATH_SNAP_RADIUS_UNITS * COORD_TO_METERS is between 1 and 2 m', () => {
 // ============================================================================
 console.log('\n── TEST 6: Batch 2 fixes (reorientation, blend scaling, screen angle, offRoute reset) ──');
 
-test('reorientation >15° shifts warmup guard into the future', () => {
+test('only a large reorientation shifts a short, rate-limited warmup guard', () => {
   const nodes = makeNodes([{ id: 'S', x: 50, y: 50, floor: 1 }]);
   const engine = makeEngine(nodes, 'S');
 
@@ -409,6 +432,35 @@ test('reorientation >15° shifts warmup guard into the future', () => {
 
   assert.ok(readyAfter > readyBefore,
     `reorientation should push _gravityReadyAt into future; was ${readyBefore}, now ${readyAfter}`);
+  assert.ok(readyAfter - Date.now() <= 650,
+    'reorientation recovery should be brief rather than the old 1.5-second pause');
+});
+
+test('adaptive threshold detects lower-amplitude valid motion and reports diagnostics', () => {
+  const nodes = makeNodes([{ id: 'S', x: 50, y: 50, floor: 1 }]);
+  const engine = makeEngine(nodes, 'S');
+  engine._gravityReadyAt = 0;
+  engine._onMotionEvent({
+    accelerationIncludingGravity: null,
+    acceleration: { x: 0.9, y: 0, z: 0 },
+  });
+  engine._onMotionEvent({
+    accelerationIncludingGravity: null,
+    acceleration: { x: 0.9, y: 0, z: 0 },
+  });
+  engine._onMotionEvent({
+    accelerationIncludingGravity: null,
+    acceleration: { x: 0.9, y: 0, z: 0 },
+  });
+  engine._onMotionEvent({
+    accelerationIncludingGravity: null,
+    acceleration: { x: 0.9, y: 0, z: 0 },
+  });
+
+  const diagnostics = engine.getDiagnostics();
+  assert.equal(diagnostics.motionEvents, 4, 'diagnostics should count incoming sensor events');
+  assert.ok(diagnostics.detectedSteps >= 1, 'adaptive threshold should register a low-amplitude step');
+  assert.ok(diagnostics.effectiveStepThreshold < 1.18, 'effective threshold should adapt below the fixed threshold');
 });
 
 test('blend weight is 0.35 for short segments (<15 steps) and 0.6 for long segments (>=15 steps)', () => {
