@@ -294,17 +294,22 @@ export function buildDirections(path, nodes) {
   function turnDir(prevH, newH) {
     let diff = ((newH - prevH) + 360) % 360;
     if (diff > 180) diff -= 360;
-    if (Math.abs(diff) < 25) return 'straight';
+    if (Math.abs(diff) < 30) return 'straight';
     return diff > 0 ? 'right' : 'left';
   }
   function distM(a, b) {
     return Math.hypot(b.x - a.x, b.y - a.y) * COORD_TO_METERS;
   }
 
+  // Start step
   directions.push({
     text: `[START] You are at ${nodeLabel(path[0].id)} on the ${FLOOR_NAMES[path[0].floor]}. Face the main corridor and begin your route.`,
+    action: `Start at ${nodeLabel(path[0].id)}`,
+    detail: `${FLOOR_NAMES[path[0].floor]} · Face main corridor`,
+    icon: 'start',
+    type: 'start',
     floor: path[0].floor,
-    type: 'start'
+    landmark: nodeLabel(path[0].id),
   });
 
   let i = 1;
@@ -318,15 +323,23 @@ export function buildDirections(path, nodes) {
     if (isFinalStop) {
       directions.push({
         text: `[ARRIVED] You have arrived at your destination: ${nodeLabel(node.id)} on the ${floorLabel}.`,
+        action: `Arrived at destination`,
+        detail: `${nodeLabel(node.id)} · ${floorLabel}`,
+        icon: 'arrived',
+        type: 'arrived',
         floor: node.floor,
-        type: 'arrived'
+        landmark: nodeLabel(node.id),
       });
       arrivedAtDestination = true;
     } else {
       directions.push({
         text: `[STOP] You have reached stop ${node.segment}: ${nodeLabel(node.id)} on the ${floorLabel}.`,
+        action: `Reached Stop ${node.segment}`,
+        detail: `${nodeLabel(node.id)} · ${floorLabel}`,
+        icon: 'straight',
+        type: 'stop',
         floor: node.floor,
-        type: 'stop'
+        landmark: nodeLabel(node.id),
       });
     }
     prevHeading = null;
@@ -349,11 +362,30 @@ export function buildDirections(path, nodes) {
         const exitFloor = path[Math.min(j, path.length - 1) - 1]?.floor ?? curr.floor;
         const goingUp = exitFloor > prev.floor;
         const tag = isLift ? '[LIFT]' : '[STAIRS]';
-        let text;
-        if (isLift) text = `${tag} Enter the lift and go ${goingUp ? 'up' : 'down'} to the ${FLOOR_NAMES[exitFloor]}.`;
-        else if (isCurved) text = `${tag} Take the curved staircase ${goingUp ? 'up' : 'down'} to the ${FLOOR_NAMES[exitFloor]}.`;
-        else text = `${tag} Take the main stairs ${goingUp ? 'up' : 'down'} to the ${FLOOR_NAMES[exitFloor]}.`;
-        directions.push({ text, floor: prev.floor, type: isLift ? 'lift' : 'stairs' });
+        let text, action, detail;
+        if (isLift) {
+          text = `${tag} Enter the lift and go ${goingUp ? 'up' : 'down'} to the ${FLOOR_NAMES[exitFloor]}.`;
+          action = `Take lift ${goingUp ? 'up' : 'down'} to ${FLOOR_NAMES[exitFloor]}`;
+          detail = `From ${FLOOR_NAMES[prev.floor]} to ${FLOOR_NAMES[exitFloor]}`;
+        } else if (isCurved) {
+          text = `${tag} Take the curved staircase ${goingUp ? 'up' : 'down'} to the ${FLOOR_NAMES[exitFloor]}.`;
+          action = `Take curved stairs ${goingUp ? 'up' : 'down'}`;
+          detail = `Proceed to ${FLOOR_NAMES[exitFloor]}`;
+        } else {
+          text = `${tag} Take the main stairs ${goingUp ? 'up' : 'down'} to the ${FLOOR_NAMES[exitFloor]}.`;
+          action = `Take stairs ${goingUp ? 'up' : 'down'} to ${FLOOR_NAMES[exitFloor]}`;
+          detail = `From ${FLOOR_NAMES[prev.floor]} to ${FLOOR_NAMES[exitFloor]}`;
+        }
+        directions.push({
+          text,
+          action,
+          detail,
+          icon: isLift ? 'lift' : 'stairs',
+          type: isLift ? 'lift' : 'stairs',
+          floor: prev.floor,
+          isTransition: true,
+          targetFloor: exitFloor,
+        });
         prevHeading = null;
         i = j;
         continue;
@@ -368,22 +400,44 @@ export function buildDirections(path, nodes) {
         totalDist += distM(path[j - 1], path[j]);
         j++;
       }
-      const distStr = totalDist > 1 ? `about ${Math.round(totalDist)}m` : 'a short distance';
+      const roundedM = Math.round(totalDist);
+      const distStr = roundedM > 1 ? `${roundedM}m` : 'a short distance';
       const corridorH = heading(prev, path[Math.min(j - 1, path.length - 1)]);
-      let turnText = '';
+      let turn = 'straight';
+      let turnAction = 'Continue straight';
       if (prevHeading !== null) {
-        const turn = turnDir(prevHeading, corridorH);
-        if (turn === 'left') turnText = 'Take a left. ';
-        else if (turn === 'right') turnText = 'Take a right. ';
+        const t = turnDir(prevHeading, corridorH);
+        if (t === 'left') {
+          turn = 'left';
+          turnAction = 'Turn left';
+        } else if (t === 'right') {
+          turn = 'right';
+          turnAction = 'Turn right';
+        }
       }
       const floorCtx = ` on the ${FLOOR_NAMES[prev.floor]}`;
       const nodeAtEnd = j < path.length ? path[j] : null;
       const endLabel = nodeAtEnd && !isWaypoint(nodeAtEnd.id) && !isTransit(nodeAtEnd.id)
         ? nodeLabel(nodeAtEnd.id) : null;
+      const turnPrefix = turn === 'left' ? 'Take a left. ' : turn === 'right' ? 'Take a right. ' : '';
       const instruction = endLabel
-        ? `${turnText}Walk ${distStr} along the corridor${floorCtx} towards ${endLabel}.`
-        : `${turnText}Walk ${distStr} along the corridor${floorCtx}.`;
-      directions.push({ text: `[WALK] ${instruction}`, floor: prev.floor, type: 'walk' });
+        ? `${turnPrefix}Walk about ${distStr} along the corridor${floorCtx} towards ${endLabel}.`
+        : `${turnPrefix}Walk about ${distStr} along the corridor${floorCtx}.`;
+      
+      const detail = endLabel
+        ? `Walk ${distStr} towards ${endLabel}`
+        : `Walk ${distStr} along corridor · ${FLOOR_NAMES[prev.floor]}`;
+
+      directions.push({
+        text: `[WALK] ${instruction}`,
+        action: turnAction,
+        detail,
+        icon: turn === 'left' ? 'turn-left' : turn === 'right' ? 'turn-right' : 'walk',
+        type: turn === 'left' ? 'turn-left' : turn === 'right' ? 'turn-right' : 'walk',
+        floor: prev.floor,
+        distanceM: roundedM,
+        landmark: endLabel || null,
+      });
       prevHeading = corridorH;
       if (nodeAtEnd && !isTransit(nodeAtEnd.id)) {
         pushBoundaryArrival(nodeAtEnd);
@@ -396,13 +450,33 @@ export function buildDirections(path, nodes) {
     if (!isTransit(curr.id)) {
       const h = heading(prev, curr);
       const dist = distM(prev, curr);
-      const turn = prevHeading !== null ? turnDir(prevHeading, h) : null;
-      const distLabel = Math.round(dist) > 0 ? ` (about ${Math.round(dist)}m)` : '';
+      const roundedM = Math.round(dist);
+      const distLabel = roundedM > 0 ? ` (about ${roundedM}m)` : '';
+      const turn = prevHeading !== null ? turnDir(prevHeading, h) : 'straight';
+      let turnAction = 'Continue straight';
+      let icon = 'straight';
       let instruction;
-      if (turn === 'left') instruction = `Take a left and head to ${nodeLabel(curr.id)}${distLabel}.`;
-      else if (turn === 'right') instruction = `Take a right and head to ${nodeLabel(curr.id)}${distLabel}.`;
-      else instruction = `Go straight ahead to ${nodeLabel(curr.id)}${distLabel}.`;
-      directions.push({ text: `[GO] ${instruction}`, floor: curr.floor, type: 'go' });
+      if (turn === 'left') {
+        turnAction = 'Turn left';
+        icon = 'turn-left';
+        instruction = `Take a left and head to ${nodeLabel(curr.id)}${distLabel}.`;
+      } else if (turn === 'right') {
+        turnAction = 'Turn right';
+        icon = 'turn-right';
+        instruction = `Take a right and head to ${nodeLabel(curr.id)}${distLabel}.`;
+      } else {
+        instruction = `Go straight ahead to ${nodeLabel(curr.id)}${distLabel}.`;
+      }
+      directions.push({
+        text: `[GO] ${instruction}`,
+        action: turnAction,
+        detail: roundedM > 0 ? `Head ${roundedM}m to ${nodeLabel(curr.id)}` : `Head to ${nodeLabel(curr.id)}`,
+        icon,
+        type: 'go',
+        floor: curr.floor,
+        distanceM: roundedM,
+        landmark: nodeLabel(curr.id),
+      });
       prevHeading = h;
       pushBoundaryArrival(curr);
       i++;
@@ -414,8 +488,12 @@ export function buildDirections(path, nodes) {
   if (!arrivedAtDestination) {
     directions.push({
       text: `[ARRIVED] You have arrived at your destination: ${nodeLabel(path[path.length - 1].id)} on the ${FLOOR_NAMES[path[path.length - 1].floor]}.`,
+      action: `Arrived at destination`,
+      detail: `${nodeLabel(path[path.length - 1].id)} · ${FLOOR_NAMES[path[path.length - 1].floor]}`,
+      icon: 'arrived',
+      type: 'arrived',
       floor: path[path.length - 1].floor,
-      type: 'arrived'
+      landmark: nodeLabel(path[path.length - 1].id),
     });
   }
 

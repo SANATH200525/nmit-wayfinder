@@ -61,7 +61,7 @@ const COORD_TO_METERS = 0.51;
  * does not currently persist across multiple routes within one session.
  * This is accepted behavior for the current single-destination use case.
  */
-const DEFAULT_STEP_LENGTH_M = 0.74;
+const DEFAULT_STEP_LENGTH_M = 0.7252;
 
 /**
  * Minimum milliseconds between two registered steps. Prevents double-counting.

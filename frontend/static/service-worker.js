@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nmit-wayfinder-v16';
+const CACHE_NAME = 'nmit-wayfinder-v25';
 import { openOfflineDB } from './js/db-helper.js';
 
 const FLOOR_PLANS = [

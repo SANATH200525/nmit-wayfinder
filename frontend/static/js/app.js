@@ -480,6 +480,11 @@ function applyDarkMode(dark) {
     btn.classList.toggle('active', dark);
     btn.setAttribute('aria-pressed', String(dark));
   }
+  const sidebarBtn = document.getElementById('sidebar-dark-mode-btn');
+  if (sidebarBtn) {
+    sidebarBtn.classList.toggle('active', dark);
+    sidebarBtn.setAttribute('aria-pressed', String(dark));
+  }
 }
 window.toggleDarkMode = function () {
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -874,6 +879,7 @@ function stopPDR({ clearStatus = true } = {}) {
   pdrEngine = null;
   pdrLiveState = null;
   pdrPromptPending = false;
+  _pdrPausedForFloorConfirm = false;
   clearPDRMarkers();
   hideSensorPermissionModal();
   if (clearStatus) renderPDRStatus(null);
@@ -1216,6 +1222,7 @@ window.resetToForm = function () {
   if (topBar) topBar.style.display = 'none';
   const strip = document.getElementById('mobile-directions-strip');
   if (strip) strip.style.display = 'none';
+  if (typeof collapseNavSheet === 'function') collapseNavSheet();
   updateMobileRoutePreview('', '');
   document.body.classList.remove('has-route');
   document.documentElement.style.overflow = '';
@@ -1246,6 +1253,7 @@ window.openRouteForm = function () {
 
 window.exitNavigationToForm = function exitNavigationToForm() {
   window.resetToForm();
+  if (typeof window.collapseRouteFormSheet === 'function') window.collapseRouteFormSheet();
   if (isMobile()) window.openRouteForm();
 };
 
@@ -1261,9 +1269,18 @@ window.closeRouteForm = closeRouteForm;
 // ---------------------------------------------------------------------------
 // Floor confirm modal
 // ---------------------------------------------------------------------------
+let _pdrPausedForFloorConfirm = false;
+
 function showFloorConfirmModal(targetFloor, method, onConfirm) {
   const modal = document.getElementById('floor-confirm-modal');
   if (!modal) { onConfirm(true); return; }
+
+  // Pause PDR sensors while user is transitioning / modal is open to prevent false off-route alerts
+  if (pdrEngine && pdrEngine.active) {
+    pdrEngine.stop();
+    _pdrPausedForFloorConfirm = true;
+  }
+
   const title = document.getElementById('floor-confirm-title');
   const body = document.getElementById('floor-confirm-body');
   const icon = document.getElementById('floor-confirm-icon');
@@ -1282,6 +1299,15 @@ function hideFloorConfirmModal() {
 window.onFloorConfirmed = function (confirmed) {
   const cb = _floorConfirmCallback;
   hideFloorConfirmModal();
+
+  // Resume PDR on confirmed arrival
+  if (confirmed && _pdrPausedForFloorConfirm && pdrEngine) {
+    _pdrPausedForFloorConfirm = false;
+    pdrEngine.start();
+  } else if (!confirmed) {
+    _pdrPausedForFloorConfirm = false;
+  }
+
   if (cb) cb(confirmed);
 };
 
@@ -1419,16 +1445,20 @@ function highlightRemainingPath(checkpointIdx) {
       pl.setAttribute('class', 'path-line-traversed'); svg.appendChild(pl);
     });
     remBuckets.filter(b => b.floor === f).forEach(b => {
+      const pointsStr = b.pts.map(p => `${p.x},${p.y}`).join(' ');
       const bg = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-      bg.setAttribute('points', b.pts.map(p => `${p.x},${p.y}`).join(' '));
+      bg.setAttribute('points', pointsStr);
       bg.setAttribute('class', 'path-line-bg'); svg.appendChild(bg);
       const pl = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-      pl.setAttribute('points', b.pts.map(p => `${p.x},${p.y}`).join(' '));
+      pl.setAttribute('points', pointsStr);
       pl.setAttribute('class', 'path-line'); svg.appendChild(pl);
+      const sweep = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+      sweep.setAttribute('points', pointsStr);
+      sweep.setAttribute('class', 'path-line-sweep'); svg.appendChild(sweep);
     });
-    if (globalStart.floor === f && remaining.some(p => p.id === globalStart.id)) draw3DPin(svg, globalStart.x, globalStart.y, 'marker-start');
+    if (globalStart.floor === f && remaining.some(p => p.id === globalStart.id)) drawStartMarker(svg, globalStart.x, globalStart.y);
     const isOnFinalLeg = currentCheckpointIdx >= checkpoints.length - 1;
-    if (isOnFinalLeg && globalEnd.floor === f && remaining.some(p => p.id === globalEnd.id)) draw3DPin(svg, globalEnd.x, globalEnd.y, 'marker-end');
+    if (isOnFinalLeg && globalEnd.floor === f && remaining.some(p => p.id === globalEnd.id)) drawEndMarker(svg, globalEnd.x, globalEnd.y);
     renderCheckpointMarkers(svg, checkpoints, f);
   }
   renderPDRMarkers();
@@ -1526,23 +1556,118 @@ function renderSVG(svgId, fullPath, floorNum, globalStart, globalEnd, routeCheck
 
   chunks.forEach(pts => {
     const pointsStr = pts.map(p => `${p.x},${p.y}`).join(' ');
+    // Glowing background track
     const bg = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
     bg.setAttribute('points', pointsStr); bg.setAttribute('class', 'path-line-bg'); svg.appendChild(bg);
+    // Solid route line
     const pl = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
     pl.setAttribute('points', pointsStr); pl.setAttribute('class', 'path-line'); svg.appendChild(pl);
+    // Flowing energy sweep
+    const sweep = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    sweep.setAttribute('points', pointsStr); sweep.setAttribute('class', 'path-line-sweep'); svg.appendChild(sweep);
   });
 
-  if (fullPath.some(p => p.id === globalStart.id && p.floor === floorNum)) draw3DPin(svg, globalStart.x, globalStart.y, 'marker-start');
+  if (fullPath.some(p => p.id === globalStart.id && p.floor === floorNum)) drawStartMarker(svg, globalStart.x, globalStart.y);
   const maxSeg = Math.max(...fullPath.map(p => p.segment ?? 0));
   const destSeg = fullPath.find(p => p.id === globalEnd.id)?.segment ?? maxSeg;
   const isFinalLeg = routeCheckpoints.length === 0 || destSeg === maxSeg;
-  if (isFinalLeg && fullPath.some(p => p.id === globalEnd.id && p.floor === floorNum)) draw3DPin(svg, globalEnd.x, globalEnd.y, 'marker-end');
+  if (isFinalLeg && fullPath.some(p => p.id === globalEnd.id && p.floor === floorNum)) drawEndMarker(svg, globalEnd.x, globalEnd.y);
   renderCheckpointMarkers(svg, routeCheckpoints, floorNum, fullPath);
 }
 
 // ---------------------------------------------------------------------------
 // Marker helpers
 // ---------------------------------------------------------------------------
+function drawStartMarker(svg, x, y) {
+  const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+  const anim = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
+  anim.setAttribute('attributeName', 'transform');
+  anim.setAttribute('type', 'translate');
+  anim.setAttribute('values', `${x},${y}`);
+  anim.setAttribute('dur', 'indefinite');
+  anim.setAttribute('repeatCount', 'indefinite');
+  anim.setAttribute('additive', 'replace');
+  g.appendChild(anim);
+
+  const scaleGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  scaleGroup.setAttribute('class', 'marker-scale-group start-marker-group');
+
+  // Radar ping ripple 1
+  const ping1 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  ping1.setAttribute('cx', '0'); ping1.setAttribute('cy', '0');
+  ping1.setAttribute('class', 'radar-ripple radar-ripple-1');
+  scaleGroup.appendChild(ping1);
+
+  // Radar ping ripple 2 (staggered)
+  const ping2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  ping2.setAttribute('cx', '0'); ping2.setAttribute('cy', '0');
+  ping2.setAttribute('class', 'radar-ripple radar-ripple-2');
+  scaleGroup.appendChild(ping2);
+
+  // Concentric outer accent ring
+  const outer = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  outer.setAttribute('cx', '0'); outer.setAttribute('cy', '0');
+  outer.setAttribute('r', '2.0');
+  outer.setAttribute('class', 'start-marker-outer-ring');
+  scaleGroup.appendChild(outer);
+
+  // Solid accent core
+  const core = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  core.setAttribute('cx', '0'); core.setAttribute('cy', '0');
+  core.setAttribute('r', '1.2');
+  core.setAttribute('class', 'start-marker-core');
+  scaleGroup.appendChild(core);
+
+  // Inner white center
+  const center = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  center.setAttribute('cx', '0'); center.setAttribute('cy', '0');
+  center.setAttribute('r', '0.45');
+  center.setAttribute('fill', '#ffffff');
+  scaleGroup.appendChild(center);
+
+  g.appendChild(scaleGroup);
+  svg.appendChild(g);
+}
+
+function drawEndMarker(svg, x, y) {
+  const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+  const anim = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
+  anim.setAttribute('attributeName', 'transform');
+  anim.setAttribute('type', 'translate');
+  anim.setAttribute('values', `${x},${y}`);
+  anim.setAttribute('dur', 'indefinite');
+  anim.setAttribute('repeatCount', 'indefinite');
+  anim.setAttribute('additive', 'replace');
+  g.appendChild(anim);
+
+  const scaleGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  scaleGroup.setAttribute('class', 'marker-scale-group end-marker-group');
+
+  // Outer halo
+  const halo = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  halo.setAttribute('cx', '0'); halo.setAttribute('cy', '0');
+  halo.setAttribute('class', 'end-marker-halo');
+  scaleGroup.appendChild(halo);
+
+  // Bold amber filled circle
+  const body = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  body.setAttribute('cx', '0'); body.setAttribute('cy', '0');
+  body.setAttribute('r', '2.1');
+  body.setAttribute('class', 'end-marker-body');
+  scaleGroup.appendChild(body);
+
+  // Inner star diamond (4-point diamond)
+  const star = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  star.setAttribute('d', 'M 0 -1.15 L 0.38 -0.38 L 1.15 0 L 0.38 0.38 L 0 1.15 L -0.38 0.38 L -1.15 0 L -0.38 -0.38 Z');
+  star.setAttribute('class', 'end-marker-diamond');
+  scaleGroup.appendChild(star);
+
+  g.appendChild(scaleGroup);
+  svg.appendChild(g);
+}
+
 function draw3DPin(svg, x, y, className) {
   const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   const pin = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -1565,40 +1690,98 @@ function renderCheckpointMarkers(svg, checkpointList, floorNum, route = pathData
     const isOnRoute = route.some(point => point.id === checkpoint.id && point.floor === checkpoint.floor);
     if (isOnRoute) drawCheckpointDot(svg, checkpoint.x, checkpoint.y, {
       active: checkpoint === checkpoints[currentCheckpointIdx],
+      passed: index < currentCheckpointIdx,
       index,
     });
   });
 }
 
-function drawCheckpointDot(svg, x, y, { active = false, index = 0 } = {}) {
-  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-  circle.setAttribute('r', active ? '1.45' : '1.15'); circle.setAttribute('fill', '#8b5cf6');
-  circle.setAttribute('stroke', active ? '#4c1d95' : '#ffffff'); circle.setAttribute('stroke-width', active ? '0.55' : '0.4');
-  circle.setAttribute('data-checkpoint-marker', String(index));
+function drawCheckpointDot(svg, x, y, { active = false, passed = false, index = 0 } = {}) {
+  const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
   const anim = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
-  anim.setAttribute('attributeName', 'transform'); anim.setAttribute('type', 'translate');
-  anim.setAttribute('values', `${x},${y}`); anim.setAttribute('dur', 'indefinite');
-  anim.setAttribute('repeatCount', 'indefinite'); anim.setAttribute('additive', 'replace');
-  circle.appendChild(anim); svg.appendChild(circle);
+  anim.setAttribute('attributeName', 'transform');
+  anim.setAttribute('type', 'translate');
+  anim.setAttribute('values', `${x},${y}`);
+  anim.setAttribute('dur', 'indefinite');
+  anim.setAttribute('repeatCount', 'indefinite');
+  anim.setAttribute('additive', 'replace');
+  g.appendChild(anim);
+
+  const scaleGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  scaleGroup.setAttribute('class', 'marker-scale-group checkpoint-marker-group');
+  scaleGroup.setAttribute('data-checkpoint-marker', String(index));
+
+  if (active) {
+    // Subtle animated glowing ring for the active/next checkpoint
+    const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    ring.setAttribute('cx', '0'); ring.setAttribute('cy', '0');
+    ring.setAttribute('class', 'checkpoint-active-ring');
+    scaleGroup.appendChild(ring);
+  }
+
+  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  circle.setAttribute('cx', '0'); circle.setAttribute('cy', '0');
+  if (active) {
+    circle.setAttribute('r', '1.45');
+    circle.setAttribute('class', 'checkpoint-dot-active');
+  } else if (passed) {
+    circle.setAttribute('r', '0.95');
+    circle.setAttribute('class', 'checkpoint-dot-passed');
+  } else {
+    circle.setAttribute('r', '1.15');
+    circle.setAttribute('class', 'checkpoint-dot-upcoming');
+  }
+  scaleGroup.appendChild(circle);
+
+  g.appendChild(scaleGroup);
+  svg.appendChild(g);
 }
 
 // ---------------------------------------------------------------------------
-// generateDirections — renders buildDirections() output into DOM
+// generateDirections — renders buildDirections() output into 3-zone cards
 // ---------------------------------------------------------------------------
 function generateDirections(path) {
   const steps = buildDirections(path, NODES);
   const list = document.getElementById('directions-list');
   if (!list) return steps;
   list.innerHTML = '';
+
   steps.forEach(step => {
     const li = document.createElement('li');
-    const type = (step.text.match(/^\[(\w+)\]/)?.[1] || 'STEP').toLowerCase();
-    li.className = `direction-step-card direction-step-${type}`;
-    li.dataset.stepType = type;
-    li.textContent = step.text.replace(/^\[\w+\]\s*/, '');
+    const isTrans = step.type === 'stairs' || step.type === 'lift' || step.isTransition;
+    li.className = `dir-step dir-step-${step.type}${isTrans ? ' dir-step-transition' : ''}`;
+    li.dataset.stepType = step.type;
     li._rawText = step.text;
+    li._stepData = step;
+
+    // Zone 1: Large icon
+    const iconWrap = document.createElement('div');
+    const iconKey = step.icon || step.type || 'straight';
+    iconWrap.className = `dir-step-icon dir-icon-${iconKey}`;
+    iconWrap.innerHTML = ICON_SVG[iconKey] || ICON_SVG.straight;
+    li.appendChild(iconWrap);
+
+    // Zone 2: Content (bold action + secondary detail)
+    const content = document.createElement('div');
+    content.className = 'dir-step-content';
+
+    const action = document.createElement('div');
+    action.className = 'dir-step-action';
+    action.textContent = step.action || step.text.replace(/^\[\w+\]\s*/, '');
+    content.appendChild(action);
+
+    if (step.detail) {
+      const detail = document.createElement('div');
+      detail.className = 'dir-step-detail';
+      detail.textContent = step.detail;
+      content.appendChild(detail);
+    }
+    li.appendChild(content);
+
     list.appendChild(li);
   });
+
   if (checkpoints && checkpoints.length > 0) {
     let cpIdx = 0;
     Array.from(list.querySelectorAll('li')).forEach(li => {
@@ -1608,16 +1791,20 @@ function generateDirections(path) {
       const isLift = nodeType(cp.id) === 'lift' || cp.id.includes('LIFT');
       const isStairs = nodeType(cp.id) === 'stairs' || cp.id.includes('STAIRS');
       const raw = li._rawText || li.textContent;
-      const match = (isLift && raw.includes('[LIFT]')) || (isStairs && raw.includes('[STAIRS]')) || (!isLift && !isStairs && label && raw.includes(label));
+      const match = (isLift && raw.includes('[LIFT]')) ||
+                    (isStairs && raw.includes('[STAIRS]')) ||
+                    (!isLift && !isStairs && label && raw.includes(label));
       if (match) {
         li.setAttribute('data-checkpoint', cpIdx);
         const badge = document.createElement('span');
-        badge.textContent = ` CP${cpIdx + 1}`;
-        badge.style.cssText = 'color:#8b5cf6;font-weight:700;font-size:10px;margin-left:6px;';
-        li.appendChild(badge); cpIdx++;
+        badge.className = 'dir-checkpoint-badge';
+        badge.textContent = `CP${cpIdx + 1}`;
+        li.appendChild(badge);
+        cpIdx++;
       }
     });
   }
+
   const dp = document.getElementById('directions-panel');
   if (dp) { dp.style.display = 'flex'; dp.open = true; }
   return steps;
@@ -1629,12 +1816,25 @@ function syncDirectionsActiveStep(checkpointIdx) {
   const items = Array.from(list.querySelectorAll('li[data-checkpoint]'));
   if (!items.length) return;
 
-  items.forEach(li => li.classList.remove('directions-active'));
+  const allItems = Array.from(list.querySelectorAll('li'));
   const activeItem = items.find(li => li.getAttribute('data-checkpoint') == checkpointIdx) || items[0];
-  if (!activeItem) return;
+  const activeIdx = allItems.indexOf(activeItem);
 
-  activeItem.classList.add('directions-active');
-  activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  allItems.forEach((li, idx) => {
+    li.classList.remove('directions-active');
+    li.classList.remove('directions-passed');
+    if (activeIdx !== -1) {
+      if (idx < activeIdx) {
+        li.classList.add('directions-passed');
+      } else if (idx === activeIdx) {
+        li.classList.add('directions-active');
+      }
+    }
+  });
+
+  if (activeItem) {
+    activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -2460,30 +2660,67 @@ function populateMobileStrip(logicalPath) {
   const distEl = document.getElementById('m-distance'), timeEl = document.getElementById('m-time');
   const statRow = document.getElementById('mobile-metrics-row');
   if (statRow) statRow.innerHTML = `<div class="nav-stat-block"><div class="nav-stat-label">Distance</div><div class="nav-stat-value">${distEl?.textContent || '--'}m</div></div><div class="nav-stat-block"><div class="nav-stat-label">Est. Time</div><div class="nav-stat-value">${timeEl?.textContent || '--'}</div></div>`;
-  const srcList = document.getElementById('directions-list'), mobileList = document.getElementById('mobile-directions-list');
+
+  const srcList = document.getElementById('directions-list');
+  const mobileList = document.getElementById('mobile-directions-list');
   if (srcList && mobileList) {
     mobileList.innerHTML = '';
-    const srcItems = Array.from(srcList.querySelectorAll('li')).filter(li => !li.style.color);
+    const srcItems = Array.from(srcList.querySelectorAll('li'));
     srcItems.forEach((srcLi, idx) => {
+      const step = srcLi._stepData || {};
       const rawText = srcLi._rawText || srcLi.textContent.trim();
-      const type = stepIcon(rawText), isLast = idx === srcItems.length - 1;
-      const body = rawText.replace(/^\[\w+\]\s*/, '');
+      const type = step.icon || step.type || 'walk';
+      const isTrans = step.type === 'stairs' || step.type === 'lift' || step.isTransition;
+
       const li = document.createElement('li');
+      li.className = `nav-step-item nav-step-${type}${isTrans ? ' nav-step-transition nav-step-' + (step.type || 'stairs') : ''}`;
       const cp = srcLi.getAttribute('data-checkpoint');
       if (cp !== null) li.setAttribute('data-checkpoint', cp);
-      const left = document.createElement('div'); left.className = 'nav-step-left';
-      const iconWrap = document.createElement('div'); iconWrap.className = `nav-step-icon${type === 'start' ? ' start' : ''}`;
+
+      // Left column: icon + connector line
+      const left = document.createElement('div');
+      left.className = 'nav-step-left';
+      const iconWrap = document.createElement('div');
+      iconWrap.className = `nav-step-icon dir-icon-${type}${type === 'start' ? ' start' : ''}`;
       iconWrap.dataset.icon = type;
-      iconWrap.innerHTML = getIconSvg(type);
+      iconWrap.innerHTML = ICON_SVG[type] || ICON_SVG.straight;
       left.appendChild(iconWrap);
-      if (!isLast) { const line = document.createElement('div'); line.className = 'nav-step-line'; left.appendChild(line); }
-      const content = document.createElement('div'); content.className = 'nav-step-content';
-      const titleEl = document.createElement('div'); titleEl.className = 'nav-step-title'; titleEl.textContent = body.split('.')[0];
+      if (idx < srcItems.length - 1 && !isTrans) {
+        const line = document.createElement('div');
+        line.className = 'nav-step-line';
+        left.appendChild(line);
+      }
+      li.appendChild(left);
+
+      // Content column: action + detail
+      const content = document.createElement('div');
+      content.className = 'nav-step-content';
+      const titleEl = document.createElement('div');
+      titleEl.className = 'nav-step-title';
+      titleEl.textContent = step.action || rawText.replace(/^\[\w+\]\s*/, '').split('.')[0];
       content.appendChild(titleEl);
-      li.appendChild(left); li.appendChild(content); mobileList.appendChild(li);
+
+      if (step.detail) {
+        const subEl = document.createElement('div');
+        subEl.className = 'nav-step-sub';
+        subEl.textContent = step.detail;
+        content.appendChild(subEl);
+      }
+      li.appendChild(content);
+
+      if (cp !== null) {
+        const badge = document.createElement('span');
+        badge.className = 'dir-checkpoint-badge';
+        badge.textContent = `CP${Number(cp) + 1}`;
+        li.appendChild(badge);
+      }
+
+      mobileList.appendChild(li);
     });
   }
-  syncMobileCheckpointBtn(); syncNavSVGs(); updateMobileCurrentStep(0);
+  syncMobileCheckpointBtn();
+  syncNavSVGs();
+  updateMobileCurrentStep(0);
 }
 
 function syncNavSVGs() {
@@ -2520,10 +2757,259 @@ function syncMobileCheckpointBtn() {
 function updateMobileCurrentStep(checkpointIdx) {
   const list = document.getElementById('mobile-directions-list');
   if (!list) return;
-  const items = Array.from(list.querySelectorAll('li'));
-  const activeItem = items.find(li => li.getAttribute('data-checkpoint') == checkpointIdx) || items[Math.min(1, items.length - 1)];
-  if (activeItem) { items.forEach(li => li.classList.remove('directions-active')); activeItem.classList.add('directions-active'); activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+  const items = Array.from(list.querySelectorAll('li[data-checkpoint]'));
+  const allItems = Array.from(list.querySelectorAll('li'));
+  const activeItem = items.find(li => li.getAttribute('data-checkpoint') == checkpointIdx) || allItems[0];
+  const activeIdx = allItems.indexOf(activeItem);
+
+  allItems.forEach((li, idx) => {
+    li.classList.remove('directions-active');
+    li.classList.remove('directions-passed');
+    if (activeIdx !== -1) {
+      if (idx < activeIdx) {
+        li.classList.add('directions-passed');
+      } else if (idx === activeIdx) {
+        li.classList.add('directions-active');
+      }
+    }
+  });
+
+  if (activeItem) {
+    activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
   syncMobileCheckpointBtn();
+}
+
+// ---------------------------------------------------------------------------
+// Mobile Nav Sheet Bottom Sheet (Swipeable)
+// ---------------------------------------------------------------------------
+let isNavSheetExpanded = false;
+
+window.expandNavSheet = function () {
+  const sheet = document.querySelector('.nav-sheet');
+  const backdrop = document.getElementById('nav-sheet-backdrop');
+  if (!sheet) return;
+  sheet.classList.add('nav-sheet-expanded');
+  if (backdrop) backdrop.classList.add('active');
+  isNavSheetExpanded = true;
+};
+
+window.collapseNavSheet = function () {
+  const sheet = document.querySelector('.nav-sheet');
+  const backdrop = document.getElementById('nav-sheet-backdrop');
+  if (!sheet) return;
+  sheet.classList.remove('nav-sheet-expanded');
+  if (backdrop) backdrop.classList.remove('active');
+  isNavSheetExpanded = false;
+};
+
+window.toggleNavSheet = function () {
+  if (isNavSheetExpanded) {
+    window.collapseNavSheet();
+  } else {
+    window.expandNavSheet();
+  }
+};
+
+function initNavSheetGestures() {
+  const sheet = document.querySelector('.nav-sheet');
+  const header = document.querySelector('.nav-sheet-header');
+  if (!sheet || !header) return;
+
+  let startY = 0;
+  let currentY = 0;
+  let startTime = 0;
+  let isDragging = false;
+
+  header.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    startY = e.touches[0].clientY;
+    currentY = startY;
+    startTime = Date.now();
+    isDragging = true;
+  }, { passive: true });
+
+  header.addEventListener('touchmove', (e) => {
+    if (!isDragging || e.touches.length !== 1) return;
+    currentY = e.touches[0].clientY;
+  }, { passive: true });
+
+  header.addEventListener('touchend', (e) => {
+    if (!isDragging) return;
+    isDragging = false;
+    const deltaY = currentY - startY;
+    const deltaTime = Date.now() - startTime;
+    const velocity = Math.abs(deltaY) / Math.max(1, deltaTime);
+
+    // Hard/fast upward swipe or distance > 35px upward -> Expand
+    if (deltaY < -35 || (deltaY < -15 && velocity > 0.35)) {
+      window.expandNavSheet();
+    }
+    // Downward swipe or distance > 35px downward -> Collapse
+    else if (deltaY > 35 || (deltaY > 15 && velocity > 0.35)) {
+      window.collapseNavSheet();
+    }
+    // Quick tap without movement -> Toggle
+    else if (Math.abs(deltaY) < 10 && deltaTime < 280) {
+      window.toggleNavSheet();
+    }
+  });
+
+  // Tap or click on handle/header to toggle
+  header.addEventListener('click', () => {
+    if (Date.now() - startTime > 350 || Math.abs(currentY - startY) < 10) {
+      window.toggleNavSheet();
+    }
+  });
+
+  // Downward pull on sheet when scrolled at the very top (scrollTop <= 0) to collapse
+  let sheetStartY = null;
+  sheet.addEventListener('touchstart', (e) => {
+    if (!isNavSheetExpanded || e.touches.length !== 1) return;
+    if (sheet.scrollTop <= 0) {
+      sheetStartY = e.touches[0].clientY;
+    } else {
+      sheetStartY = null;
+    }
+  }, { passive: true });
+
+  sheet.addEventListener('touchmove', (e) => {
+    if (sheetStartY === null || !isNavSheetExpanded || e.touches.length !== 1) return;
+    const diff = e.touches[0].clientY - sheetStartY;
+    if (diff > 50 && sheet.scrollTop <= 0) {
+      sheetStartY = null;
+      window.collapseNavSheet();
+    }
+  }, { passive: true });
+}
+
+document.addEventListener('DOMContentLoaded', initNavSheetGestures);
+if (document.readyState === 'interactive' || document.readyState === 'complete') {
+  initNavSheetGestures();
+}
+
+// ---------------------------------------------------------------------------
+// Settings Sidebar Controls
+// ---------------------------------------------------------------------------
+window.openSettingsSidebar = function () {
+  const sidebar = document.getElementById('settings-sidebar');
+  const backdrop = document.getElementById('settings-sidebar-backdrop');
+  if (sidebar) sidebar.classList.add('active');
+  if (backdrop) backdrop.classList.add('active');
+};
+
+window.closeSettingsSidebar = function () {
+  const sidebar = document.getElementById('settings-sidebar');
+  const backdrop = document.getElementById('settings-sidebar-backdrop');
+  if (sidebar) sidebar.classList.remove('active');
+  if (backdrop) backdrop.classList.remove('active');
+};
+
+window.toggleSettingsSidebar = function () {
+  const sidebar = document.getElementById('settings-sidebar');
+  if (sidebar && sidebar.classList.contains('active')) {
+    window.closeSettingsSidebar();
+  } else {
+    window.openSettingsSidebar();
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Route Form Sheet (Sheet 1 Drawer) Gestures & 3-Tier States
+// ---------------------------------------------------------------------------
+let routeFormSheetState = 'normal'; // 'normal' (40vh), 'expanded' (88vh), 'minimized' (14vh)
+
+window.setRouteFormSheetState = function (state) {
+  const sheet = document.getElementById('route-form-sheet');
+  if (!sheet) return;
+  sheet.classList.remove('form-sheet-expanded', 'form-sheet-minimized');
+  if (state === 'expanded') {
+    sheet.classList.add('form-sheet-expanded');
+    routeFormSheetState = 'expanded';
+  } else if (state === 'minimized') {
+    sheet.classList.add('form-sheet-minimized');
+    routeFormSheetState = 'minimized';
+  } else {
+    routeFormSheetState = 'normal';
+  }
+};
+
+window.expandRouteFormSheet = function () {
+  window.setRouteFormSheetState('expanded');
+};
+
+window.collapseRouteFormSheet = function () {
+  window.setRouteFormSheetState('normal');
+};
+
+window.minimizeRouteFormSheet = function () {
+  window.setRouteFormSheetState('minimized');
+};
+
+window.toggleRouteFormSheet = function () {
+  if (routeFormSheetState === 'normal') {
+    window.setRouteFormSheetState('expanded');
+  } else {
+    window.setRouteFormSheetState('normal');
+  }
+};
+
+function initRouteFormSheetGestures() {
+  const sheet = document.getElementById('route-form-sheet');
+  const handle = document.querySelector('.form-sheet-drag-handle');
+  if (!sheet || !handle) return;
+
+  let startY = 0;
+  let currentY = 0;
+  let startTime = 0;
+  let isDragging = false;
+
+  handle.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    startY = e.touches[0].clientY;
+    currentY = startY;
+    startTime = Date.now();
+    isDragging = true;
+  }, { passive: true });
+
+  handle.addEventListener('touchmove', (e) => {
+    if (!isDragging || e.touches.length !== 1) return;
+    currentY = e.touches[0].clientY;
+  }, { passive: true });
+
+  handle.addEventListener('touchend', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    const deltaY = currentY - startY;
+    const deltaTime = Date.now() - startTime;
+    const velocity = Math.abs(deltaY) / Math.max(1, deltaTime);
+
+    // Hard/fast upward swipe or distance > 25px upward
+    if (deltaY < -25 || (deltaY < -15 && velocity > 0.3)) {
+      if (routeFormSheetState === 'minimized') {
+        window.setRouteFormSheetState('normal');
+      } else {
+        window.setRouteFormSheetState('expanded');
+      }
+    }
+    // Downward swipe or distance > 25px downward
+    else if (deltaY > 25 || (deltaY > 15 && velocity > 0.3)) {
+      if (routeFormSheetState === 'expanded') {
+        window.setRouteFormSheetState('normal');
+      } else {
+        window.setRouteFormSheetState('minimized');
+      }
+    }
+    // Quick tap without significant movement -> Toggle
+    else if (Math.abs(deltaY) < 10 && deltaTime < 280) {
+      window.toggleRouteFormSheet();
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', initRouteFormSheetGestures);
+if (document.readyState === 'interactive' || document.readyState === 'complete') {
+  initRouteFormSheetGestures();
 }
 
 // Expose global functions required by inline HTML onclick handlers
@@ -2655,16 +3141,19 @@ window.requestAlternateRoute = async function requestAlternateRoute() {
     const svg = document.getElementById(svgId);
     if (!svg) return;
 
-    const basePathWidth = 0.8;
-    const baseBgWidth = 1.5;
+    const basePathWidth = 0.85;
+    const baseSweepWidth = 0.95;
+    const baseBgWidth = 2.2;
     const corrected = (base) => `${(base / scale).toFixed(3)}`;
 
     svg.querySelectorAll('.path-line, .path-line-alt, .path-line-traversed')
       .forEach(el => el.setAttribute('stroke-width', corrected(basePathWidth)));
+    svg.querySelectorAll('.path-line-sweep')
+      .forEach(el => el.setAttribute('stroke-width', corrected(baseSweepWidth)));
     svg.querySelectorAll('.path-line-bg')
       .forEach(el => el.setAttribute('stroke-width', corrected(baseBgWidth)));
 
-    svg.querySelectorAll('.marker-3d')
+    svg.querySelectorAll('.marker-scale-group, .marker-3d')
       .forEach(el => {
         const base = 1 / scale;
         el.setAttribute('transform', `scale(${base.toFixed(3)})`);

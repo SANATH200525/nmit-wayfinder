@@ -17,25 +17,36 @@
     <meta name="theme-color" content="#4f46e5">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <link rel="stylesheet" href="/static/css/style.css?v=14">
+    <link rel="stylesheet" href="/static/css/style.css?v=21">
 </head>
 
 <body id="app-body">
     <main class="app-container">
-        <div id="mobile-top-bar" class="mobile-top-bar" style="display:none;">
-            <button class="mobile-new-route-btn" onclick="exitNavigationToForm()" aria-label="Start a new route">
-                <span class="mobile-back-arrow">&#8592;</span><span>New Route</span>
+        <header id="mobile-global-header" class="mobile-global-header">
+            <div class="mobile-header-brand">
+                <span class="mobile-brand-title">WAYFINDER</span>
+            </div>
+            <button type="button" id="settings-trigger-btn" class="settings-trigger-btn" onclick="openSettingsSidebar()" aria-label="Settings" title="Settings">
+                <svg viewBox="0 0 24 24" fill="none" width="22" height="22">
+                    <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
             </button>
+        </header>
+
+        <div id="mobile-top-bar" class="mobile-top-bar" style="display:none;">
             <div id="mobile-route-label" class="mobile-route-label"></div>
             <button type="button" id="alt-route-btn-mobile-top" class="alt-route-btn-mobile" title="Alternate route"
                 onclick="requestAlternateRoute()" style="display:none;">ALT ROUTE</button>
         </div>
 
         <div id="route-form-sheet" class="route-form-sheet">
+            <div class="form-sheet-drag-handle" onclick="toggleRouteFormSheet()" aria-label="Toggle form drawer">
+                <div class="form-sheet-drag-pill"></div>
+            </div>
             <section class="navigator-panel">
                 <div class="header-section">
                     <div class="header-top-row">
-                        <div class="status-badge"><span class="status-dot"></span> 4-FLOOR SYSTEM READY</div>
                         <button id="dark-mode-btn" class="dark-mode-btn" onclick="toggleDarkMode()"
                             aria-label="Toggle dark mode" title="Toggle dark mode" aria-pressed="false">
                             <span class="dark-mode-track" aria-hidden="true">
@@ -138,10 +149,10 @@
                         </div>
                     </div>
 
-                    <div class="action-buttons">
-                        <button type="submit" class="start-btn"
+                    <div class="action-buttons form-sheet-footer">
+                        <button type="submit" class="start-btn" id="initiate-route-btn"
                             data-intro="Tap here to calculate and display the fastest route on the map!"
-                            data-step="4">INITIATE ROUTE</button>
+                            data-step="4">START</button>
                     </div>
                 </form>
 
@@ -286,6 +297,7 @@
                     </div>
                 </div>
 
+                <div id="nav-sheet-backdrop" class="nav-sheet-backdrop" onclick="collapseNavSheet()"></div>
                 <div class="nav-sheet">
                     <div class="nav-sheet-header">
                         <div class="nav-sheet-handle"></div>
@@ -299,6 +311,9 @@
                 </div>
 
                 <div class="nav-bottom-bar">
+                    <button type="button" id="mobile-quit-btn" class="nav-quit-btn" onclick="exitNavigationToForm()" aria-label="Quit navigation">
+                        QUIT
+                    </button>
                     <button id="mobile-checkpoint-btn" class="nav-fab-btn" style="display:none;"
                         onclick="onCheckpointReached()" aria-label="Reached checkpoint">
                         <span class="nav-fab-btn-label">NEXT</span>
@@ -309,7 +324,7 @@
             <div id="map-legend" class="map-legend" style="display:none;">
                 <span class="legend-item"><span class="legend-dot" style="background:var(--accent);"></span>
                     Start</span>
-                <span class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>
+                <span class="legend-item"><span class="legend-dot" style="background:#f59e0b;"></span>
                     Destination</span>
                 <span class="legend-item"><span class="legend-dot" style="background:#8b5cf6;"></span> Checkpoint</span>
                 <span class="legend-item"><span class="legend-dot legend-dot-live"></span> Live Position</span>
@@ -400,7 +415,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@panzoom/panzoom@4.5.1/dist/panzoom.min.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/static/service-worker.js?v=18', { type: 'module', updateViaCache: 'none' })
+            navigator.serviceWorker.register('/static/service-worker.js?v=25', { type: 'module', updateViaCache: 'none' })
                 .then(r => console.log('SW registered:', r.scope))
                 .catch(e => console.warn('SW failed:', e));
         }
@@ -490,7 +505,60 @@
         </div>
     </div>
 
-    <script type="module" src="/static/js/app.js?v=18"></script>
+    <!-- Settings Sidebar Slider -->
+    <div id="settings-sidebar-backdrop" class="settings-sidebar-backdrop" onclick="closeSettingsSidebar()" aria-hidden="true"></div>
+    <aside id="settings-sidebar" class="settings-sidebar" aria-label="Settings and Preferences" aria-hidden="true">
+        <div class="settings-sidebar-header">
+            <h2 class="settings-sidebar-title">Settings</h2>
+            <button type="button" class="settings-close-btn" onclick="closeSettingsSidebar()" aria-label="Close settings">
+                <svg viewBox="0 0 20 20" fill="none" width="18" height="18">
+                    <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </button>
+        </div>
+        <div class="settings-sidebar-body">
+            <!-- Dark mode option -->
+            <div class="settings-item">
+                <div class="settings-item-info">
+                    <div class="settings-item-title">Dark Mode</div>
+                    <div class="settings-item-desc">Toggle light / dark display theme</div>
+                </div>
+                <button type="button" id="sidebar-dark-mode-btn" class="settings-toggle-btn" onclick="toggleDarkMode()" aria-label="Toggle dark mode">
+                    <span class="settings-toggle-track">
+                        <span class="settings-toggle-thumb"></span>
+                    </span>
+                </button>
+            </div>
+
+            <!-- Guided tour option -->
+            <div class="settings-item settings-clickable-item" onclick="closeSettingsSidebar(); startTour();">
+                <div class="settings-item-info">
+                    <div class="settings-item-title">Guided Tour</div>
+                    <div class="settings-item-desc">Learn how to navigate campus</div>
+                </div>
+                <div class="settings-item-action">
+                    <span class="settings-badge">?</span>
+                </div>
+            </div>
+
+            <!-- Assistant option -->
+            <div class="settings-item settings-clickable-item" onclick="closeSettingsSidebar(); toggleFAQChat(true);">
+                <div class="settings-item-info">
+                    <div class="settings-item-title">Wayfinder Assistant</div>
+                    <div class="settings-item-desc">Ask questions about rooms & places</div>
+                </div>
+                <div class="settings-item-action">
+                    <span class="settings-icon-pill">
+                        <svg viewBox="0 0 24 24" fill="none" width="18" height="18" stroke="currentColor" stroke-width="2">
+                            <path d="M6 6.5h12a2.5 2.5 0 0 1 2.5 2.5v6A2.5 2.5 0 0 1 18 17.5H11l-4.5 4v-4H6A2.5 2.5 0 0 1 3.5 15V9A2.5 2.5 0 0 1 6 6.5Z"/>
+                        </svg>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <script type="module" src="/static/js/app.js?v=21"></script>
 </body>
 
 </html>
