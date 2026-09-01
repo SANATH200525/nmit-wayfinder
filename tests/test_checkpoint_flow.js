@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {
   getCheckpointAdvancePlan,
   getCheckpointMarkersForFloor,
+  getStartTransitionCheckpoints,
 } from '../frontend/static/js/checkpoint-flow.js';
 
 let passed = 0;
@@ -79,6 +80,28 @@ test('every checkpoint on a floor is returned for purple marker rendering', () =
     'FIRST-FLOOR-CHECKPOINT',
     'DESTINATION-FF',
   ]);
+});
+
+test('a route starting at stairs registers the departure and arrival as its first checkpoints', () => {
+  const route = [
+    { id: 'STAIRS-GF', floor: 1 },
+    { id: 'STAIRS-FF', floor: 2 },
+    { id: 'FIRST-FLOOR-CHECKPOINT', floor: 2 },
+  ];
+  const initial = getStartTransitionCheckpoints(route, id => id.startsWith('STAIRS') ? 'stairs' : 'room');
+  assert.deepEqual(initial.map(checkpoint => checkpoint.id), ['STAIRS-GF', 'STAIRS-FF']);
+
+  const plan = getCheckpointAdvancePlan({ checkpoints: [...initial, route[2]], currentIndex: 0, arrivalConfirmed: true });
+  assert.equal(plan.nextActiveIndex, 2, 'confirmation must move on to the first real checkpoint');
+});
+
+test('a route starting at a lift receives the same immediate floor-confirmation pair', () => {
+  const route = [
+    { id: 'LIFT-FF', floor: 2 },
+    { id: 'LIFT-SF', floor: 3 },
+  ];
+  const initial = getStartTransitionCheckpoints(route, () => 'lift');
+  assert.deepEqual(initial.map(checkpoint => checkpoint.id), ['LIFT-FF', 'LIFT-SF']);
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

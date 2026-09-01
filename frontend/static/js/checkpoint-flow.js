@@ -40,3 +40,17 @@ export function getCheckpointMarkersForFloor(checkpoints, floor) {
   if (!Array.isArray(checkpoints)) return [];
   return checkpoints.filter(checkpoint => checkpoint?.floor === floor);
 }
+
+/**
+ * Returns the initial stair/lift transition pair when a route starts directly
+ * at a vertical node. The ordinary checkpoint scan begins at index 1, so this
+ * explicit check preserves the otherwise skipped index 0 → 1 floor change.
+ */
+export function getStartTransitionCheckpoints(logicalPath, getNodeType) {
+  const start = logicalPath?.[0];
+  const arrival = logicalPath?.[1];
+  if (!start || !arrival || start.floor === arrival.floor) return [];
+
+  const type = getNodeType?.(start.id);
+  return type === 'stairs' || type === 'lift' ? [start, arrival] : [];
+}

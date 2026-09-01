@@ -6,7 +6,11 @@ import { NODES, GRAPH } from './graph-data.js';
 import { planRoute, planAlternate, buildDirections } from './routing.js';
 import { PDREngine, getPDRSupportState } from './pdr.js';
 import { startSession, recordCheckpoint } from './metrics.js';
-import { getCheckpointAdvancePlan, getCheckpointMarkersForFloor } from './checkpoint-flow.js';
+import {
+  getCheckpointAdvancePlan,
+  getCheckpointMarkersForFloor,
+  getStartTransitionCheckpoints,
+} from './checkpoint-flow.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -1107,6 +1111,11 @@ function computeCheckpoints(logicalPath) {
     if (addedIds.has(key)) return;
     addedIds.add(key); result.push(node);
   }
+
+  // The main scan starts at index 1, which would otherwise skip a route that
+  // begins at stairs or a lift. Include its departure and arrival landing so
+  // the first action is the same floor-confirmation flow as any later change.
+  getStartTransitionCheckpoints(logicalPath, nodeType).forEach(addCheckpoint);
 
   for (let i = 1; i < logicalPath.length - 1; i++) {
     const curr = logicalPath[i], next = logicalPath[i + 1];
