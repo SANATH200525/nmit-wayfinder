@@ -2823,13 +2823,6 @@ input[type="radio"] {
         letter-spacing: 6px;
     }
 
-    .floor-tab {
-        min-height: 34px;
-        min-width: 34px;
-        padding: 6px 8px;
-        font-size: 10px;
-    }
-
     .add-stop-btn {
         min-height: 48px;
         font-size: 14px;
@@ -2895,26 +2888,33 @@ input[type="radio"] {
 
     .map-header {
         position: absolute;
-        top: 12px;
-        left: 12px;
-        right: 12px;
-        z-index: 200;
+        top: 10px;
+        left: 14px;
+        right: 14px;
+        z-index: 75;
         background: rgba(255, 255, 255, 0.96);
         backdrop-filter: blur(14px);
-        border-radius: var(--radius-md);
-        padding: 8px 10px;
-        margin: 0;
-        box-shadow: 0 2px 14px rgba(0, 0, 0, 0.1);
+        -webkit-backdrop-filter: blur(14px);
+        border-radius: var(--radius-lg);
+        padding: 5px 6px;
+        margin: 0 auto;
+        max-width: 440px;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
         border: 1px solid var(--border-light);
-        display: none !important;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        pointer-events: auto;
     }
 
     body.has-route .map-header {
         display: flex !important;
-        right: 12px;
-        width: calc(100vw - 24px);
-        max-width: none;
-        padding: 6px 8px;
+        top: 10px;
+        left: 14px;
+        right: 14px;
+        width: auto;
+        max-width: 440px;
+        padding: 5px 6px;
     }
 
     .floor-tabs {
@@ -2925,14 +2925,41 @@ input[type="radio"] {
         max-width: none;
         padding: 3px;
         grid-template-columns: repeat(4, minmax(0, 1fr));
+        background: var(--surface-2);
+        border-radius: 999px;
+        border: 1px solid var(--border-light);
+        position: relative;
     }
 
     .floor-tabs::before {
-        top: 3px;
-        bottom: 3px;
-        left: 3px;
-        width: calc((100% - 21px) / 4);
-        transform: translateX(calc(var(--active-floor-index) * (100% + 4px)));
+        display: none !important;
+    }
+
+    .floor-tab {
+        min-height: 36px;
+        min-width: 0;
+        padding: 6px 4px;
+        font-size: 12px;
+        font-family: 'Orbitron', sans-serif;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        border-radius: 999px;
+        color: var(--text-secondary);
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        transition: color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+    }
+
+    .floor-tab.active {
+        background: var(--accent) !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
     }
 
     body.has-route .route-summary {

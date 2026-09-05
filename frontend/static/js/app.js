@@ -283,11 +283,20 @@ function makeTomSelect(el, groupBy, preselected, filterFloor) {
     create: false, sortField: false, dropdownParent: 'body',
     onInitialize() { if (!filterFloor) fixOptgroupOrder(this, groupBy); },
     onDropdownOpen() { if (!filterFloor) fixOptgroupOrder(this, groupBy); },
-    onItemAdd() {
+    onItemAdd(value) {
       window.requestAnimationFrame(() => {
         this.close();
         this.blur();
       });
+      if (el && el.id === 'start_node' && value && NODES[value] && NODES[value].floor) {
+        const nodeFloor = Number(NODES[value].floor);
+        if (!isNaN(nodeFloor) && nodeFloor >= 1 && nodeFloor <= 4) {
+          const activeTab = document.querySelector('.floor-tab.active');
+          if (!activeTab || Number(activeTab.dataset.floor) !== nodeFloor) {
+            window.switchFloor(nodeFloor, true);
+          }
+        }
+      }
     },
     onDropdownClose() {
       window.requestAnimationFrame(() => this.blur());
@@ -298,11 +307,10 @@ function makeTomSelect(el, groupBy, preselected, filterFloor) {
 }
 
 window.selectStartFloor = function (btn) {
-  document.querySelectorAll('.floor-pick-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  currentStartFloor = btn.getAttribute('data-floor-label');
-  if (tsStart) tsStart.destroy();
-  tsStart = makeTomSelect('#start_node', 'floor', '', currentStartFloor);
+  const label = typeof btn === 'string' ? btn : btn?.getAttribute?.('data-floor-label');
+  const floorMap = { 'Ground Floor': 1, 'First Floor': 2, 'Second Floor': 3, 'Third Floor': 4 };
+  const num = floorMap[label] || 1;
+  window.switchFloor(num);
 };
 
 function regroupDropdowns(groupBy) {
@@ -531,22 +539,45 @@ function fitNavSVGToImage() {
 window.fitNavSVGToImage = fitNavSVGToImage;
 
 // ---------------------------------------------------------------------------
-// Floor tabs
-// ---------------------------------------------------------------------------
-window.switchFloor = function switchFloor(floorNum) {
-  document.querySelectorAll('.floor-tabs').forEach(group => {
-    group.style.setProperty('--active-floor-index', Math.max(0, Number(floorNum) - 1));
-  });
-  document.querySelectorAll('.floor-tab').forEach(tab =>
-    tab.classList.toggle('active', tab.dataset.floor == floorNum));
-  for (let i = 1; i <= 4; i++) {
-    const c = document.getElementById(`f${i}-container`);
-    if (c) c.style.display = (i == floorNum) ? 'block' : 'none';
+let isSwitchingFloor = false;
+window.switchFloor = function switchFloor(floorNum, skipStartRebuild = false) {
+  const num = Number(floorNum);
+  if (isNaN(num) || num < 1 || num > 4) return;
+  if (isSwitchingFloor) return;
+  isSwitchingFloor = true;
+  try {
+    document.querySelectorAll('.floor-tabs').forEach(group => {
+      group.style.setProperty('--active-floor-index', Math.max(0, num - 1));
+    });
+    document.querySelectorAll('.floor-tab').forEach(tab =>
+      tab.classList.toggle('active', Number(tab.dataset.floor) === num));
+
+    const floorLabel = getFloorLabel(num);
+    currentStartFloor = floorLabel;
+
+    document.querySelectorAll('.floor-pick-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-floor-label') === floorLabel);
+    });
+
+    if (!skipStartRebuild && tsStart) {
+      const prevVal = tsStart.getValue();
+      const prevNode = prevVal ? NODES[prevVal] : null;
+      const keepVal = (prevNode && Number(prevNode.floor) === num) ? prevVal : '';
+      tsStart.destroy();
+      tsStart = makeTomSelect('#start_node', 'floor', keepVal, currentStartFloor);
+    }
+
+    for (let i = 1; i <= 4; i++) {
+      const c = document.getElementById(`f${i}-container`);
+      if (c) c.style.display = (i === num) ? 'block' : 'none';
+    }
+    fitSVGToImage();
+    syncNavFloor(num);
+    updateTransitionBanner();
+    renderPDRMarkers();
+  } finally {
+    isSwitchingFloor = false;
   }
-  fitSVGToImage();
-  syncNavFloor(floorNum);
-  updateTransitionBanner();
-  renderPDRMarkers();
 };
 
 function makeOrthogonalPath(path) { return Array.isArray(path) ? [...path] : []; }
@@ -1067,10 +1098,7 @@ function clearFeedbackState() {
 function setStartFromNodeGlobal(nodeId) {
   const node = NODES[nodeId];
   if (!node) return false;
-  const floorLabel = getFloorLabel(node.floor);
-  const floorBtn = Array.from(document.querySelectorAll('.floor-pick-btn'))
-    .find(btn => btn.dataset.floorLabel === floorLabel);
-  if (floorBtn) floorBtn.click();
+  window.switchFloor(node.floor);
   if (tsStart) {
     tsStart.setValue(nodeId, false);
     return true;
@@ -2051,13 +2079,7 @@ function toast(msg) {
   function setStartFromNode(nodeId) {
     const node = NODES[nodeId];
     if (!node) return;
-    const floorLabel = getFloorLabel(node.floor);
-    const floorBtn = Array.from(document.querySelectorAll('.floor-pick-btn'))
-      .find(btn => btn.dataset.floorLabel === floorLabel);
-    if (floorBtn) {
-      floorBtn.click();
-      pulseElement(floorBtn);
-    }
+    window.switchFloor(node.floor);
     const startTs = document.getElementById('start_node')?.tomselect;
     if (startTs) {
       startTs.setValue(nodeId, false);

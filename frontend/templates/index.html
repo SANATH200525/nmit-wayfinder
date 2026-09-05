@@ -77,22 +77,8 @@
 
                 <form id="nav-form">
                     <div class="form-group"
-                        data-intro="Select the floor you are currently on, then pick your exact location from the dropdown below."
-                        data-step="1">
-                        <label class="field-label">WHAT FLOOR ARE YOU ON?</label>
-                        <div class="floor-picker" id="floor-picker">
-                            <button type="button" class="floor-pick-btn active" data-floor-label="Ground Floor"
-                                onclick="selectStartFloor(this)">GF</button>
-                            <button type="button" class="floor-pick-btn" data-floor-label="First Floor"
-                                onclick="selectStartFloor(this)">1F</button>
-                            <button type="button" class="floor-pick-btn" data-floor-label="Second Floor"
-                                onclick="selectStartFloor(this)">2F</button>
-                            <button type="button" class="floor-pick-btn" data-floor-label="Third Floor"
-                                onclick="selectStartFloor(this)">3F</button>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
+                        data-intro="Choose your exact starting location from the dropdown, or tap any room on the map."
+                        data-step="2">
                         <label class="field-label">CURRENT LOCATION</label>
                         <select id="start_node" name="start_node" required>
                             <option value="">Select location...</option>
@@ -212,7 +198,9 @@
 
         <section class="map-section">
             <div class="map-header">
-                <div class="floor-tabs">
+                <div class="floor-tabs"
+                    data-intro="Select the floor you want to view, or switch floors at any time."
+                    data-step="1">
                     <button class="floor-tab active" data-floor="1" onclick="switchFloor(1)">GF</button>
                     <button class="floor-tab" data-floor="2" onclick="switchFloor(2)">1F</button>
                     <button class="floor-tab" data-floor="3" onclick="switchFloor(3)">2F</button>
