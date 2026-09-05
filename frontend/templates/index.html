@@ -17,7 +17,7 @@
     <meta name="theme-color" content="#4f46e5">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <link rel="stylesheet" href="/static/css/style.css?v=21">
+    <link rel="stylesheet" href="/static/css/style.css?v=23">
 </head>
 
 <body id="app-body">
@@ -302,6 +302,13 @@
                     <button type="button" id="mobile-quit-btn" class="nav-quit-btn" onclick="exitNavigationToForm()" aria-label="Quit navigation">
                         QUIT
                     </button>
+                    <button type="button" id="mobile-alt-route-btn-bottom" class="alt-route-btn-mobile nav-alt-btn"
+                        title="Alternate route" onclick="requestAlternateRoute()" style="display:none;" aria-label="Toggle alternate route">
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/>
+                        </svg>
+                        <span class="alt-btn-text">ALT ROUTE</span>
+                    </button>
                     <button id="mobile-checkpoint-btn" class="nav-fab-btn" style="display:none;"
                         onclick="onCheckpointReached()" aria-label="Reached checkpoint">
                         <span class="nav-fab-btn-label">NEXT</span>
@@ -546,7 +553,7 @@
         </div>
     </aside>
 
-    <script type="module" src="/static/js/app.js?v=21"></script>
+    <script type="module" src="/static/js/app.js?v=23"></script>
 </body>
 
 </html>

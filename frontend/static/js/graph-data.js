@@ -271,7 +271,7 @@ export const NODES = {
   "restrooms-1f": {
     "coords": [
       14,
-      57
+      58
     ],
     "floor": 2,
     "label": "Restrooms",
@@ -341,7 +341,7 @@ export const NODES = {
   "checkpoint1-lift-1f": {
     "coords": [
       72,
-      60
+      58
     ],
     "floor": 2,
     "label": "1F Lift Junction",
@@ -352,7 +352,7 @@ export const NODES = {
   "checkpoint-2-corridor-1f": {
     "coords": [
       36,
-      60
+      58
     ],
     "floor": 2,
     "label": "1F Corridor Passageway",
@@ -722,6 +722,7 @@ export const GRAPH = {
   "office-of-accounts-gf": [
     "stairs-end-gf",
     "restrooms-gf",
+    "checkpoint-2-corridor-gf",
     "office-nsom-gf"
   ],
   "stairs-end-gf": [
@@ -757,6 +758,7 @@ export const GRAPH = {
     "curved-stairs-gf"
   ],
   "checkpoint-2-corridor-gf": [
+    "office-of-accounts-gf",
     "library-gf",
     "lecture-hall-1-gf",
     "it-lab-1-gf",
@@ -814,6 +816,7 @@ export const GRAPH = {
   ],
   "restrooms-1f": [
     "stairs-end-1f",
+    "checkpoint-2-corridor-1f",
     "lecture-hall-4-1f"
   ],
   "lecture-hall-5-1f": [
@@ -856,6 +859,7 @@ export const GRAPH = {
     "curved-stairs-down-1f"
   ],
   "checkpoint-2-corridor-1f": [
+    "restrooms-1f",
     "lecture-hall-4-1f",
     "lecture-hall-5-1f",
     "faculty-room-2-1f",

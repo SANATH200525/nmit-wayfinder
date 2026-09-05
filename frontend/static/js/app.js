@@ -73,6 +73,8 @@ const ICON_SVG = {
 // ---------------------------------------------------------------------------
 let pathData = [];
 let altPathData = [];
+let primaryPathBackup = null;
+let isShowingAlternate = false;
 let checkpoints = [];
 let currentCheckpointIdx = 0;
 let navStartTime = null;
@@ -420,6 +422,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('nav-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     if (feedbackTimer) { clearTimeout(feedbackTimer); feedbackTimer = null; }
+    primaryPathBackup = null;
+    isShowingAlternate = false;
+    updateAltBtnState(false);
     checkpoints = []; currentCheckpointIdx = 0; navStartTime = null;
     hideCheckpointButton();
     stopPDR();
@@ -1194,6 +1199,24 @@ function setAltBtnsVisible(visible) {
   });
 }
 
+function updateAltBtnState(isActive) {
+  isShowingAlternate = !!isActive;
+  const d = document.getElementById('alt-route-btn-desktop');
+  if (d) {
+    d.classList.toggle('active-alt', isShowingAlternate);
+    d.textContent = isShowingAlternate ? 'PRIMARY ROUTE' : 'ALT ROUTE';
+  }
+  document.querySelectorAll('.alt-route-btn-mobile').forEach(m => {
+    m.classList.toggle('active-alt', isShowingAlternate);
+    const textSpan = m.querySelector('.alt-btn-text');
+    if (textSpan) {
+      textSpan.textContent = isShowingAlternate ? 'PRIMARY' : 'ALT ROUTE';
+    } else {
+      m.textContent = isShowingAlternate ? 'PRIMARY' : 'ALT ROUTE';
+    }
+  });
+}
+
 function updateMobileRoutePreview(startId, endId) {
   const label = document.getElementById('mobile-route-label');
   if (!label) return;
@@ -1229,12 +1252,10 @@ window.resetToForm = function () {
     if (svg) svg.innerHTML = '';
   }
   altPathData = [];
+  primaryPathBackup = null;
+  isShowingAlternate = false;
+  updateAltBtnState(false);
   setAltBtnsVisible(false);
-  const d = document.getElementById('alt-route-btn-desktop');
-  if (d) d.classList.remove('active-alt');
-  document.querySelectorAll('.alt-route-btn-mobile').forEach(m => {
-    m.classList.remove('active-alt');
-  });
   const legend = document.getElementById('map-legend');
   const summary = document.getElementById('route-summary');
   if (legend) legend.style.display = 'none';
@@ -1563,6 +1584,53 @@ window.drawPath = function drawPath(path, logicalPath = path) {
 };
 
 // ---------------------------------------------------------------------------
+// Curved path generator (Bézier rounded corner fillets)
+// ---------------------------------------------------------------------------
+function buildCurvedPathD(pts, radius = 2.4) {
+  if (!Array.isArray(pts) || pts.length < 2) return '';
+  if (pts.length === 2) {
+    return `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)} L ${pts[1].x.toFixed(2)} ${pts[1].y.toFixed(2)}`;
+  }
+
+  let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
+
+  for (let i = 1; i < pts.length - 1; i++) {
+    const prev = pts[i - 1];
+    const curr = pts[i];
+    const next = pts[i + 1];
+
+    const v1x = prev.x - curr.x;
+    const v1y = prev.y - curr.y;
+    const len1 = Math.hypot(v1x, v1y);
+
+    const v2x = next.x - curr.x;
+    const v2y = next.y - curr.y;
+    const len2 = Math.hypot(v2x, v2y);
+
+    if (len1 < 0.01 || len2 < 0.01) continue;
+
+    // Check collinearity
+    const dot = (v1x * v2x + v1y * v2y) / (len1 * len2);
+    if (dot < -0.998) {
+      d += ` L ${curr.x.toFixed(2)} ${curr.y.toFixed(2)}`;
+      continue;
+    }
+
+    const cornerCut = Math.min(radius, len1 * 0.45, len2 * 0.45);
+    const startX = curr.x + (v1x / len1) * cornerCut;
+    const startY = curr.y + (v1y / len1) * cornerCut;
+    const endX = curr.x + (v2x / len2) * cornerCut;
+    const endY = curr.y + (v2y / len2) * cornerCut;
+
+    d += ` L ${startX.toFixed(2)} ${startY.toFixed(2)} Q ${curr.x.toFixed(2)} ${curr.y.toFixed(2)} ${endX.toFixed(2)} ${endY.toFixed(2)}`;
+  }
+
+  const last = pts[pts.length - 1];
+  d += ` L ${last.x.toFixed(2)} ${last.y.toFixed(2)}`;
+  return d;
+}
+
+// ---------------------------------------------------------------------------
 // renderSVG
 // ---------------------------------------------------------------------------
 function renderSVG(svgId, fullPath, floorNum, globalStart, globalEnd, routeCheckpoints = []) {
@@ -1583,16 +1651,44 @@ function renderSVG(svgId, fullPath, floorNum, globalStart, globalEnd, routeCheck
   if (currentChunk.length >= 2) chunks.push(currentChunk);
 
   chunks.forEach(pts => {
-    const pointsStr = pts.map(p => `${p.x},${p.y}`).join(' ');
-    // Glowing background track
-    const bg = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-    bg.setAttribute('points', pointsStr); bg.setAttribute('class', 'path-line-bg'); svg.appendChild(bg);
-    // Solid route line
-    const pl = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-    pl.setAttribute('points', pointsStr); pl.setAttribute('class', 'path-line'); svg.appendChild(pl);
-    // Flowing energy sweep
-    const sweep = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-    sweep.setAttribute('points', pointsStr); sweep.setAttribute('class', 'path-line-sweep'); svg.appendChild(sweep);
+    const pathD = buildCurvedPathD(pts, 2.4);
+
+    // 1. Soft glowing ambient halo
+    const glow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    glow.setAttribute('d', pathD);
+    glow.setAttribute('class', 'path-line-glow');
+    svg.appendChild(glow);
+
+    // 2. Solid vibrant core line
+    const core = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    core.setAttribute('d', pathD);
+    core.setAttribute('class', 'path-line-core');
+    svg.appendChild(core);
+
+    // 3. Inner specular white highlight (neon tube feel)
+    const spec = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    spec.setAttribute('d', pathD);
+    spec.setAttribute('class', 'path-line-specular');
+    svg.appendChild(spec);
+
+    // 4. Flowing animated energy sweep pulse
+    const sweep = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    sweep.setAttribute('d', pathD);
+    sweep.setAttribute('class', 'path-line-sweep');
+    svg.appendChild(sweep);
+
+    // Progressive entrance laser draw-in animation
+    try {
+      if (typeof core.getTotalLength === 'function') {
+        const len = Math.ceil(core.getTotalLength()) || 100;
+        [glow, core, spec].forEach(el => {
+          el.style.setProperty('--path-length', `${len}`);
+          el.classList.add('path-draw-in');
+        });
+      }
+    } catch (e) {
+      // Fallback
+    }
   });
 
   if (fullPath.some(p => p.id === globalStart.id && p.floor === floorNum)) drawStartMarker(svg, globalStart.x, globalStart.y);
@@ -3069,6 +3165,18 @@ window.requestAlternateRoute = async function requestAlternateRoute() {
     return;
   }
 
+  // If already viewing alternate route, toggle back to primary route
+  if (isShowingAlternate && primaryPathBackup && primaryPathBackup.length > 0) {
+    pathData = primaryPathBackup;
+    isShowingAlternate = false;
+    updateAltBtnState(false);
+    const ortho = typeof makeOrthogonalPath === 'function' ? makeOrthogonalPath(pathData) : pathData;
+    drawPath(ortho, pathData);
+    if (pdrEngine) pdrEngine.setPath(toPathNodes(pathData));
+    toast('Switched back to primary route.');
+    return;
+  }
+
   const startNode = pathData[0].id;
   const endNode = pathData[pathData.length - 1].id;
   const mobilityEl = document.querySelector('input[name="mobility"]:checked');
@@ -3098,15 +3206,19 @@ window.requestAlternateRoute = async function requestAlternateRoute() {
     return;
   }
 
-  // 1. Replace the global path array
+  // Backup original primary path so user can toggle back anytime
+  primaryPathBackup = pathData;
+  isShowingAlternate = true;
+
+  // Replace global path array
   pathData = altPath;
 
-  // 2. Re-initialize the entire navigation state using drawPath
-  // (makeOrthogonalPath is globally available from script.js, but fallback to altPath just in case)
   const ortho = typeof makeOrthogonalPath === 'function' ? makeOrthogonalPath(altPath) : altPath;
   drawPath(ortho, altPath);
-  // FIX 1b: update PDR path projection to use the alternate route
   if (pdrEngine) pdrEngine.setPath(toPathNodes(altPath));
+
+  // Update button states to active
+  updateAltBtnState(true);
 
   toast('Alternate route activated. Navigation updated.');
 };

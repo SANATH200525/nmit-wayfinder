@@ -925,56 +925,83 @@ input[type="radio"] {
     overflow: visible;
 }
 
-/* ── Path Lines ── */
+/* ── Multi-Layer Navigation Route Line ── */
+.path-line-glow,
+.path-line-bg {
+    fill: none;
+    stroke: rgba(59, 130, 246, 0.28);
+    stroke-width: 3.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    filter: drop-shadow(0 0 3px rgba(59, 130, 246, 0.65));
+    pointer-events: none;
+}
+
+.path-line-core,
 .path-line {
     fill: none;
     stroke: var(--accent);
-    stroke-width: 0.85;
+    stroke-width: 1.55;
     stroke-linecap: round;
     stroke-linejoin: round;
+    pointer-events: none;
 }
 
-/* ── Flowing energy sweep: bright light beam travelling forward along route ── */
+.path-line-specular {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.75);
+    stroke-width: 0.55;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    pointer-events: none;
+}
+
+/* ── Progressive Entrance Laser Draw-In Animation ── */
+.path-draw-in {
+    stroke-dasharray: var(--path-length, 100);
+    stroke-dashoffset: var(--path-length, 100);
+    animation: drawPathLaser 1.15s cubic-bezier(0.2, 0.9, 0.25, 1) forwards;
+}
+
+@keyframes drawPathLaser {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+/* ── Flowing energy sweep: bright luminous beam travelling along route ── */
 .path-line-sweep {
     fill: none;
     stroke: #ffffff;
-    stroke-width: 0.95;
+    stroke-width: 1.1;
     stroke-linecap: round;
     stroke-linejoin: round;
-    stroke-dasharray: 6 36;
-    animation: energySweep 2s linear infinite;
-    filter: drop-shadow(0 0 2.5px rgba(255, 255, 255, 0.9));
+    stroke-dasharray: 5 28;
+    animation: energySweep 1.8s linear infinite;
+    filter: drop-shadow(0 0 2.5px rgba(255, 255, 255, 0.95));
     pointer-events: none;
 }
 
 @keyframes energySweep {
     from {
-        stroke-dashoffset: 42;
+        stroke-dashoffset: 33;
     }
     to {
         stroke-dashoffset: 0;
     }
 }
 
-.path-line-bg {
-    fill: none;
-    stroke: rgba(59, 130, 246, 0.22);
-    stroke-width: 2.2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-dasharray: 1 9999;
-    stroke-dashoffset: 0;
-    animation: drawLine 1.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+[data-theme="dark"] .path-line-glow {
+    stroke: rgba(96, 165, 250, 0.35);
+    filter: drop-shadow(0 0 4px rgba(96, 165, 250, 0.85));
 }
 
-@keyframes drawLine {
-    from {
-        stroke-dasharray: 0 9999;
-    }
+[data-theme="dark"] .path-line-core {
+    stroke: #38bdf8;
+}
 
-    to {
-        stroke-dasharray: 9999 0;
-    }
+[data-theme="dark"] .path-line-specular {
+    stroke: rgba(255, 255, 255, 0.9);
 }
 
 .path-line-traversed {
@@ -3637,6 +3664,49 @@ input[type="radio"] {
         transform: scale(0.96);
     }
 
+    .nav-bottom-bar .nav-alt-btn {
+        flex: 1.2;
+        max-width: 140px;
+        height: 48px;
+        min-height: 48px;
+        padding: 0 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        background: rgba(59, 130, 246, 0.08);
+        color: var(--accent);
+        border: 1.5px solid rgba(59, 130, 246, 0.35);
+        border-radius: 12px;
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.8px;
+        cursor: pointer;
+        transition: background 0.15s ease, transform 0.1s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+        margin: 0;
+        width: auto;
+        white-space: nowrap;
+        box-sizing: border-box;
+    }
+
+    .nav-bottom-bar .nav-alt-btn:hover {
+        background: rgba(59, 130, 246, 0.15);
+        border-color: var(--accent);
+    }
+
+    .nav-bottom-bar .nav-alt-btn:active {
+        background: rgba(59, 130, 246, 0.25);
+        transform: scale(0.96);
+    }
+
+    .nav-bottom-bar .nav-alt-btn.active-alt {
+        background: var(--accent) !important;
+        color: #ffffff !important;
+        border-color: var(--accent) !important;
+        box-shadow: 0 3px 12px rgba(59, 130, 246, 0.4);
+    }
+
     /* Central FAB — checkpoint action */
     .nav-fab-btn {
         flex: 1.8;
@@ -4235,7 +4305,7 @@ input[type="radio"] {
     letter-spacing: 1px;
     cursor: pointer;
     transition: all 0.2s;
-    display: inline-flex !important;
+    display: inline-flex;
     align-items: center !important;
     justify-content: center !important;
     text-align: center !important;
@@ -4399,4 +4469,21 @@ input[type="radio"] {
     background: rgba(239, 68, 68, 0.15);
     border-color: rgba(239, 68, 68, 0.4);
     color: #f87171;
+}
+
+[data-theme="dark"] .nav-bottom-bar .nav-alt-btn {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(96, 165, 250, 0.4);
+    color: #93c5fd;
+}
+
+[data-theme="dark"] .nav-bottom-bar .nav-alt-btn:hover {
+    background: rgba(59, 130, 246, 0.25);
+    border-color: #60a5fa;
+}
+
+[data-theme="dark"] .nav-bottom-bar .nav-alt-btn.active-alt {
+    background: #3b82f6 !important;
+    border-color: #3b82f6 !important;
+    color: #ffffff !important;
 }
